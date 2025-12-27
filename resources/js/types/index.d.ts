@@ -41,3 +41,29 @@ export interface User {
     updated_at: string;
     [key: string]: unknown; // This allows for additional properties...
 }
+
+export interface Product {
+    id: number;
+    name: string;
+    last_price: number;
+    category?: string;
+}
+
+export interface ShoppingItem {
+    id?: number;
+    product_id: number;
+    product_name_snapshot: string;
+    quantity: number;
+    price_per_unit: number;
+    subtotal: number;
+    is_bought: boolean;
+}
+
+export interface ShoppingList {
+    id: number;
+    title: string;
+    shopping_date: string;
+    store_id: number;
+    items: ShoppingItem[];
+    total_estimated_price: number;
+}
