@@ -142,12 +142,12 @@ class ShoppingListController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(ShoppingList $shoppingList)
+    public function edit(ShoppingList $shoppingList, $id)
     {
-        if ($shoppingList->user_id !== Auth::id()) abort(403);
+        $list = $shoppingList->findOrFail($id);
 
         return Inertia::render('shopping/edit', [
-            'shoppingList' => $shoppingList
+            'shoppingList' => $list
         ]);
     }
 
@@ -218,15 +218,17 @@ class ShoppingListController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(ShoppingList $shoppingList)
+    public function destroy(ShoppingList $shoppingList, $id)
     {
-        DB::transaction(function () use ($shoppingList) {
+        $list = $shoppingList->findOrFail($id);
+
+        DB::transaction(function () use ($list) {
             // Hapus item-itemnya dulu (jika tidak pakai cascade delete di database)
-            $shoppingList->items()->delete();
-            $shoppingList->delete();
+            $list->items()->delete();
+            $list->delete();
         });
 
-        return back()->with('message', 'Riwayat belanja berhasil dihapus.');
+        return back()->with('delete', 'Riwayat belanja berhasil dihapus.');
     }
 
     public function check($id)

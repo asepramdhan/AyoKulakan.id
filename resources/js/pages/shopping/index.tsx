@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import ShoppingListController from '@/actions/App/Http/Controllers/ShoppingListController';
 import InputError from '@/components/input-error';
+import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
@@ -15,7 +16,7 @@ import shopping from '@/routes/shopping'; // Wayfinder routes
 import { type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Form, Head, Link, useForm, usePage } from '@inertiajs/react'; // Gunakan useForm untuk state management
-import { CheckCircle2, DownloadCloud, Plus, Save, ShoppingBag, Trash2 } from 'lucide-react';
+import { CheckCircle2, CheckCircle2Icon, DownloadCloud, Pencil, Plus, Save, ShoppingBag, Trash2 } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -324,6 +325,20 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
         </Card>
 
         {/* BAGIAN TABEL RIWAYAT BELANJA */}
+        <Transition
+          show={flash.delete}
+          enter="transition ease-in-out"
+          enterFrom="opacity-0"
+          leave="transition ease-in-out"
+          leaveTo="opacity-0"
+        >
+          <Alert className="mb-2 text-green-600 bg-green-50 dark:bg-green-800 dark:text-green-200">
+            <CheckCircle2Icon />
+            <AlertTitle>
+              {flash.delete || 'Terhapus'}
+            </AlertTitle>
+          </Alert>
+        </Transition>
         <Card>
           <CardHeader>
             <CardTitle>Riwayat Belanja Terakhir</CardTitle>
@@ -370,7 +385,7 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
                             <CheckCircle2 className="w-4 h-4" />
                           </Link>
                         </Button>
-                        {/* <Button
+                        <Button
                           variant="default"
                           size="sm"
                           className="bg-sky-500 hover:bg-sky-600 cursor-pointer"
@@ -378,13 +393,22 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
                           <Link href={shopping.edit(list.id)}>
                             <Pencil className="w-4 h-4" />
                           </Link>
-                        </Button> */}
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
                         >
                           <Link href={shopping.export(list.id)}>
                             <DownloadCloud className="w-4 h-4" />
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="hover:text-rose-600 cursor-pointer"
+                        >
+                          <Link href={shopping.destroy(list.id)} className="cursor-pointer" onClick={(e) => { if (!confirm('Anda yakin ingin menghapus riwayat belanja ini?')) { e.preventDefault(); } }}>
+                            <Trash2 className="w-4 h-4" />
                           </Link>
                         </Button>
                       </TableCell>

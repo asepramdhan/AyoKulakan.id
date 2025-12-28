@@ -44,6 +44,7 @@ class HandleInertiaRequests extends Middleware
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'flash' => [
                 'message' => $request->session()->get('message'),
+                'delete' => $request->session()->get('delete'),
             ],
             'auth' => [
                 'user' => $request->user(),
