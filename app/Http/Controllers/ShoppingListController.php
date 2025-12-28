@@ -21,6 +21,10 @@ class ShoppingListController extends Controller
     {
         $shoppingLists = ShoppingList::with('store')
             ->where('user_id', Auth::id())
+            ->withCount('items') // Ini akan menghasilkan 'items_count'
+            ->withCount(['items as completed_items_count' => function ($query) {
+                $query->where('is_bought', true);
+            }])
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
@@ -147,7 +151,10 @@ class ShoppingListController extends Controller
         $list = $shoppingList->findOrFail($id);
 
         return Inertia::render('shopping/edit', [
-            'shoppingList' => $list
+            'store' => $list->store,
+            'stores' => Store::where('user_id', Auth::id())->get(),
+            'products' => Auth::user()->products,
+            'list' => $list
         ]);
     }
 

@@ -4,6 +4,8 @@ import {
     Sidebar,
     SidebarContent,
     SidebarFooter,
+    SidebarGroup,
+    SidebarGroupLabel,
     SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
@@ -29,6 +31,9 @@ const mainNavItems: NavItem[] = [
         href: shopping.index(),
         icon: ShoppingBag,
     },
+];
+
+const managementNavItems: NavItem[] = [
     {
         title: 'Master Produk',
         href: products.index(),
@@ -57,7 +62,16 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <SidebarGroup className="px-2 py-0">
+                    <SidebarGroupLabel>Menu Utama</SidebarGroupLabel>
+                    <SidebarMenu>
+                        <NavMain items={mainNavItems} />
+                    </SidebarMenu>
+                    <SidebarGroupLabel>Kelola</SidebarGroupLabel>
+                    <SidebarMenu>
+                        <NavMain items={managementNavItems} />
+                    </SidebarMenu>
+                </SidebarGroup>
             </SidebarContent>
 
             <SidebarFooter>

@@ -368,49 +368,61 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
                       <TableCell className="font-medium capitalize">{list.title}</TableCell>
                       <TableCell>Rp {Number(list.total_estimated_price).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                       <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${list.status === 'completed'
-                          ? 'bg-green-100 text-green-700 border border-green-200 dark:bg-green-700 dark:text-green-100'
-                          : 'bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-700 dark:text-slate-100'
-                          }`}>
-                          {list.status === 'completed' ? 'Selesai' : 'Ongoing'}
-                        </span>
+                        <div className="min-w-[120px]">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className={`text-[10px] font-bold ${list.status === 'completed' ? 'text-green-600' : 'text-amber-600'}`}>
+                              {list.status === 'completed' ? '100%' : 'Sedang Berjalan'}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {list.completed_items_count || 0}/{list.items_count || 0}
+                            </span>
+                          </div>
+                          {/* Progress Bar Sederhana */}
+                          <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all ${list.status === 'completed' ? 'bg-green-500' : 'bg-amber-500'}`}
+                              style={{ width: `${(list.completed_items_count / list.items_count) * 100}%` }}
+                            ></div>
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right space-x-2">
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="bg-orange-500 hover:bg-orange-600 cursor-pointer"
-                        >
-                          <Link href={shopping.check(list.id)}>
+                        <Link href={shopping.check(list.id)}>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="bg-orange-500 hover:bg-orange-600 cursor-pointer"
+                          >
                             <CheckCircle2 className="w-4 h-4" />
-                          </Link>
-                        </Button>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="bg-sky-500 hover:bg-sky-600 cursor-pointer"
-                        >
-                          <Link href={shopping.edit(list.id)}>
+                          </Button>
+                        </Link>
+                        <Link href={shopping.edit(list.id)}>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="bg-sky-500 hover:bg-sky-600 cursor-pointer"
+                          >
                             <Pencil className="w-4 h-4" />
-                          </Link>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                        >
-                          <Link href={shopping.export(list.id)}>
+                          </Button>
+                        </Link>
+                        <Link href={shopping.export(list.id)}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="hover:text-sky-600 cursor-pointer"
+                          >
                             <DownloadCloud className="w-4 h-4" />
-                          </Link>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="hover:text-rose-600 cursor-pointer"
-                        >
-                          <Link href={shopping.destroy(list.id)} className="cursor-pointer" onClick={(e) => { if (!confirm('Anda yakin ingin menghapus riwayat belanja ini?')) { e.preventDefault(); } }}>
+                          </Button>
+                        </Link>
+                        <Link href={shopping.destroy(list.id)} className="cursor-pointer" onClick={(e) => { if (!confirm('Anda yakin ingin menghapus riwayat belanja ini?')) { e.preventDefault(); } }}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="hover:text-rose-600 cursor-pointer"
+                          >
                             <Trash2 className="w-4 h-4" />
-                          </Link>
-                        </Button>
+                          </Button>
+                        </Link>
                       </TableCell>
                     </TableRow>
                   ))
