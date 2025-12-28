@@ -233,6 +233,9 @@ class ShoppingListController extends Controller
     {
         $list = ShoppingList::with(['items', 'store'])->findOrFail($id);
 
+        // Pastikan user hanya bisa akses belanjaan miliknya
+        if ($list->user_id !== Auth::id()) abort(403);
+
         return Inertia::render('shopping/check', [
             'shoppingList' => $list
         ]);
