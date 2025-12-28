@@ -220,9 +220,6 @@ class ShoppingListController extends Controller
      */
     public function destroy(ShoppingList $shoppingList)
     {
-        dd($shoppingList);
-        // Pastikan milik user
-        if ($shoppingList->user_id !== Auth::id()) abort(403);
         DB::transaction(function () use ($shoppingList) {
             // Hapus item-itemnya dulu (jika tidak pakai cascade delete di database)
             $shoppingList->items()->delete();
@@ -235,9 +232,6 @@ class ShoppingListController extends Controller
     public function check($id)
     {
         $list = ShoppingList::with(['items', 'store'])->findOrFail($id);
-
-        // Pastikan user hanya bisa akses belanjaan miliknya
-        if ($list->user_id !== Auth::id()) abort(403);
 
         return Inertia::render('shopping/check', [
             'shoppingList' => $list
