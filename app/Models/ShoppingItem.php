@@ -9,6 +9,10 @@ class ShoppingItem extends Model
 {
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'is_bought' => 'boolean',
+    ];
+
     public function shoppingList(): BelongsTo
     {
         return $this->belongsTo(ShoppingList::class);

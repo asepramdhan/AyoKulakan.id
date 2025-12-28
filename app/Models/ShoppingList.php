@@ -10,6 +10,10 @@ class ShoppingList extends Model
 {
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'shopping_date' => 'datetime',
+    ];
+
     public function items(): HasMany
     {
         return $this->hasMany(ShoppingItem::class);
