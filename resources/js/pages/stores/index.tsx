@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import StoreController from '@/actions/App/Http/Controllers/StoreController';
 import InputError from '@/components/input-error';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
@@ -101,8 +101,9 @@ export default function index({ stores }: { stores: any[] }) {
                     <TableRow key={store.id}>
                       <TableCell className="font-medium capitalize">{store.name}</TableCell>
                       <TableCell className="text-right">
-                        <Form {...StoreController.destroy.form(store.id)} method="delete">
+                        <Form {...StoreController.destroy.form(store.id)}>
                           <Button
+                            type="submit"
                             variant="ghost"
                             size="icon"
                             className="text-red-500 cursor-pointer"

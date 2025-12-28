@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Spinner } from '@/components/ui/spinner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
-import shopping, { store } from '@/routes/shopping'; // Wayfinder routes
+import shopping from '@/routes/shopping'; // Wayfinder routes
 import { type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Form, Head, Link, useForm, usePage } from '@inertiajs/react'; // Gunakan useForm untuk state management
@@ -66,7 +66,7 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
     store_id: stores?.[0]?.id || '', // Default ke toko pertama
     title: '',
     shopping_date: new Date().toISOString().split('T')[0],
-    items: [{ product_id: null, product_name: '', quantity: 1, price: null }],
+    items: [{ product_id: null, product_name: '', quantity: null, price: null }],
   });
 
   // Handler Tambah Baris
@@ -161,7 +161,7 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
                         id="title"
                         name='title'
                         className="mt-1 block w-full"
-                        placeholder='Contoh: Belanja Bulanan MeowMeal'
+                        placeholder='Contoh: Belanja Bulanan MeowMeal.id'
                         required
                       />
                       <InputError message={errors.title} />
@@ -184,9 +184,9 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
 
                   <div className="space-y-6">
                     <div className="flex justify-between items-center border-b pb-2">
-                      <h3 className="font-bold text-lg text-slate-800">Daftar Barang</h3>
-                      <Button type="button" variant="outline" size="sm" onClick={addRow} className='cursor-pointer border-green-600 text-green-600 hover:bg-green-50'>
-                        <Plus className="w-4 h-4 mr-1" /> Tambah
+                      <h3 className="font-bold text-lg text-slate-800 dark:text-slate-50">Daftar Barang</h3>
+                      <Button type="button" variant="outline" size="sm" onClick={addRow} className='cursor-pointer border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-800'>
+                        <Plus className="w-4 h-4" />Tambah
                       </Button>
                     </div>
 
@@ -198,14 +198,14 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
 
                             {/* 1. Nama Produk (6 Kolom Desktop) */}
                             <div className="md:col-span-6">
-                              <Label className="text-[10px] uppercase font-bold text-slate-500 md:hidden">Nama Barang</Label>
+                              <Label className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 md:hidden">Nama Barang</Label>
                               <Input
                                 list="product-suggestions"
-                                className="mt-1 bg-white md:mt-0"
+                                className="mt-1 bg-white md:mt-0 dark:bg-slate-800"
                                 name={`items.${index}.product_name`}
                                 value={item.product_name}
                                 onChange={(e) => updateItem(index, 'product_name', e.target.value)}
-                                placeholder="Nama pakan/barang..."
+                                placeholder="Nama barang..."
                                 required
                                 autoComplete="off"
                               />
@@ -216,10 +216,10 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
 
                               {/* Quantity (4 kolom dari 12 bagian wrapper) */}
                               <div className="col-span-4 md:col-span-3">
-                                <Label className="text-[10px] uppercase font-bold text-slate-500 md:hidden">Qty</Label>
+                                <Label className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 md:hidden">Qty</Label>
                                 <Input
                                   type="number"
-                                  className="mt-1 bg-white md:mt-0 text-center"
+                                  className="mt-1 bg-white md:mt-0 dark:bg-slate-800 text-center"
                                   name={`items.${index}.quantity`}
                                   value={item.quantity}
                                   onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value))}
@@ -230,16 +230,16 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
 
                               {/* Harga (8 kolom dari 12 bagian wrapper di mobile, 7 di desktop) */}
                               <div className="col-span-8 md:col-span-7">
-                                <Label className="text-[10px] uppercase font-bold text-slate-500 md:hidden">Harga</Label>
+                                <Label className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 md:hidden">Harga</Label>
                                 <div className="relative mt-1 md:mt-0">
-                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">Rp</span>
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs dark:text-slate-300">Rp</span>
                                   <Input
                                     type="text"
-                                    className="pl-8 bg-white font-medium"
+                                    className="pl-8 bg-white font-medium dark:bg-slate-800"
                                     name={`items.${index}.price`}
                                     value={formatRupiah(item.price)}
                                     onChange={(e) => updateItem(index, 'price', e.target.value)}
-                                    placeholder="0"
+                                    placeholder="100.000"
                                     required
                                   />
                                 </div>
@@ -253,7 +253,7 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => removeRow(index)}
-                                    className="h-8 w-8 rounded-full bg-red-100 text-red-600 md:bg-transparent md:text-slate-400 md:hover:text-red-600 md:hover:bg-red-50 cursor-pointer transition-colors"
+                                    className="h-8 w-8 rounded-full bg-red-100 text-red-600 md:bg-transparent md:text-slate-400 md:hover:text-red-600 md:hover:bg-red-50 cursor-pointer transition-colors dark:hover:bg-red-800 dark:hover:text-red-400"
                                   >
                                     <Trash2 className="w-4 h-4" />
                                   </Button>
@@ -296,7 +296,7 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
                         leave="transition ease-in-out"
                         leaveTo="opacity-0"
                       >
-                        <p className="text-sm text-neutral-600">
+                        <p className="text-sm text-neutral-600 dark:text-neutral-400">
                           {flash.message || 'Tersimpan'}
                           {/* Terakhir disimpan {moment(recentlyCreated).fromNow()} */}
                         </p>
@@ -346,7 +346,7 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
                     <TableRow key={list.id}>
                       <TableCell>{formatSingkat(list.shopping_date)}</TableCell>
                       <TableCell>
-                        <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-medium capitalize">
+                        <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-700 dark:text-blue-100 text-xs font-medium capitalize">
                           {list.store.name}
                         </span>
                       </TableCell>
@@ -354,8 +354,8 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
                       <TableCell>Rp {Number(list.total_estimated_price).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${list.status === 'completed'
-                          ? 'bg-green-100 text-green-700 border border-green-200'
-                          : 'bg-slate-100 text-slate-600 border border-slate-200'
+                          ? 'bg-green-100 text-green-700 border border-green-200 dark:bg-green-700 dark:text-green-100'
+                          : 'bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-700 dark:text-slate-100'
                           }`}>
                           {list.status === 'completed' ? 'Selesai' : 'Ongoing'}
                         </span>

@@ -151,7 +151,7 @@ export default function Dashboard({ stats }: { stats: any }) {
                             }
                             {top_products.map((p: any, i: number) => (
                                 <div key={i} className="flex items-center gap-3">
-                                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-orange-100 text-orange-600 text-[10px] font-bold">{i + 1}</div>
+                                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-orange-100 text-orange-600 dark:bg-orange-800 dark:text-orange-500 text-[10px] font-bold">{i + 1}</div>
                                     <span className="text-sm flex-1 truncate capitalize">{p.product_name_snapshot}</span>
                                     <span className="text-xs text-muted-foreground">{p.total_bought}x</span>
                                 </div>
@@ -165,45 +165,45 @@ export default function Dashboard({ stats }: { stats: any }) {
                     {/* Pintasan 1: Buat Daftar Baru */}
                     <Link
                         href={shopping.index()}
-                        className="flex flex-col items-center p-4 bg-green-50 border border-green-100 rounded-2xl hover:bg-green-100 transition-all group"
+                        className="flex flex-col items-center p-4 bg-green-50 border border-green-100 rounded-2xl hover:bg-green-100 dark:hover:bg-green-800 dark:bg-green-900 dark:border-green-800 transition-all group"
                     >
-                        <div className="w-12 h-12 bg-green-600 text-white rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                        <div className="w-12 h-12 bg-green-600 text-white dark:bg-green-500 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                             <PlusCircle className="w-6 h-6" />
                         </div>
-                        <span className="text-sm font-semibold text-green-900">Buat Daftar</span>
+                        <span className="text-sm font-semibold text-green-900 dark:text-green-50">Buat Daftar</span>
                     </Link>
 
                     {/* Pintasan 2: Cek Belanjaan Aktif */}
                     <Link
                         href={shopping.index() + '?status=ongoing'} // Tambahkan query status
-                        className="flex flex-col items-center p-4 bg-orange-50 border border-orange-100 rounded-2xl hover:bg-orange-100 transition-all group"
+                        className="flex flex-col items-center p-4 bg-orange-50 border border-orange-100 rounded-2xl hover:bg-orange-100 dark:hover:bg-orange-800 dark:bg-orange-900 dark:border-orange-800 transition-all group"
                     >
-                        <div className="w-12 h-12 bg-orange-500 text-white rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                        <div className="w-12 h-12 bg-orange-500 text-white dark:bg-orange-600 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                             <ShoppingCart className="w-6 h-6" />
                         </div>
-                        <span className="text-sm font-semibold text-orange-900">Sedang Belanja</span>
+                        <span className="text-sm font-semibold text-orange-900 dark:text-orange-50">Sedang Belanja</span>
                     </Link>
 
                     {/* Pintasan 3: Kelola Toko */}
                     <Link
                         href={stores.index()}
-                        className="flex flex-col items-center p-4 bg-blue-50 border border-blue-100 rounded-2xl hover:bg-blue-100 transition-all group"
+                        className="flex flex-col items-center p-4 bg-blue-50 border border-blue-100 rounded-2xl hover:bg-blue-100 dark:hover:bg-blue-800 dark:bg-blue-900 dark:border-blue-800 transition-all group"
                     >
-                        <div className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                        <div className="w-12 h-12 bg-blue-600 text-white dark:bg-blue-500 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                             <Store className="w-6 h-6" />
                         </div>
-                        <span className="text-sm font-semibold text-blue-900">Kelola Toko</span>
+                        <span className="text-sm font-semibold text-blue-900 dark:text-blue-50">Kelola Toko</span>
                     </Link>
 
                     {/* Pintasan 4: Riwayat */}
                     <Link
                         href={shopping.index() + '?status=completed'} // Tambahkan query status
-                        className="flex flex-col items-center p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-slate-100 transition-all group"
+                        className="flex flex-col items-center p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 dark:bg-slate-900 dark:border-slate-800 transition-all group"
                     >
-                        <div className="w-12 h-12 bg-slate-600 text-white rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                        <div className="w-12 h-12 bg-slate-600 text-white dark:bg-slate-500 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                             <History className="w-6 h-6" />
                         </div>
-                        <span className="text-sm font-semibold text-slate-900">Riwayat</span>
+                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-50">Riwayat</span>
                     </Link>
                 </div>
             </div>

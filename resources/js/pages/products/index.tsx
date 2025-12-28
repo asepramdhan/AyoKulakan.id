@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import ProductController from '@/actions/App/Http/Controllers/ProductController';
+import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
@@ -7,8 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import AppLayout from '@/layouts/app-layout';
 import products from '@/routes/products';
 import { type BreadcrumbItem } from '@/types';
-import { Form, Head, Link } from '@inertiajs/react';
-import { Package, Package2, Store, Trash2 } from 'lucide-react';
+import { Transition } from '@headlessui/react';
+import { Form, Head, Link, usePage } from '@inertiajs/react';
+import { CheckCircle2Icon, Package, Package2, Store, Trash2 } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -18,6 +20,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Index({ products, stores, filters }: any) {
+  const { flash } = usePage().props;
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Master Produk" />
@@ -50,6 +53,20 @@ export default function Index({ products, stores, filters }: any) {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            <Transition
+              show={flash.message}
+              enter="transition ease-in-out"
+              enterFrom="opacity-0"
+              leave="transition ease-in-out"
+              leaveTo="opacity-0"
+            >
+              <Alert className="mb-2 text-green-600 bg-green-50 dark:bg-green-800 dark:text-green-200">
+                <CheckCircle2Icon />
+                <AlertTitle>
+                  {flash.message || 'Terhapus'}
+                </AlertTitle>
+              </Alert>
+            </Transition>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -64,7 +81,7 @@ export default function Index({ products, stores, filters }: any) {
                   <TableRow key={product.id}>
                     <TableCell className="font-medium capitalize">{product.name}</TableCell>
                     <TableCell>
-                      <span className="text-xs bg-slate-100 px-2 py-1 rounded capitalize">
+                      <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded capitalize">
                         {product.store?.name}
                       </span>
                     </TableCell>

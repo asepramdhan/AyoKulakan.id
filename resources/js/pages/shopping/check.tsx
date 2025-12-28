@@ -60,20 +60,20 @@ export default function CheckShopping({ shoppingList }: { shoppingList: any }) {
         <div className="space-y-3">
           {shoppingList.items.map((item: any) => (
             <Link href={ShoppingListController.toggleItem(item.id)} key={item.id} preserveScroll className={`w-full flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${item.is_bought
-              ? 'bg-green-50 border-green-200 opacity-60'
-              : 'bg-white border-slate-100 shadow-sm'
+              ? 'bg-green-50 border-green-200 opacity-60 dark:bg-green-800 dark:border-green-700'
+              : 'bg-white border-slate-100 shadow-sm dark:bg-slate-800 dark:border-slate-700'
               }`}>
               <div className="flex items-center gap-3">
                 {item.is_bought ? (
-                  <CheckCircle2 className="w-6 h-6 text-green-600" />
+                  <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
                 ) : (
-                  <Circle className="w-6 h-6 text-slate-300" />
+                  <Circle className="w-6 h-6 text-slate-300 dark:text-slate-600" />
                 )}
                 <div>
-                  <p className={`font-semibold ${item.is_bought ? 'line-through text-slate-500 capitalize text-start' : 'text-slate-800 capitalize text-start'}`}>
+                  <p className={`font-semibold ${item.is_bought ? 'line-through text-slate-500 dark:text-slate-400 capitalize text-start' : 'text-slate-800 dark:text-slate-200 capitalize text-start'}`}>
                     {item.product_name_snapshot}
                   </p>
-                  <p className="text-xs text-slate-500 text-start">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 text-start">
                     {item.quantity} pcs x Rp {Number(item.price_per_unit).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
                   </p>
                 </div>
@@ -88,7 +88,7 @@ export default function CheckShopping({ shoppingList }: { shoppingList: any }) {
         </div>
 
         {progress === 100 && (
-          <div className="bg-green-600 text-white p-4 rounded-xl text-center font-bold shadow-lg animate-bounce">
+          <div className="bg-green-600 text-white dark:bg-green-800 p-4 rounded-xl text-center font-bold shadow-lg animate-bounce">
             🎉 Semua Barang Terbeli!
           </div>
         )}

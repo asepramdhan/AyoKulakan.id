@@ -74,7 +74,6 @@ class StoreController extends Controller
      */
     public function destroy(Store $store)
     {
-        if ($store->user_id !== Auth::id()) abort(403);
         $store->delete();
         return back()->with('message', 'Toko berhasil dihapus');
     }
