@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import StoreController from '@/actions/App/Http/Controllers/StoreController';
 import InputError from '@/components/input-error';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
@@ -10,8 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import AppLayout from '@/layouts/app-layout';
 import stores from '@/routes/stores';
 import { type BreadcrumbItem } from '@/types';
-import { Form, Head } from '@inertiajs/react';
-import { Plus, StoreIcon, Trash2 } from 'lucide-react';
+import { Transition } from '@headlessui/react';
+import { Form, Head, usePage } from '@inertiajs/react';
+import { CheckCircle2Icon, Plus, StoreIcon, Trash2 } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -21,6 +23,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function index({ stores }: { stores: any[] }) {
+  const { flash } = usePage().props as any;
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Kelola Toko" />
@@ -37,12 +40,29 @@ export default function index({ stores }: { stores: any[] }) {
             </CardHeader>
             <CardContent>
               <Form {...StoreController.store()} className="space-y-4">
-                {({ processing, errors }) => (
+                {({ processing, recentlySuccessful, errors }) => (
                   <>
+                    <Transition
+                      show={recentlySuccessful}
+                      enter="transition ease-in-out"
+                      enterFrom="opacity-0"
+                      leave="transition ease-in-out"
+                      leaveTo="opacity-0"
+                    >
+                      <Alert className="mb-2 text-green-600 bg-green-50 dark:bg-green-800 dark:text-green-200">
+                        <CheckCircle2Icon />
+                        <AlertTitle>
+                          {flash.message || 'Tersimpan'}
+                        </AlertTitle>
+                      </Alert>
+                      {/* <p className="text-sm text-neutral-600">
+                        Terakhir disimpan {moment(recentlyCreated).fromNow()}
+                      </p> */}
+                    </Transition>
                     <div className="space-y-2">
                       <Input
                         name='name'
-                        placeholder="Nama Toko (ex: PetShop ABC)"
+                        placeholder="Nama Toko (ex: petshop abc)"
                         required
                       />
                       <InputError message={errors.name} />
@@ -81,7 +101,7 @@ export default function index({ stores }: { stores: any[] }) {
                     <TableRow key={store.id}>
                       <TableCell className="font-medium capitalize">{store.name}</TableCell>
                       <TableCell className="text-right">
-                        <Form {...StoreController.destroy.form(store.id)}>
+                        <Form {...StoreController.destroy.form(store.id)} method="delete">
                           <Button
                             variant="ghost"
                             size="icon"
