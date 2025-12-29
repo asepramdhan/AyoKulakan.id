@@ -148,7 +148,7 @@ class ShoppingListController extends Controller
      */
     public function edit(ShoppingList $shoppingList, $id)
     {
-        $list = $shoppingList->findOrFail($id);
+        $list = $shoppingList->findOrFail($id)->load('items');
 
         return Inertia::render('shopping/edit', [
             'store' => $list->store,
@@ -161,15 +161,15 @@ class ShoppingListController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, ShoppingList $shoppingList)
+    public function update(Request $request, $id)
     {
-        if ($shoppingList->user_id !== Auth::id()) abort(403);
+        $shoppingList = ShoppingList::findOrFail($id);
 
-        // Format harga agar titik ribuan hilang sebelum validasi
+        // 1. Bersihkan format harga (hilangkan titik ribuan)
         $items = $request->items;
         foreach ($items as $key => $item) {
-            if (isset($item['price']) && is_string($item['price'])) {
-                $items[$key]['price'] = (float) str_replace(['.', ','], '', $item['price']);
+            if (isset($item['price'])) {
+                $items[$key]['price'] = (float) str_replace(['.', ','], '', (string)$item['price']);
             }
         }
         $request->merge(['items' => $items]);
@@ -179,47 +179,86 @@ class ShoppingListController extends Controller
             'title' => 'required|string|max:255',
             'shopping_date' => 'required|date',
             'items' => 'required|array|min:1',
+            'items.*.product_id' => 'nullable',
             'items.*.product_name' => 'required|string',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric|min:0',
         ]);
 
         DB::transaction(function () use ($validated, $shoppingList) {
-            // 1. Update data utama
+            // 2. Update data induk
             $shoppingList->update([
                 'store_id' => $validated['store_id'],
                 'title' => $validated['title'],
                 'shopping_date' => $validated['shopping_date'],
             ]);
 
-            // 2. Hapus item lama, ganti dengan yang baru (cara paling bersih)
-            $shoppingList->items()->delete();
-
             $totalAmount = 0;
-            foreach ($validated['items'] as $item) {
-                $subtotal = $item['quantity'] * $item['price'];
+            $keptItemIds = []; // Untuk mencatat item mana saja yang masih ada
+
+            foreach ($validated['items'] as $itemData) {
+                $subtotal = $itemData['quantity'] * $itemData['price'];
                 $totalAmount += $subtotal;
 
-                // Cari/Buat Produk & Update harga terakhir
-                $product = Product::firstOrCreate(
-                    ['user_id' => Auth::id(), 'name' => $item['product_name']],
-                    ['store_id' => $validated['store_id'], 'last_price' => $item['price']]
+                // Cari atau buat produk di master data
+                $product = Product::updateOrCreate(
+                    ['user_id' => Auth::id(), 'name' => $itemData['product_name']],
+                    ['store_id' => $validated['store_id'], 'last_price' => $itemData['price']]
                 );
-                $product->update(['last_price' => $item['price']]);
 
-                $shoppingList->items()->create([
-                    'product_id' => $product->id,
-                    'product_name_snapshot' => $item['product_name'],
-                    'quantity' => $item['quantity'],
-                    'price_per_unit' => $item['price'],
-                    'subtotal' => $subtotal,
-                ]);
+                // LOGIKA SYNC ITEM:
+                // Coba cari apakah barang dengan nama yang sama sudah ada di list ini
+                $existingItem = $shoppingList->items()
+                    ->where('product_name_snapshot', $itemData['product_name'])
+                    ->first();
+
+                if ($existingItem) {
+                    // Jika ADA, update saja (status is_bought tetap terjaga)
+                    $existingItem->update([
+                        'product_id' => $product->id,
+                        'quantity' => $itemData['quantity'],
+                        'price_per_unit' => $itemData['price'],
+                        'subtotal' => $subtotal,
+                    ]);
+                    $keptItemIds[] = $existingItem->id;
+                } else {
+                    // Jika TIDAK ADA, buat baru
+                    $newItem = $shoppingList->items()->create([
+                        'product_id' => $product->id,
+                        'product_name_snapshot' => $itemData['product_name'],
+                        'quantity' => $itemData['quantity'],
+                        'price_per_unit' => $itemData['price'],
+                        'subtotal' => $subtotal,
+                        'is_bought' => false // Barang baru default belum dibeli
+                    ]);
+                    $keptItemIds[] = $newItem->id;
+                }
             }
 
+            // 3. HAPUS item yang tidak ada lagi di form (user menghapus baris di UI)
+            $shoppingList->items()->whereNotIn('id', $keptItemIds)->delete();
+
+            // 4. Update total harga di tabel induk
             $shoppingList->update(['total_estimated_price' => $totalAmount]);
+
+            // --- LOGIKA UPDATE STATUS DI SINI ---
+            // 1. Ambil data items terbaru setelah sinkronisasi
+            $items = $shoppingList->items()->get();
+            $totalItems = $items->count();
+            $boughtItems = $items->where('is_bought', true)->count();
+
+            // 2. Tentukan status baru
+            // Jika semua barang sudah diceklis, status = completed. Jika belum, status = draft.
+            $newStatus = ($totalItems > 0 && $boughtItems === $totalItems) ? 'completed' : 'draft';
+
+            // 3. Update total harga DAN status sekaligus
+            $shoppingList->update([
+                'total_estimated_price' => $totalAmount,
+                'status' => $newStatus
+            ]);
         });
 
-        return to_route('shopping.index')->with('message', 'Daftar belanja berhasil diperbarui!');
+        return to_route('shopping.index')->with('message', 'Daftar belanja berhasil diperbarui tanpa merusak status ceklis!');
     }
 
     /**

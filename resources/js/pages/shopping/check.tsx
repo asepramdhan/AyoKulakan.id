@@ -26,11 +26,11 @@ export default function CheckShopping({ shoppingList }: { shoppingList: any }) {
       <Head title={`Belanja: ${shoppingList.title}`} />
       <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
         <div className="flex justify-between">
-          <Button variant="ghost" className="mb-2 cursor-pointer">
-            <Link href={shopping.index().url} className="flex items-center">
-              <ArrowLeft className="w-4 h-4 mr-2" /> Kembali
-            </Link>
-          </Button>
+          <Link href={shopping.index().url} className="flex items-center mb-2 ">
+            <Button variant="ghost" className="cursor-pointer">
+              <ArrowLeft className="w-4 h-4" />Kembali
+            </Button>
+          </Link>
         </div>
 
         <Card className="border-2">

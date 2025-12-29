@@ -173,7 +173,12 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
                         id="tanggal"
                         type='datetime-local'
                         name='shopping_date'
-                        defaultValue={new Date().toISOString().split('T')[0] + 'T00:00'}
+                        defaultValue={(() => {
+                          const sekarang = new Date();
+                          const offset = sekarang.getTimezoneOffset() * 60000;
+                          const waktuLokal = new Date(sekarang.getTime() - offset);
+                          return waktuLokal.toISOString().slice(0, 16);
+                        })()}
                         className="mt-1 block w-full"
                         required
                       />
@@ -193,7 +198,7 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
 
                     <div className="space-y-6 md:space-y-2"> {/* Rapatkan jarak antar baris di desktop */}
                       {data.items.map((item, index) => (
-                        <div key={index} className="relative p-4 rounded-xl border-2 border-slate-100 bg-slate-50/50 md:bg-transparent md:border-0 md:border-b md:rounded-none md:p-0 md:pb-4 transition-all">
+                        <div key={index} className="relative transition-all">
 
                           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start md:items-center"> {/* md:items-center supaya sejajar vertikal */}
 
@@ -260,7 +265,6 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
                                   </Button>
                                 )}
                               </div>
-
                             </div>
                           </div>
 
