@@ -10,7 +10,7 @@ import products from '@/routes/products';
 import { type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Form, Head, Link, usePage } from '@inertiajs/react';
-import { CheckCircle2Icon, Package, Package2, Store, Trash2 } from 'lucide-react';
+import { CheckCircle2Icon, Package, Package2, Pencil, Store, Trash2 } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -86,17 +86,28 @@ export default function Index({ products, stores, filters }: any) {
                       </span>
                     </TableCell>
                     <TableCell>Rp {Number(product.last_price).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
-                    <TableCell className="text-right">
-                      <Form {...ProductController.destroy.form(product.id)}>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-red-500 cursor-pointer"
-                          onClick={(e) => { if (!confirm('Apakah anda yakin ingin menghapus data ini?')) { e.preventDefault(); } }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </Form>
+                    <TableCell>
+                      <div className="flex items-center gap-2 justify-end">
+                        <Link href={ProductController.edit(product.id)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-slate-500 cursor-pointer"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                        </Link>
+                        <Form {...ProductController.destroy.form(product.id)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-500 cursor-pointer"
+                            onClick={(e) => { if (!confirm('Apakah anda yakin ingin menghapus data ini?')) { e.preventDefault(); } }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </Form>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

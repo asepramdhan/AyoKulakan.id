@@ -81,6 +81,7 @@ export default function Edit() {
 
   const updateItem = (index: number, field: string, value: any) => {
     const newItems = [...data.items] as any;
+
     if (field === 'price') {
       newItems[index][field] = parseRupiah(value);
     } else if (field === 'quantity') {
@@ -169,9 +170,16 @@ export default function Edit() {
                       <Label htmlFor="tanggal">Tanggal</Label>
                       <Input
                         id="tanggal"
-                        type='datetime-local'
-                        name='shopping_date'
-                        defaultValue={list.shopping_date ? new Date(list.shopping_date).toISOString().slice(0, 16) : ''}
+                        type="datetime-local"
+                        name="shopping_date"
+                        // Perbaikan format di sini:
+                        defaultValue={
+                          list.shopping_date
+                            ? new Date(new Date(list.shopping_date).getTime() - (new Date().getTimezoneOffset() * 60000))
+                              .toISOString()
+                              .slice(0, 16)
+                            : ''
+                        }
                         className="mt-1 block w-full"
                         required
                       />
@@ -234,7 +242,7 @@ export default function Edit() {
                                   <Input
                                     className={item.is_bought ? "pl-8 font-medium text-slate-400 dark:text-slate-600 bg-white md:mt-0 dark:bg-slate-800 line-through" : "pl-8 font-medium bg-white md:mt-0 dark:bg-slate-800"}
                                     name={`items.${index}.price`}
-                                    defaultValue={formatRupiah(item.price)}
+                                    value={formatRupiah(item.price)}
                                     onChange={(e) => updateItem(index, 'price', e.target.value)}
                                     placeholder="100.000"
                                     required

@@ -15,7 +15,7 @@ import AppLayout from '@/layouts/app-layout';
 import shopping from '@/routes/shopping'; // Wayfinder routes
 import { type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
-import { Form, Head, Link, useForm, usePage } from '@inertiajs/react'; // Gunakan useForm untuk state management
+import { Form, Head, Link, router, useForm, usePage } from '@inertiajs/react'; // Gunakan useForm untuk state management
 import { CheckCircle2, CheckCircle2Icon, DownloadCloud, Pencil, Plus, Save, ShoppingBag, Trash2 } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -162,7 +162,7 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
                         id="title"
                         name='title'
                         className="mt-1 block w-full"
-                        placeholder='Contoh: Belanja Bulanan MeowMeal.id'
+                        placeholder='Contoh: pakan kucing'
                         required
                       />
                       <InputError message={errors.title} />
@@ -362,7 +362,10 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
               <TableBody>
                 {shoppingLists.length > 0 ? (
                   shoppingLists.map((list: any) => (
-                    <TableRow key={list.id}>
+                    <TableRow
+                      key={list.id}
+                      className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                      onClick={() => router.visit(shopping.check(list.id).url)}>
                       <TableCell>{formatSingkat(list.shopping_date)}</TableCell>
                       <TableCell>
                         <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-700 dark:text-blue-100 text-xs font-medium capitalize">
@@ -370,7 +373,32 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
                         </span>
                       </TableCell>
                       <TableCell className="font-medium capitalize">{list.title}</TableCell>
-                      <TableCell>Rp {Number(list.total_estimated_price).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <div className="text-sm font-semibold">
+                            {/* Total yang sudah dibeli */}
+                            <span className="text-green-600" title="Sudah dibeli">
+                              Rp {Number(list.total_bought_price || 0).toLocaleString('id-ID')}
+                            </span>
+                            <span className="text-slate-400 mx-1">/</span>
+                            {/* Total Estimasi Keseluruhan */}
+                            <span className="text-slate-500" title="Total estimasi">
+                              {Number(list.total_estimated_price).toLocaleString('id-ID')}
+                            </span>
+                          </div>
+
+                          {/* Menghitung Sisa Anggaran */}
+                          {list.status !== 'completed' ? (
+                            <span className="text-[10px] text-amber-600 font-medium">
+                              Sisa: Rp {Number(list.total_estimated_price - (list.total_bought_price || 0)).toLocaleString('id-ID')} lagi
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-green-600 font-medium flex items-center gap-1">
+                              <CheckCircle2 className="w-2.5 h-2.5" /> Lunas / Selesai
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div className="min-w-[120px]">
                           <div className="flex justify-between items-center mb-1">
@@ -390,7 +418,7 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right space-x-2">
+                      <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
                         <Link href={shopping.check(list.id)}>
                           <Button
                             variant="default"

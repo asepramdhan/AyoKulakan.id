@@ -25,6 +25,10 @@ class ShoppingListController extends Controller
             ->withCount(['items as completed_items_count' => function ($query) {
                 $query->where('is_bought', true);
             }])
+            // Menghitung total harga yang sudah diceklis
+            ->withSum(['items as total_bought_price' => function ($query) {
+                $query->where('is_bought', true);
+            }], 'subtotal')
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
@@ -281,8 +285,20 @@ class ShoppingListController extends Controller
     {
         $list = ShoppingList::with(['items', 'store'])->findOrFail($id);
 
+        // Ambil daftar lain yang statusnya masih draft
+        $otherLists = ShoppingList::with(['store'])
+            ->withCount('items')
+            ->withCount(['items as completed_items_count' => function ($q) {
+                $q->where('is_bought', true);
+            }])
+            ->where('status', 'draft')
+            ->where('id', '!=', $id) // Kecuali yang sedang dibuka
+            ->latest()
+            ->get();
+
         return Inertia::render('shopping/check', [
-            'shoppingList' => $list
+            'shoppingList' => $list,
+            'otherLists' => $otherLists
         ]);
     }
 

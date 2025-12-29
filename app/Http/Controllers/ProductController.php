@@ -62,7 +62,9 @@ class ProductController extends Controller
      */
     public function edit(Product $product)
     {
-        //
+        return Inertia::render('products/edit', [
+            'product' => $product
+        ]);
     }
 
     /**
@@ -70,7 +72,21 @@ class ProductController extends Controller
      */
     public function update(Request $request, Product $product)
     {
-        //
+        // 1. Validasi data
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'last_price' => 'required', // Kita validasi string dulu karena ada titiknya
+        ]);
+
+        // 2. Bersihkan titik dari harga sebelum disimpan
+        // str_replace akan mengubah "15.000" menjadi "15000"
+        $validated['last_price'] = (int) str_replace('.', '', $request->last_price);
+
+        // 3. Update produk dengan data yang sudah dibersihkan
+        $product->update($validated);
+
+        // 4. Kembali dengan pesan sukses
+        return to_route('products.index')->with('message', 'Produk berhasil diperbarui');
     }
 
     /**
