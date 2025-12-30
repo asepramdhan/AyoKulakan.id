@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
 import shopping from '@/routes/shopping';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
-import { Clock, ChevronRight, ShoppingCart, Pencil } from 'lucide-react';
+import { Clock, ChevronRight, ShoppingCart, Pencil, Wallet } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -33,13 +34,37 @@ const formatSingkat = (dateString: string) => {
 };
 
 export default function ActiveLists({ lists }: { lists: any[] }) {
+  // Menghitung akumulasi total harga dari seluruh daftar belanja aktif
+  const grandTotal = lists.reduce((acc, curr) => acc + Number(curr.total_estimated_price || 0), 0);
+
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title='Sedang Berjalan' />
       <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <ShoppingCart className="w-6 h-6 text-orange-500" />
-          <h2 className="text-2xl font-bold">Daftar Belanja Aktif</h2>
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+              <ShoppingCart className="w-6 h-6 text-orange-600" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold dark:text-slate-100">Daftar Belanja Aktif</h2>
+              <p className="text-xs text-muted-foreground italic">Kelola belanjaan yang sedang berlangsung</p>
+            </div>
+          </div>
+
+          {/* Widget Total Akumulatif */}
+          {lists.length > 0 && (
+            <Card className="bg-orange-600 text-white border-none shadow-lg md:min-w-[250px]">
+              <CardContent className="p-4 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-orange-100">Total Anggaran Aktif</p>
+                  <div className="text-xl font-black">Rp {grandTotal.toLocaleString('id-ID')}</div>
+                </div>
+                <Wallet className="w-8 h-8 text-orange-200/50" />
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {lists.length === 0 ? (

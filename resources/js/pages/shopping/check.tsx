@@ -48,11 +48,14 @@ export default function CheckShopping({ shoppingList, otherLists = [] }: { shopp
       <Head title={`Belanja: ${shoppingList.title}`} />
       <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
         <div className="flex justify-between">
-          <Link href={shopping.index().url} className="flex items-center mb-2 ">
-            <Button variant="ghost" className="cursor-pointer">
-              <ArrowLeft className="w-4 h-4" />Kembali
-            </Button>
-          </Link>
+          <Button
+            variant="ghost"
+            className="cursor-pointer flex items-center mb-2"
+            onClick={() => window.history.back()}
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Kembali
+          </Button>
         </div>
 
         <Card className="border-2">
