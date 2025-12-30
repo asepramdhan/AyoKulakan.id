@@ -175,7 +175,7 @@ export default function Dashboard({ stats }: { stats: any }) {
 
                     {/* Pintasan 2: Cek Belanjaan Aktif */}
                     <Link
-                        href={shopping.index() + '?status=ongoing'} // Tambahkan query status
+                        href={shopping.active()}
                         className="flex flex-col items-center p-4 bg-orange-50 border border-orange-100 rounded-2xl hover:bg-orange-100 dark:hover:bg-orange-800 dark:bg-orange-900 dark:border-orange-800 transition-all group"
                     >
                         <div className="w-12 h-12 bg-orange-500 text-white dark:bg-orange-600 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
@@ -197,7 +197,7 @@ export default function Dashboard({ stats }: { stats: any }) {
 
                     {/* Pintasan 4: Riwayat */}
                     <Link
-                        href={shopping.index() + '?status=completed'} // Tambahkan query status
+                        href={shopping.history()}
                         className="flex flex-col items-center p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 dark:bg-slate-900 dark:border-slate-800 transition-all group"
                     >
                         <div className="w-12 h-12 bg-slate-600 text-white dark:bg-slate-500 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">

@@ -14,7 +14,7 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { LayoutGrid, Package2Icon, ShoppingBag, Store } from 'lucide-react';
+import { History, LayoutGrid, Package2Icon, ShoppingBag, ShoppingCart, Store } from 'lucide-react';
 import AppLogo from './app-logo';
 import shopping from '@/routes/shopping';
 import products from '@/routes/products';
@@ -30,6 +30,16 @@ const mainNavItems: NavItem[] = [
         title: 'Daftar Belanja',
         href: shopping.index(),
         icon: ShoppingBag,
+    },
+    {
+        title: 'Sedang Berjalan',
+        href: shopping.active(),
+        icon: ShoppingCart,
+    },
+    {
+        title: 'Riwayat',
+        href: shopping.history(),
+        icon: History,
     },
 ];
 

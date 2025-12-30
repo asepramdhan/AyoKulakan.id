@@ -287,12 +287,19 @@ class ShoppingListController extends Controller
 
         // Ambil daftar lain yang statusnya masih draft
         $otherLists = ShoppingList::with(['store'])
+            ->where('user_id', Auth::id())
+            ->where('status', 'draft')
+            ->where('id', '!=', $id) // Kecuali yang sedang dibuka
             ->withCount('items')
             ->withCount(['items as completed_items_count' => function ($q) {
                 $q->where('is_bought', true);
             }])
-            ->where('status', 'draft')
-            ->where('id', '!=', $id) // Kecuali yang sedang dibuka
+            // Tambahkan ini untuk menghitung total uang estimasi (semua item)
+            ->withSum('items as total_estimated_price', 'subtotal')
+            // Tambahkan ini untuk menghitung total uang yang sudah dibeli (is_bought = true)
+            ->withSum(['items as total_bought_price' => function ($q) {
+                $q->where('is_bought', true);
+            }], 'subtotal')
             ->latest()
             ->get();
 
@@ -364,5 +371,45 @@ class ShoppingListController extends Controller
                 'Content-Type' => 'text/plain',
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             ]);
+    }
+
+    // Halaman Sedang Berjalan
+    public function activeLists()
+    {
+        $lists = ShoppingList::with(['store'])
+            ->where('user_id', Auth::id())
+            ->where('status', 'draft') // Filter hanya yang belum selesai
+            ->withCount('items')
+            ->withCount(['items as completed_items_count' => function ($q) {
+                $q->where('is_bought', true);
+            }])
+            ->withSum('items as total_estimated_price', 'subtotal')
+            ->withSum(['items as total_bought_price' => function ($q) {
+                $q->where('is_bought', true);
+            }], 'subtotal')
+            ->latest()
+            ->get();
+
+        return Inertia::render('shopping/active', [
+            'lists' => $lists
+        ]);
+    }
+
+    // Halaman Riwayat
+    public function historyLists()
+    {
+        $lists = ShoppingList::with(['store'])
+            ->where('user_id', Auth::id())
+            ->where('status', 'completed') // Filter yang sudah selesai
+            ->withCount('items')
+            ->withSum(['items as total_price' => function ($q) {
+                $q->where('is_bought', true);
+            }], 'subtotal')
+            ->latest('shopping_date')
+            ->get();
+
+        return Inertia::render('shopping/history', [
+            'lists' => $lists
+        ]);
     }
 }

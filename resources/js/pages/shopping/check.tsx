@@ -36,6 +36,13 @@ export default function CheckShopping({ shoppingList, otherLists = [] }: { shopp
   const itemSelesai = shoppingList.items.filter((i: any) => i.is_bought).length;
   const progress = (itemSelesai / totalItem) * 100;
 
+  // --- LOGIKA KALKULASI HARGA (Sama seperti di Riwayat) ---
+  const totalEstimatedPrice = shoppingList.items.reduce((acc: number, item: any) => acc + Number(item.subtotal), 0);
+  const totalBoughtPrice = shoppingList.items
+    .filter((item: any) => item.is_bought)
+    .reduce((acc: number, item: any) => acc + Number(item.subtotal), 0);
+  const sisaAnggaran = totalEstimatedPrice - totalBoughtPrice;
+
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title={`Belanja: ${shoppingList.title}`} />
@@ -70,6 +77,27 @@ export default function CheckShopping({ shoppingList, otherLists = [] }: { shopp
                     day: 'numeric',
                   })}
                 </p>
+              </div>
+              {/* --- TAMPILAN TOTAL SEPERTI DI RIWAYAT --- */}
+              <div className="text-right">
+                <div className="text-sm font-semibold">
+                  <span className="text-green-600" title="Sudah dibeli">
+                    Rp {totalBoughtPrice.toLocaleString('id-ID')}
+                  </span>
+                  <span className="text-slate-400 mx-1">/</span>
+                  <span className="text-slate-500" title="Total estimasi">
+                    {totalEstimatedPrice.toLocaleString('id-ID')}
+                  </span>
+                </div>
+                {progress < 100 ? (
+                  <p className="text-[10px] text-amber-600 font-medium">
+                    Sisa: Rp {sisaAnggaran.toLocaleString('id-ID')} lagi
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-green-600 font-medium flex items-center justify-end gap-1">
+                    <CheckCircle2 className="w-2.5 h-2.5" /> Lunas / Selesai
+                  </p>
+                )}
               </div>
             </div>
           </CardHeader>
@@ -135,6 +163,11 @@ export default function CheckShopping({ shoppingList, otherLists = [] }: { shopp
                   // CEK APAKAH LIST INI HARI INI
                   const isThisListToday = checkIsToday(list.shopping_date);
 
+                  // Gunakan OR 0 agar tidak Error jika data null/undefined
+                  const hargaTerbeli = Number(list.total_bought_price || 0);
+                  const hargaEstimasi = Number(list.total_estimated_price || 0);
+                  const sisa = hargaEstimasi - hargaTerbeli;
+
                   return (
                     <Link
                       key={list.id}
@@ -160,10 +193,40 @@ export default function CheckShopping({ shoppingList, otherLists = [] }: { shopp
                           })}
                         </span>
                       </div>
-                      <div className="text-right">
-                        <p className="text-[10px] text-slate-500">
-                          {list.completed_items_count}/{list.items_count} Barang
-                        </p>
+                      {/* Tampilan Harga & Progress ala Riwayat */}
+                      <div className="text-right flex flex-col justify-center">
+                        <div className="text-[11px] font-bold">
+                          <span className="text-green-600">
+                            Rp {hargaTerbeli.toLocaleString('id-ID')}
+                          </span>
+                          <span className="text-slate-400 mx-1">/</span>
+                          <span className="text-slate-500">
+                            {hargaEstimasi.toLocaleString('id-ID')}
+                          </span>
+                        </div>
+
+                        {list.status !== 'completed' ? (
+                          <span className="text-[9px] text-amber-600 font-medium">
+                            Sisa: {sisa.toLocaleString('id-ID')}
+                          </span>
+                        ) : (
+                          <span className="text-[9px] text-green-600 font-medium flex items-center justify-end gap-0.5">
+                            <CheckCircle2 className="w-2 h-2" /> Lunas
+                          </span>
+                        )}
+
+                        <div className="flex items-center justify-end gap-1.5 mt-1">
+                          <span className="text-[9px] text-muted-foreground font-medium">
+                            {list.completed_items_count}/{list.items_count} Item
+                          </span>
+                          {/* Progress bar mini */}
+                          <div className="w-12 bg-slate-200 dark:bg-slate-700 h-1 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${list.status === 'completed' ? 'bg-green-500' : 'bg-amber-500'}`}
+                              style={{ width: `${(list.completed_items_count / list.items_count) * 100}%` }}
+                            />
+                          </div>
+                        </div>
                       </div>
                     </Link>
                   )
