@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
 import { History, LayoutGrid, Package2Icon, ShoppingBag, ShoppingCart, Store } from 'lucide-react';
 import AppLogo from './app-logo';
 import shopping from '@/routes/shopping';
@@ -63,9 +62,12 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
+                            {/* <Link href={dashboard()} prefetch>
                                 <AppLogo />
-                            </Link>
+                            </Link> */}
+                            <a href='/dashboard'>
+                                <AppLogo />
+                            </a>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>

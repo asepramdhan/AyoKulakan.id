@@ -24,6 +24,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/shopping/{id}/export', [ShoppingListController::class, 'exportTxt'])->name('shopping.export');
 
+    Route::post('/shopping/{shoppingList}/duplicate', [ShoppingListController::class, 'duplicate'])
+        ->name('shopping.duplicate');
 
     Route::resource('shopping', ShoppingListController::class);
     Route::resource('products', ProductController::class);

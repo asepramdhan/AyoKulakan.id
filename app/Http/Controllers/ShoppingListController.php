@@ -412,4 +412,29 @@ class ShoppingListController extends Controller
             'lists' => $lists
         ]);
     }
+
+    public function duplicate(ShoppingList $shoppingList)
+    {
+        // 1. Duplikasi data utama Shopping List
+        $newList = $shoppingList->replicate();
+        $newList->title = $shoppingList->title . ' (Copy)';
+        $newList->status = 'draft'; // Set ke aktif kembali
+        $newList->shopping_date = now(); // Set tanggal ke hari ini
+        $newList->save();
+
+        // 2. Duplikasi semua item di dalamnya
+        foreach ($shoppingList->items as $item) {
+            $newItem = $item->replicate();
+            $newItem->shopping_list_id = $newList->id;
+            $newItem->is_bought = false; // Reset status belanja
+            $newItem->save();
+        }
+
+        // 3. Update total estimasi pada list baru (jika diperlukan)
+        $newList->update([
+            'total_estimated_price' => $newList->items()->sum('subtotal')
+        ]);
+
+        return to_route('shopping.active')->with('message', 'Daftar berhasil diduplikasi!');
+    }
 }

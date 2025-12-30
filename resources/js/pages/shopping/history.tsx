@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import shopping from '@/routes/shopping';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
-import { ChevronRight, HistoryIcon, Store, Calendar, Package } from 'lucide-react';
+import { ChevronRight, HistoryIcon, Store, Calendar, Package, Copy } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -43,6 +45,14 @@ export default function History({ lists }: { lists: any[] }) {
           <p className="text-sm text-muted-foreground">Daftar belanja yang telah Anda selesaikan.</p>
         </div>
 
+        {/* buatkan input search */}
+        <div className="flex items-center gap-2">
+          <Input
+            placeholder="Cari riwayat belanja..."
+            className="w-full border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-600"
+          />
+        </div>
+
         {lists.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-10">
@@ -66,7 +76,18 @@ export default function History({ lists }: { lists: any[] }) {
               }).format(list.total_price || 0);
 
               return (
-                <Link key={list.id} href={shopping.check(list.id)}>
+                <Link key={list.id} href={shopping.check(list.id)} className="relative">
+                  {/* Tombol Duplikat Melayang */}
+                  <Link href={shopping.duplicate(list.id)} className="absolute top-3 right-10">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className='z-10 rounded-full cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800'
+                      title="Duplikat daftar belanja"
+                    >
+                      <Copy />
+                    </Button>
+                  </Link>
                   <Card className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group">
                     <CardContent className="p-4 flex items-center justify-between">
                       <div className="flex flex-col gap-1">
