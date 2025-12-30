@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import shopping from '@/routes/shopping';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
-import { Clock, ChevronRight, ShoppingCart } from 'lucide-react';
+import { Clock, ChevronRight, ShoppingCart, Pencil } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -11,6 +12,9 @@ const breadcrumbs: BreadcrumbItem[] = [
     href: shopping.active().url,
   },
 ];
+
+// Dapatkan tanggal hari ini dalam format YYYY-MM-DD untuk perbandingan
+const today = new Date().toISOString().split('T')[0];
 
 export default function ActiveLists({ lists }: { lists: any[] }) {
   return (
@@ -31,17 +35,40 @@ export default function ActiveLists({ lists }: { lists: any[] }) {
           <div className="grid gap-3">
             {lists.map((list) => {
               const progress = (list.completed_items_count / list.items_count) * 100;
+
+              // Cek apakah tanggal belanja adalah hari ini
+              const isToday = list.shopping_date.startsWith(today);
+
               return (
                 <Link
                   key={list.id}
                   href={shopping.check(list.id).url}
-                  className="group bg-white dark:bg-slate-900 border rounded-xl p-4 hover:border-orange-500 transition-all shadow-sm"
+                  className="relative group bg-white dark:bg-slate-900 border rounded-xl p-4 hover:border-orange-500 transition-all shadow-sm"
                 >
+                  {/* Tombol Edit Melayang */}
+                  <Link href={shopping.edit(list.id)} className="absolute top-3 right-10">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className='z-10 rounded-full cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800'
+                      title="Edit Daftar"
+                    >
+                      <Pencil />
+                    </Button>
+                  </Link>
                   <div className="flex justify-between items-start">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-orange-600 bg-orange-50 px-2 py-0.5 rounded">
-                        {list.store?.name}
-                      </span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase text-orange-600 bg-orange-50 px-2 py-0.5 rounded">
+                          {list.store?.name}
+                        </span>
+                        {/* Badge Hari Ini */}
+                        {isToday && (
+                          <span className="text-[10px] font-bold uppercase text-blue-600 bg-blue-50 dark:bg-blue-800 dark:text-blue-100 px-2 py-0.5 rounded animate-pulse">
+                            Hari Ini
+                          </span>
+                        )}
+                      </div>
                       <h3 className="font-bold text-lg mt-1 group-hover:text-orange-600 transition-colors capitalize">{list.title}</h3>
                       <div className="flex items-center gap-2 text-slate-400 text-xs mt-1">
                         <Clock className="w-3 h-3" />

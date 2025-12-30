@@ -28,16 +28,18 @@ export default function Dashboard({ stats }: { stats: any }) {
                 {/* Barisan Widget Pengeluaran Berkala */}
                 <div className="grid gap-4 md:grid-cols-3">
                     {/* Hari Ini */}
-                    <Card className="bg-blue-600 text-white border-none shadow-md">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-blue-100">Hari Ini</CardTitle>
-                            <CalendarDays className="w-4 h-4 text-blue-100" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">Rp {Number(summary.daily).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</div>
-                            <p className="text-[10px] text-blue-200 mt-1 italic">Pengeluaran hari ini</p>
-                        </CardContent>
-                    </Card>
+                    <Link href={shopping.active()}>
+                        <Card className="bg-blue-600 text-white border-none shadow-md">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-blue-100">Hari Ini</CardTitle>
+                                <CalendarDays className="w-4 h-4 text-blue-100" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">Rp {Number(summary.daily).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</div>
+                                <p className="text-[10px] text-blue-200 mt-1 italic">Pengeluaran hari ini</p>
+                            </CardContent>
+                        </Card>
+                    </Link>
 
                     {/* Minggu Ini */}
                     <Card className="bg-indigo-600 text-white border-none shadow-md">
