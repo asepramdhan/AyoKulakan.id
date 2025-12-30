@@ -14,6 +14,22 @@ const breadcrumbs: BreadcrumbItem[] = [
   },
 ];
 
+const formatSingkat = (dateString: string) => {
+  const d = new Date(dateString);
+  const hari = d.toLocaleDateString('id-ID', { weekday: 'long' });
+  const tgl = d.toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit'
+  }).replace(/\//g, '-');
+  const jam = d.toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit'
+  }).replace('.', ':');
+
+  return `${hari}, ${tgl} ${jam}`;
+};
+
 export default function History({ lists }: { lists: any[] }) {
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
@@ -37,11 +53,11 @@ export default function History({ lists }: { lists: any[] }) {
         ) : (
           <div className="grid gap-4">
             {lists.map((list) => {
-              const formattedDate = new Date(list.shopping_date).toLocaleDateString('id-ID', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
-              });
+              // const formattedDate = new Date(list.shopping_date).toLocaleDateString('id-ID', {
+              //   day: 'numeric',
+              //   month: 'long',
+              //   year: 'numeric'
+              // });
 
               const formattedPrice = new Intl.NumberFormat('id-ID', {
                 style: 'currency',
@@ -66,7 +82,7 @@ export default function History({ lists }: { lists: any[] }) {
                           </div>
                           <div className="flex items-center gap-1">
                             <Calendar className="w-3.5 h-3.5" />
-                            <span>{formattedDate}</span>
+                            <span>{formatSingkat(list.shopping_date)}</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <Package className="w-3.5 h-3.5" />

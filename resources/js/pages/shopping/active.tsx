@@ -16,6 +16,22 @@ const breadcrumbs: BreadcrumbItem[] = [
 // Dapatkan tanggal hari ini dalam format YYYY-MM-DD untuk perbandingan
 const today = new Date().toISOString().split('T')[0];
 
+const formatSingkat = (dateString: string) => {
+  const d = new Date(dateString);
+  const hari = d.toLocaleDateString('id-ID', { weekday: 'long' });
+  const tgl = d.toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit'
+  }).replace(/\//g, '-');
+  const jam = d.toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit'
+  }).replace('.', ':');
+
+  return `${hari}, ${tgl} ${jam}`;
+};
+
 export default function ActiveLists({ lists }: { lists: any[] }) {
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
@@ -72,7 +88,7 @@ export default function ActiveLists({ lists }: { lists: any[] }) {
                       <h3 className="font-bold text-lg mt-1 group-hover:text-orange-600 transition-colors capitalize">{list.title}</h3>
                       <div className="flex items-center gap-2 text-slate-400 text-xs mt-1">
                         <Clock className="w-3 h-3" />
-                        {new Date(list.shopping_date).toLocaleDateString('id-ID', { dateStyle: 'long' })}
+                        {formatSingkat(list.shopping_date)}
                       </div>
                     </div>
                     <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform" />
