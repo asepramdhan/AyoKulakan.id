@@ -78,11 +78,11 @@ export default function History({ lists }: { lists: any[] }) {
               return (
                 <Link key={list.id} href={shopping.check(list.id)} className="relative">
                   {/* Tombol Duplikat Melayang */}
-                  <Link href={shopping.duplicate(list.id)} className="absolute top-3 right-10">
+                  <Link href={shopping.duplicate(list.id)} className="absolute top-2 right-3">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className='z-10 rounded-full cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800'
+                      className='z-10 rounded-full cursor-pointer bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700'
                       title="Duplikat daftar belanja"
                     >
                       <Copy />

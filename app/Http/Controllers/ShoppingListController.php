@@ -376,7 +376,7 @@ class ShoppingListController extends Controller
     // Halaman Sedang Berjalan
     public function activeLists()
     {
-        $lists = ShoppingList::with(['store'])
+        $lists = ShoppingList::with(['store', 'items'])
             ->where('user_id', Auth::id())
             ->where('status', 'draft') // Filter hanya yang belum selesai
             ->withCount('items')
