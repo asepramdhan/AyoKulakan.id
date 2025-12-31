@@ -8,6 +8,7 @@ import shopping from '@/routes/shopping';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { ChevronRight, HistoryIcon, Store, Calendar, Package, Copy } from 'lucide-react';
+import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -33,6 +34,26 @@ const formatSingkat = (dateString: string) => {
 };
 
 export default function History({ lists }: { lists: any[] }) {
+
+  // 2. State untuk menyimpan kata kunci pencarian
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // 3. Filter data berdasarkan judul daftar atau nama toko
+  // Logika filter yang lebih cerdas
+  const filteredLists = lists.filter((list) => {
+    const searchLower = searchQuery.toLowerCase();
+
+    // Kita buat string gabungan untuk dicari (Nama Daftar + Nama Toko + Tanggal Format)
+    const titleMatch = list.title.toLowerCase().includes(searchLower);
+    const storeMatch = list.store?.name?.toLowerCase().includes(searchLower);
+
+    // Format tanggal ke string lengkap untuk dicocokkan (Contoh: "Senin, 25-12-2024")
+    const dateFullString = formatSingkat(list.shopping_date).toLowerCase();
+    const dateMatch = dateFullString.includes(searchLower);
+
+    return titleMatch || storeMatch || dateMatch;
+  });
+
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title='Riwayat Belanja' />
@@ -50,25 +71,33 @@ export default function History({ lists }: { lists: any[] }) {
           <Input
             placeholder="Cari riwayat belanja..."
             className="w-full border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-600"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
-        {lists.length === 0 ? (
+        {/* 5. Tampilkan filteredLists, bukan lists langsung */}
+        {filteredLists.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-10">
               <HistoryIcon className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-2" />
-              <p className="text-slate-500 dark:text-slate-400">Belum ada riwayat belanja.</p>
+              <p className="text-slate-500 dark:text-slate-400">
+                {searchQuery ? 'Hasil pencarian tidak ditemukan.' : 'Belum ada riwayat belanja.'}
+              </p>
+              {searchQuery && (
+                <Button
+                  variant="link"
+                  onClick={() => setSearchQuery('')}
+                  className="text-orange-500 text-xs"
+                >
+                  Reset Pencarian
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-4">
-            {lists.map((list) => {
-              // const formattedDate = new Date(list.shopping_date).toLocaleDateString('id-ID', {
-              //   day: 'numeric',
-              //   month: 'long',
-              //   year: 'numeric'
-              // });
-
+            {filteredLists.map((list) => {
               const formattedPrice = new Intl.NumberFormat('id-ID', {
                 style: 'currency',
                 currency: 'IDR',

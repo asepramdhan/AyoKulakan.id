@@ -13,11 +13,12 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
-import { History, LayoutGrid, Package2Icon, ShoppingBag, ShoppingCart, Store } from 'lucide-react';
+import { BadgeDollarSign, History, LayoutGrid, Package2Icon, PieChart, ShoppingBag, ShoppingCart, Store } from 'lucide-react';
 import AppLogo from './app-logo';
 import shopping from '@/routes/shopping';
 import products from '@/routes/products';
 import stores from '@/routes/stores';
+import salesRecord from '@/routes/sales-record';
 
 const mainNavItems: NavItem[] = [
     {
@@ -55,6 +56,19 @@ const managementNavItems: NavItem[] = [
     },
 ];
 
+const premiumNavItems: NavItem[] = [
+    {
+        title: 'Penghasilan',
+        href: salesRecord.index(),
+        icon: BadgeDollarSign,
+    },
+    {
+        title: 'Analisa Margin',
+        href: '#',
+        icon: PieChart,
+    },
+];
+
 export function AppSidebar() {
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -82,6 +96,12 @@ export function AppSidebar() {
                     <SidebarGroupLabel>Kelola</SidebarGroupLabel>
                     <SidebarMenu>
                         <NavMain items={managementNavItems} />
+                    </SidebarMenu>
+                    <SidebarGroupLabel>Fitur Premium
+                        <span className="text-xs text-muted-foreground ml-1 italic">(Beta)</span>
+                    </SidebarGroupLabel>
+                    <SidebarMenu>
+                        <NavMain items={premiumNavItems} />
                     </SidebarMenu>
                 </SidebarGroup>
             </SidebarContent>
