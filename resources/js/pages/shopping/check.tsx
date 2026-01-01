@@ -47,7 +47,7 @@ export default function CheckShopping({ shoppingList, otherLists = [] }: { shopp
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title={`Belanja: ${shoppingList.title}`} />
       <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-        <div className="flex justify-between">
+        <div className="flex justify-end">
           <Button
             variant="ghost"
             className="cursor-pointer flex items-center mb-2"

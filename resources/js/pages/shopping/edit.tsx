@@ -119,7 +119,7 @@ export default function Edit() {
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Daftar Belanja" />
       <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-        <div className="flex justify-between">
+        <div className="flex justify-end">
           <Button
             variant="ghost"
             className="cursor-pointer flex items-center mb-2"
@@ -313,10 +313,10 @@ export default function Edit() {
                       <Button
                         type="button"
                         variant="ghost"
-                        className="bg-red-400 hover:bg-red-500 dark:bg-red-600 dark:hover:bg-red-700 cursor-pointer"
+                        className="cursor-pointer"
                         onClick={() => window.history.back()}
                       >
-                        Batal
+                        Kembali
                       </Button>
                       <Button type="submit" disabled={processing} className="bg-green-600 hover:bg-green-700 cursor-pointer">
                         {processing ? (
