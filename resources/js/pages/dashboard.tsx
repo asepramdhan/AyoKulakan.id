@@ -16,6 +16,8 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+const today = new Date().toISOString().split('T')[0];
+
 export default function Dashboard({ stats }: { stats: any }) {
     // Ambil data dari props stats
     const { summary, most_active_store, top_products, per_store, recent_lists } = stats;
@@ -221,39 +223,46 @@ export default function Dashboard({ stats }: { stats: any }) {
                     <CardContent className="pt-4 px-2 sm:px-6">
                         <div className="grid gap-3">
                             {recent_lists.length > 0 ? (
-                                recent_lists.map((list: any) => (
-                                    <Link
-                                        key={list.id}
-                                        href={list.status === 'completed' ? shopping.history() : shopping.active()}
-                                        className="flex items-center justify-between p-3 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all group"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${list.status === 'completed'
-                                                ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-500'
-                                                : 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-500'
-                                                }`}>
-                                                {list.status === 'completed' ? <Package className="w-5 h-5" /> : <ShoppingCart className="w-5 h-5" />}
-                                            </div>
-                                            <div>
-                                                <p className="font-bold text-sm dark:text-slate-200 group-hover:text-blue-500 transition-colors uppercase leading-none">{list.title}</p>
-                                                <div className="flex items-center gap-2 mt-1.5">
-                                                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase">{list.store?.name}</span>
-                                                    <span className="text-[10px] text-muted-foreground italic">{new Date(list.shopping_date).toLocaleDateString('id-ID')}</span>
+                                recent_lists.map((list: any) => {
+                                    const isToday = list.shopping_date.startsWith(today);
+
+                                    return (
+                                        <Link
+                                            key={list.id}
+                                            href={list.status === 'completed' ? shopping.history() : shopping.active()}
+                                            className="flex items-center justify-between p-3 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all group"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${list.status === 'completed'
+                                                    ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-500'
+                                                    : 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-500'
+                                                    }`}>
+                                                    {list.status === 'completed' ? <Package className="w-5 h-5" /> : <ShoppingCart className="w-5 h-5" />}
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="font-bold text-sm dark:text-slate-200 group-hover:text-blue-500 transition-colors uppercase leading-none">{list.title}</p>
+                                                        {isToday && <span className="text-[9px] font-bold uppercase text-blue-700 bg-blue-100 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded">Hari Ini</span>}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 mt-1.5">
+                                                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase">{list.store?.name}</span>
+                                                        <span className="text-[10px] text-muted-foreground italic">{new Date(list.shopping_date).toLocaleDateString('id-ID')}</span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <div className="text-right">
-                                                <p className="font-extrabold text-sm dark:text-slate-100">Rp {Number(list.total_estimated_price).toLocaleString('id-ID')}</p>
-                                                <span className={`text-[9px] uppercase px-2 py-0.5 rounded-full font-bold shadow-sm ${list.status === 'completed' ? 'bg-green-500 text-white' : 'bg-amber-500 text-white'
-                                                    }`}>
-                                                    {list.status}
-                                                </span>
+                                            <div className="flex items-center gap-3">
+                                                <div className="text-right">
+                                                    <p className="font-extrabold text-sm dark:text-slate-100">Rp {Number(list.total_estimated_price).toLocaleString('id-ID')}</p>
+                                                    <span className={`text-[9px] uppercase px-2 py-0.5 rounded-full font-bold shadow-sm ${list.status === 'completed' ? 'bg-green-500 text-white' : 'bg-amber-500 text-white'
+                                                        }`}>
+                                                        {list.status}
+                                                    </span>
+                                                </div>
+                                                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors" />
                                             </div>
-                                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors" />
-                                        </div>
-                                    </Link>
-                                ))
+                                        </Link>
+                                    );
+                                })
                             ) : (
                                 <div className="py-8 text-center text-muted-foreground text-sm italic">Belum ada aktivitas.</div>
                             )}

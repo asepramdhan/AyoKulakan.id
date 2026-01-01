@@ -262,7 +262,9 @@ class ShoppingListController extends Controller
             ]);
         });
 
-        return to_route('shopping.index')->with('message', 'Daftar belanja berhasil diperbarui tanpa merusak status ceklis!');
+        // return to_route('shopping.index')->with('message', 'Daftar belanja berhasil diperbarui tanpa merusak status ceklis!');
+        // saya mau kembali ke halaman sebelumnya
+        return back()->with('message', 'Daftar belanja berhasil diperbarui!');
     }
 
     /**

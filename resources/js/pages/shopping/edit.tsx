@@ -134,8 +134,10 @@ export default function Edit() {
             <CardTitle>Edit Daftar Belanja</CardTitle>
           </CardHeader>
           <CardContent>
-            <Form {...ShoppingListController.update.form(list.id)} className="space-y-6">
-              {({ processing, errors }) => (
+            <Form {...ShoppingListController.update.form(list.id)} options={{
+              preserveScroll: true,
+            }} className="space-y-6">
+              {({ processing, recentlySuccessful, errors }) => (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="grid gap-2">
@@ -294,19 +296,42 @@ export default function Edit() {
                     <div className="text-xl font-bold tracking-tight text-green-600">
                       Total: Rp {totalEstimasi ? formatRupiah(totalEstimasi) : '-'}
                     </div>
-                    <Button type="submit" disabled={processing} className="bg-green-600 hover:bg-green-700 cursor-pointer">
-                      {processing ? (
-                        <>
-                          <Spinner className="h-4 w-4 animate-spin" />
-                          Perbaharui...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4" />
-                          Simpan
-                        </>
-                      )}
-                    </Button>
+                    <div className="flex gap-2 items-center">
+                      <Transition
+                        show={recentlySuccessful}
+                        enter="transition ease-in-out"
+                        enterFrom="opacity-0"
+                        leave="transition ease-in-out"
+                        leaveTo="opacity-0"
+                      >
+                        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                          {flash.message || 'Tersimpan'}
+                          {/* Terakhir disimpan {moment(recentlyCreated).fromNow()} */}
+                        </p>
+                      </Transition>
+                      {/* tombol kembali */}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="bg-red-400 hover:bg-red-500 dark:bg-red-600 dark:hover:bg-red-700 cursor-pointer"
+                        onClick={() => window.history.back()}
+                      >
+                        Batal
+                      </Button>
+                      <Button type="submit" disabled={processing} className="bg-green-600 hover:bg-green-700 cursor-pointer">
+                        {processing ? (
+                          <>
+                            <Spinner className="h-4 w-4 animate-spin" />
+                            Perbaharui...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="w-4 h-4" />
+                            Simpan
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </>
               )}
