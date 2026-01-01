@@ -63,21 +63,26 @@ export default function Index({ products, ...props }: any) {
     }
   }, [flash.message]);
 
+  const { salesRecords } = props; // Ambil data dari props Laravel
+
   // Contoh data (Nanti data ini datang dari props Laravel)
-  const [sales] = useState([
-    { id: 1, product: 'Pakan Kucing 1kg', buy: 18000, sell: 25000, marketplace: 'Shopee', fee: 1250 },
-    { id: 2, product: 'Botol Minum', buy: 15000, sell: 20000, marketplace: 'Lazada', fee: 1000 },
-  ]);
+  const sales = useMemo(() => salesRecords || [], [salesRecords]);
 
-  // Kalkulasi Total Dashboard
   const stats = useMemo(() => {
-    const totalModal = sales.reduce((acc, curr) => acc + curr.buy, 0);
-    const totalJual = sales.reduce((acc, curr) => acc + curr.sell, 0);
-    const totalFee = sales.reduce((acc, curr) => acc + curr.fee, 0);
-    const netProfit = totalJual - totalModal - totalFee;
-    const margin = (netProfit / totalJual) * 100;
+    const totalModal = sales.reduce((acc: any, curr: any) => acc + Number(curr.buy_price), 0);
+    const totalJual = sales.reduce((acc: any, curr: any) => acc + Number(curr.sell_price), 0);
 
-    return { totalModal, totalJual, netProfit, margin };
+    const totalFee = sales.reduce((acc: any, curr: any) => {
+      const fee = (curr.sell_price * curr.marketplace_fee_percent) / 100;
+      return acc + fee;
+    }, 0);
+
+    const totalShipping = sales.reduce((acc: any, curr: any) => acc + Number(curr.shipping_cost || 0), 0);
+
+    const netProfit = totalJual - totalModal - totalFee - totalShipping;
+    const margin = totalJual > 0 ? (netProfit / totalJual) * 100 : 0;
+
+    return { totalModal, totalJual, totalFee, netProfit, margin };
   }, [sales]);
 
   const [open, setOpen] = useState(false); // State untuk kontrol modal
@@ -270,36 +275,45 @@ export default function Index({ products, ...props }: any) {
 
         {/* Dashboard Ringkasan */}
         <div className="grid gap-4 md:grid-cols-3">
+          {/* Total Penjualan */}
           <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-sm font-medium">Total Penjualan</CardTitle>
               <DollarSign className="w-4 h-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">Rp {stats.totalJual.toLocaleString('id-ID')}</div>
+              {/* Gunakan stats.totalJual agar konsisten dengan hitungan stats */}
+              <div className="text-2xl font-bold">Rp {formatRupiah(stats.totalJual)}</div>
             </CardContent>
           </Card>
 
+          {/* Profit Bersih */}
           <Card className="bg-green-50 dark:bg-green-900/20 border-green-200">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-sm font-medium">Profit Bersih</CardTitle>
               <TrendingUp className="w-4 h-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">Rp {stats.netProfit.toLocaleString('id-ID')}</div>
+              <div className="text-2xl font-bold text-green-600">Rp {formatRupiah(stats.netProfit)}</div>
               <p className="text-xs text-green-600 mt-1 flex items-center">
-                <ArrowUpRight className="w-3 h-3 mr-1" /> {stats.margin.toFixed(1)}% Margin
+                <ArrowUpRight className="w-3 h-3 mr-1" />
+                {/* Tambahkan pengecekan jika margin NaN (pembagi nol) */}
+                {isFinite(stats.margin) ? stats.margin.toFixed(1) : 0}% Margin
               </p>
             </CardContent>
           </Card>
 
+          {/* Potongan Admin */}
           <Card className="bg-orange-50 dark:bg-orange-900/20 border-orange-200">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-sm font-medium">Potongan Admin</CardTitle>
               <Percent className="w-4 h-4 text-orange-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">Rp {sales.reduce((acc, curr) => acc + curr.fee, 0).toLocaleString('id-ID')}</div>
+              {/* PERBAIKAN: Gunakan stats.totalFee, jangan reduce lagi di sini */}
+              <div className="text-2xl font-bold text-orange-600">
+                Rp {formatRupiah(stats.totalFee)}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -334,41 +348,57 @@ export default function Index({ products, ...props }: any) {
                     <TableHead className="pb-3 text-right">Harga Jual</TableHead>
                     <TableHead className="pb-3 text-right">Potongan</TableHead>
                     <TableHead className="pb-3 text-right text-green-600">Margin/Profit</TableHead>
+                    <TableHead className="pb-3 text-center">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y">
-                  {sales.map((item) => {
-                    const profitPerItem = item.sell - item.buy - item.fee;
-                    // const marginPercent = (profitPerItem / item.sell) * 100;
+                  {sales.map((item: any) => {
+                    // Kalkulasi fee dan profit berdasarkan nama kolom database
+                    const feeAmount = (item.sell_price * item.marketplace_fee_percent) / 100;
+                    const profitPerItem = item.sell_price - item.buy_price - feeAmount - (item.shipping_cost || 0);
 
                     return (
                       <TableRow key={item.id} className="group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
                         <TableCell className="py-4">
-                          <div className="font-bold">{item.product}</div>
-                          <div className="flex items-center text-[10px] text-muted-foreground mt-1">
-                            <Store className="w-3 h-3 mr-1" /> {item.marketplace}
+                          <div className="font-bold capitalize">
+                            {item.product_name || 'Tanpa Nama'}
+                          </div>
+                          <div className="flex items-center text-[10px] text-blue-600 font-medium mt-1">
+                            <Store className="w-3 h-3 mr-1" />
+                            {item.marketplace_name || 'Umum'}
                           </div>
                         </TableCell>
-                        <TableCell className="py-4 text-right">Rp {item.buy.toLocaleString('id-ID')}</TableCell>
-                        <TableCell className="py-4 text-right font-medium">Rp {item.sell.toLocaleString('id-ID')}</TableCell>
-                        <TableCell className="py-4 text-right text-red-500">- Rp {item.fee.toLocaleString('id-ID')}</TableCell>
+                        <TableCell className="py-4 text-right">Rp {formatRupiah(item.buy_price)}</TableCell>
+                        <TableCell className="py-4 text-right font-medium">Rp {formatRupiah(item.sell_price)}</TableCell>
+                        <TableCell className="py-4 text-right text-red-500">- Rp {formatRupiah(feeAmount)}</TableCell>
                         <TableCell className="py-4 text-right">
-                          <div className="font-bold text-green-600">Rp {profitPerItem.toLocaleString('id-ID')}</div>
-                          {/* <Badge className="text-[9px] py-0 px-1 border-green-200 text-green-600">
-                            {marginPercent.toFixed(1)}%
-                          </Badge> */}
+                          <div className="font-bold text-green-600">Rp {formatRupiah(profitPerItem)}</div>
+                        </TableCell>
+                        <TableCell className="py-4 text-center">
+                          <Form {...SalesRecordController.destroy.form(item.id)}>
+                            <Button
+                              type="submit"
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer"
+                              onClick={(e) => { if (!confirm('Apakah Anda yakin ingin menghapus data ini?')) { e.preventDefault(); } }}
+                            >
+                              <Plus className="w-4 h-4 rotate-45" />
+                            </Button>
+                          </Form>
                         </TableCell>
                       </TableRow>
                     );
                   })}
                 </TableBody>
                 <TableFooter>
-                  <TableRow>
-                    <TableHead className="text-center font-bold uppercase text-[15px]">Total</TableHead>
-                    <TableHead className="text-right font-bold">Rp {sales.reduce((acc, curr) => acc + curr.buy, 0).toLocaleString('id-ID')}</TableHead>
-                    <TableHead className="text-right font-bold">Rp {sales.reduce((acc, curr) => acc + curr.sell, 0).toLocaleString('id-ID')}</TableHead>
-                    <TableHead className="text-right font-bold">- Rp {sales.reduce((acc, curr) => acc + curr.fee, 0).toLocaleString('id-ID')}</TableHead>
-                    <TableHead className="text-right font-bold text-green-600">Rp {sales.reduce((acc, curr) => acc + (curr.sell - curr.buy - curr.fee), 0).toLocaleString('id-ID')}</TableHead>
+                  <TableRow className="bg-slate-50/50 dark:bg-slate-900/50">
+                    <TableHead className="font-bold uppercase text-[12px]">Total Keseluruhan</TableHead>
+                    <TableHead className="text-right font-bold">Rp {formatRupiah(stats.totalModal)}</TableHead>
+                    <TableHead className="text-right font-bold">Rp {formatRupiah(stats.totalJual)}</TableHead>
+                    <TableHead className="text-right font-bold text-red-500">- Rp {formatRupiah(stats.totalFee)}</TableHead>
+                    <TableHead className="text-right font-bold text-green-600 text-lg">Rp {formatRupiah(stats.netProfit)}</TableHead>
+                    <TableHead></TableHead>
                   </TableRow>
                 </TableFooter>
               </Table>

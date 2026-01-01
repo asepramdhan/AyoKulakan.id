@@ -17,7 +17,8 @@ class SalesRecordController extends Controller
     public function index()
     {
         return Inertia::render('sales/index', [
-            'products' => Auth::user()->products, // Kirim daftar produk milik user
+            'products' => Auth::user()->products,
+            'salesRecords' => SalesRecord::latest()->get(),
         ]);
     }
 
@@ -118,6 +119,12 @@ class SalesRecordController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        // 1. Cari datanya
+        $sales = SalesRecord::findOrFail($id);
+
+        // 2. Hapus datanya
+        $sales->delete();
+
+        return back()->with('message', 'Data penjualan berhasil dihapus!');
     }
 }
