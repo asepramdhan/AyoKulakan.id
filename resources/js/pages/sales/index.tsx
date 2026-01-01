@@ -16,7 +16,7 @@ import salesRecord from '@/routes/sales-record';
 import { type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Form, Head, usePage } from '@inertiajs/react';
-import { ArrowUpRight, CheckCircle2Icon, DollarSign, Package2, Percent, Plus, Save, Store, TrendingUp } from 'lucide-react';
+import { ArrowUpRight, CheckCircle2Icon, DollarSign, Package2, Pencil, Percent, Plus, Save, Store, TrendingUp } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -27,14 +27,15 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const formatRupiah = (value: any) => {
-  if (value === null || value === undefined || value === '') return '';
+  // Jika value null/undefined, jadikan 0. Jika string, paksa ke float.
+  const num = parseFloat(value);
+  if (isNaN(num)) return '0';
 
-  // 1. Ubah ke string dan buang angka di belakang koma (desimal)
-  // Kita gunakan Math.floor agar 4000.00 menjadi 4000
-  const plainNumber = Math.floor(Number(value));
-
-  // 2. Format dengan titik ribuan
-  return plainNumber.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  // Menggunakan Intl.NumberFormat agar lebih standar Indonesia
+  return new Intl.NumberFormat('id-ID', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(Math.floor(num));
 };
 
 const parseRupiah = (value: string): number => {
@@ -42,6 +43,15 @@ const parseRupiah = (value: string): number => {
   // Hapus semua yang bukan angka (termasuk titik dan koma)
   const cleanNumber = value.replace(/\D/g, '');
   return cleanNumber ? parseInt(cleanNumber, 10) : 0;
+};
+
+const formatDate = (dateString: string) => {
+  if (!dateString) return '-';
+  return new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(dateString));
 };
 
 export default function Index({ products, ...props }: any) {
@@ -67,34 +77,72 @@ export default function Index({ products, ...props }: any) {
   const { salesRecords } = props; // Ambil data dari props Laravel
 
   // Contoh data (Nanti data ini datang dari props Laravel)
-  const sales = useMemo(() => salesRecords || [], [salesRecords]);
+  const sales = useMemo(() => {
+    if (!salesRecords) return [];
+    // Mengurutkan dari tanggal terbaru
+    return [...salesRecords].sort((a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }, [salesRecords]);
 
   const stats = useMemo(() => {
-    const totalModal = sales.reduce((acc: any, curr: any) => acc + Number(curr.buy_price), 0);
-    const totalJual = sales.reduce((acc: any, curr: any) => acc + Number(curr.sell_price), 0);
+    const totalModal = sales.reduce((acc, curr) => acc + (Number(curr.buy_price) * Number(curr.qty)), 0);
+    const totalJual = sales.reduce((acc, curr) => acc + (Number(curr.sell_price) * Number(curr.qty)), 0);
 
-    const totalFee = sales.reduce((acc: any, curr: any) => {
-      const fee = (curr.sell_price * curr.marketplace_fee_percent) / 100;
-      return acc + fee;
+    const totalAllFees = sales.reduce((acc, curr) => {
+      const qty = Number(curr.qty || 1);
+      const sellTotal = Number(curr.sell_price) * qty;
+
+      // Gabungkan persen admin + promo extra
+      const totalPesen = Number(curr.marketplace_fee_percent || 0) + Number(curr.promo_extra_percent || 0);
+      const feeAmount = (sellTotal * totalPesen) / 100;
+
+      return acc + feeAmount + Number(curr.flat_fees || 0) + Number(curr.extra_costs || 0) + Number(curr.shipping_cost || 0);
     }, 0);
 
-    const totalShipping = sales.reduce((acc: any, curr: any) => acc + Number(curr.shipping_cost || 0), 0);
-
-    const netProfit = totalJual - totalModal - totalFee - totalShipping;
+    const netProfit = totalJual - totalModal - totalAllFees;
     const margin = totalJual > 0 ? (netProfit / totalJual) * 100 : 0;
 
-    return { totalModal, totalJual, totalFee, netProfit, margin };
+    return { totalModal, totalJual, totalFee: totalAllFees, netProfit, margin };
   }, [sales]);
 
   const [open, setOpen] = useState(false); // State untuk kontrol modal
+  const [isEditing, setIsEditing] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
+
+  // Fungsi untuk membuka modal Edit
+  const handleEdit = (item: any) => {
+    setIsEditing(true);
+    setEditId(item.id);
+
+    // Pastikan semua nilai adalah Number untuk menghindari NaN
+    setData({
+      product_name: item.product_name || '',
+      qty: Number(item.qty) || 1,
+      buy_price: Number(item.buy_price) || 0,
+      sell_price: Number(item.sell_price) || 0,
+      marketplace_fee_percent: Number(item.marketplace_fee_percent) || 0,
+      promo_extra_percent: Number(item.promo_extra_percent) || 0,
+      marketplace_name: item.marketplace_name || 'Shopee',
+      shipping_cost: Number(item.shipping_cost) || 0,
+      // Perhatikan: pastikan mapping field dari DB (biasanya flat_fees) benar
+      order_process_fee: Number(item.flat_fees) || 0,
+      extra_costs: Number(item.extra_costs) || 0,
+    });
+    setOpen(true);
+  };
 
   const [data, setData] = useState({
     product_name: '',
+    qty: 1,
     buy_price: 0,
     sell_price: 0,
-    marketplace_fee_percent: 5, // Sesuai migrasi
+    marketplace_fee_percent: 9.5, // Sesuai migrasi
+    promo_extra_percent: 4.5,    // Promo Extra (%)
     marketplace_name: 'Shopee',  // Sesuai migrasi
     shipping_cost: 0,           // Sesuai migrasi
+    order_process_fee: 1250,     // Biaya Proses (Flat) pengganti flat_fees
+    extra_costs: 0,       // Untuk Iklan atau Affiliate
   });
 
   // Fungsi Handler khusus untuk Nama Produk
@@ -124,54 +172,113 @@ export default function Index({ products, ...props }: any) {
 
   // Efek kalkulasi otomatis (Reaktif)
   useEffect(() => {
-    const fee = (data.sell_price * data.marketplace_fee_percent) / 100;
-    const profit = data.sell_price - data.buy_price - fee;
-    setCalc({ feeAmount: fee, netProfit: profit });
+    const quantity = Number(data.qty || 1);
+    const totalSell = data.sell_price * quantity;
+
+    // 1. Hitung total biaya berbasis persentase (Admin + Promo Extra)
+    const totalPercent = Number(data.marketplace_fee_percent) + Number(data.promo_extra_percent);
+    const percentageFeeAmount = (totalSell * totalPercent) / 100;
+
+    // 2. Total Potongan = Biaya Persen + Biaya Proses Flat + Biaya Lainnya
+    const totalPotongan = percentageFeeAmount + data.order_process_fee + data.extra_costs;
+
+    // 3. Profit Bersih
+    const totalProfit = (totalSell - (data.buy_price * quantity)) - totalPotongan;
+
+    setCalc({
+      feeAmount: totalPotongan,
+      netProfit: totalProfit
+    });
   }, [data]);
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Analisa Penghasilan" />
       <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-2">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">💰 Analisa Penghasilan</h2>
-            <p className="text-muted-foreground">Pantau margin keuntungan di setiap marketplace.</p>
+            <h2 className="text-xl md:text-2xl font-bold tracking-tight flex items-center gap-2">
+              <span>💰</span> Analisa Penghasilan
+            </h2>
+            <p className="text-xs md:text-sm text-muted-foreground">
+              Pantau margin keuntungan di setiap marketplace.
+            </p>
           </div>
 
           {/* TOMBOL UNTUK MEMBUKA MODAL */}
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button
-                className="bg-blue-500 hover:bg-blue-600 text-white dark:bg-blue-600 dark:hover:bg-blue-700 cursor-pointer"
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditId(null);
+                  setData({
+                    product_name: '',
+                    qty: 1,
+                    buy_price: 0,
+                    sell_price: 0,
+                    marketplace_fee_percent: 9.5,
+                    marketplace_name: 'Shopee',
+                    promo_extra_percent: 4.5,
+                    shipping_cost: 0,
+                    order_process_fee: 1250,
+                    extra_costs: 0,
+                  });
+                }}
+                className="w-full md:w-auto bg-blue-500 hover:bg-blue-600 text-white cursor-pointer shadow-sm"
               >
                 <Plus className="w-4 h-4" />
                 Tambah Penjualan
               </Button>
             </DialogTrigger>
             <DialogContent>
-              <Form {...SalesRecordController.store()}
+              <Form
+                {...(isEditing
+                  ? SalesRecordController.update.form(editId)
+                  : SalesRecordController.store.form()
+                )}
                 onSuccess={() => {
-                  setOpen(false); // Tutup modal otomatis
-                  setData({       // Reset form manual karena kita pakai state lokal
+                  setOpen(false);
+                  setIsEditing(false);
+                  setEditId(null); // Reset ID edit
+                  setData({ // Reset ke default
                     product_name: '',
+                    qty: 1,
                     buy_price: 0,
                     sell_price: 0,
-                    marketplace_fee_percent: 5,
+                    marketplace_fee_percent: 9.5,
                     marketplace_name: 'Shopee',
+                    promo_extra_percent: 4.5,
                     shipping_cost: 0,
+                    order_process_fee: 1250,
+                    extra_costs: 0,
                   });
-                }}>
+                }}
+              >
                 {({ processing, errors }) => (
                   <>
                     <DialogHeader>
-                      <DialogTitle>Tambah Penjualan</DialogTitle>
+                      <DialogTitle className="flex items-center gap-2">
+                        {isEditing ? (
+                          <>
+                            <Pencil className="w-5 h-5 text-blue-500" />
+                            Edit Penjualan
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-5 h-5 text-blue-500" />
+                            Tambah Penjualan
+                          </>
+                        )}
+                      </DialogTitle>
                     </DialogHeader>
+
                     <div className="grid gap-4 py-4">
+                      {/* NAMA PRODUK */}
                       <div className="grid gap-2">
                         <Label>Nama Produk</Label>
                         <Input
-                          list="product-suggestions" // Hubungkan ke datalist
+                          list="product-suggestions"
                           name='product_name'
                           value={data.product_name}
                           onChange={(e) => handleProductNameChange(e.target.value)}
@@ -187,9 +294,21 @@ export default function Index({ products, ...props }: any) {
                         ))}
                       </datalist>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      {/* QTY, HARGA BELI, HARGA JUAL */}
+                      <div className="grid grid-cols-3 gap-4">
                         <div className="grid gap-2">
-                          <Label>Harga Beli (Modal)</Label>
+                          <Label className="truncate">Qty</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            name='qty'
+                            value={data.qty}
+                            onChange={(e) => setData({ ...data, qty: Number(e.target.value) })}
+                          />
+                          <InputError message={errors.qty} />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label className="truncate">Harga Beli (Modal)</Label>
                           <Input
                             type="text"
                             name='buy_price'
@@ -199,7 +318,7 @@ export default function Index({ products, ...props }: any) {
                           <InputError message={errors.buy_price} />
                         </div>
                         <div className="grid gap-2">
-                          <Label>Harga Jual</Label>
+                          <Label className="truncate">Harga Jual</Label>
                           <Input
                             type="text"
                             name='sell_price'
@@ -210,10 +329,15 @@ export default function Index({ products, ...props }: any) {
                         </div>
                       </div>
 
+                      {/* MARKETPLACE & FEE ADMIN */}
                       <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
-                          <Label>Marketplace</Label>
-                          <Select name='marketplace_name'>
+                          <Label className="truncate">Marketplace</Label>
+                          <Select
+                            name='marketplace_name'
+                            value={data.marketplace_name}
+                            onValueChange={(val) => setData({ ...data, marketplace_name: val })}
+                          >
                             <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="Shopee">Shopee</SelectItem>
@@ -225,7 +349,7 @@ export default function Index({ products, ...props }: any) {
                           <InputError message={errors.marketplace_name} />
                         </div>
                         <div className="grid gap-2">
-                          <Label>Fee Admin (%)</Label>
+                          <Label className="truncate">Fee Admin (%)</Label>
                           <Input
                             type="number"
                             name='marketplace_fee_percent'
@@ -236,34 +360,84 @@ export default function Index({ products, ...props }: any) {
                         </div>
                       </div>
 
-                      {/* Ringkasan Kalkulasi Otomatis */}
-                      <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-dashed">
-                        <div className="flex justify-between text-xs mb-1">
-                          <span>Potongan Admin:</span>
-                          <span className="text-red-500">- Rp {calc.feeAmount.toLocaleString('id-ID')}</span>
+                      {/* BIAYA PROSES, PROMO, EXTRA */}
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="grid gap-2">
+                          <Label className="truncate">Biaya Proses (Tetap)</Label>
+                          <Input
+                            type="text"
+                            name='flat_fees'
+                            value={formatRupiah(data.order_process_fee)}
+                            onChange={(e) => setData({ ...data, order_process_fee: parseRupiah(e.target.value) })}
+                          />
+                          <InputError message={errors.flat_fees} />
                         </div>
-                        <div className="flex justify-between font-bold text-sm">
+                        <div className="grid gap-2">
+                          <Label className="truncate">Promo Extra (%)</Label>
+                          <Input
+                            type="number"
+                            name='promo_extra_percent'
+                            step="0.1"
+                            value={data.promo_extra_percent}
+                            onChange={(e) => setData({ ...data, promo_extra_percent: Number(e.target.value) })}
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label className="truncate">Biaya Lainnya (iklan, dll)</Label>
+                          <Input
+                            type="text"
+                            name='extra_costs'
+                            placeholder="Rp 0"
+                            value={formatRupiah(data.extra_costs)}
+                            onChange={(e) => setData({ ...data, extra_costs: parseRupiah(e.target.value) })}
+                          />
+                          <InputError message={errors.extra_costs} />
+                        </div>
+                      </div>
+
+                      {/* RINGKASAN KALKULASI */}
+                      <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-dashed text-xs space-y-1">
+                        <div className="flex justify-between">
+                          <span>Potongan Persen ({(Number(data.marketplace_fee_percent) + Number(data.promo_extra_percent)).toFixed(2)}%):</span>
+                          <span className="text-red-500">
+                            - Rp {formatRupiah((data.sell_price * data.qty * (Number(data.marketplace_fee_percent) + Number(data.promo_extra_percent))) / 100)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Biaya Proses & Lainnya:</span>
+                          <span className="text-red-500">
+                            - Rp {formatRupiah(Number(data.order_process_fee) + Number(data.extra_costs))}
+                          </span>
+                        </div>
+                        <div className="flex justify-between font-bold text-sm pt-2 border-t">
                           <span>Estimasi Profit Bersih:</span>
-                          <span className="text-green-600">Rp {calc.netProfit.toLocaleString('id-ID')}</span>
+                          <span className={(calc.netProfit || 0) >= 0 ? "text-green-600" : "text-red-600"}>
+                            Rp {formatRupiah(calc.netProfit)}
+                          </span>
                         </div>
                       </div>
                     </div>
 
                     <DialogFooter>
-                      <DialogClose asChild>
-                        <Button type='button' variant="secondary">Batal</Button>
-                      </DialogClose>
-                      <Button type='submit' disabled={processing} className="bg-orange-600 hover:bg-orange-700 cursor-pointer">
+                      <Button
+                        type='button'
+                        variant="ghost"
+                        onClick={() => {
+                          setOpen(false);
+                          setIsEditing(false);
+                        }}
+                      >
+                        Batal
+                      </Button>
+                      <Button
+                        type='submit'
+                        disabled={processing}
+                        className={`${isEditing ? 'bg-blue-600 hover:bg-blue-700' : 'bg-orange-600 hover:bg-orange-700'} cursor-pointer text-white`}
+                      >
                         {processing ? (
-                          <>
-                            <Spinner className="h-4 w-4 animate-spin" />
-                            Menyimpan...
-                          </>
+                          <><Spinner className="h-4 w-4 animate-spin" /> Menyimpan...</>
                         ) : (
-                          <>
-                            <Save className="w-4 h-4" />
-                            Simpan
-                          </>
+                          <><Save className="w-4 h-4" /> {isEditing ? 'Perbarui' : 'Simpan'}</>
                         )}
                       </Button>
                     </DialogFooter>
@@ -344,49 +518,106 @@ export default function Index({ products, ...props }: any) {
               <Table className="w-full text-sm">
                 <TableHeader>
                   <TableRow className="border-b text-left text-muted-foreground uppercase text-[10px] tracking-wider">
+                    <TableHead className="pb-3">Tanggal</TableHead>
                     <TableHead className="pb-3">Produk & Toko</TableHead>
                     <TableHead className="pb-3 text-right">Harga Beli</TableHead>
                     <TableHead className="pb-3 text-right">Harga Jual</TableHead>
                     <TableHead className="pb-3 text-right">Potongan</TableHead>
                     <TableHead className="pb-3 text-right text-green-600">Margin/Profit</TableHead>
-                    <TableHead className="pb-3 text-center">Aksi</TableHead>
+                    <TableHead className="pb-3 text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y">
                   {sales.map((item: any) => {
-                    // Kalkulasi fee dan profit berdasarkan nama kolom database
-                    const feeAmount = (item.sell_price * item.marketplace_fee_percent) / 100;
-                    const profitPerItem = item.sell_price - item.buy_price - feeAmount - (item.shipping_cost || 0);
+                    const qty = Number(item.qty || 1);
+                    const sellPrice = Number(item.sell_price || 0);
+                    const buyPrice = Number(item.buy_price || 0);
+
+                    // 1. Kalkulasi total harga
+                    const totalJualBaris = sellPrice * qty;
+                    const totalModalBaris = buyPrice * qty;
+
+                    // 2. Gabungkan SEMUA persentase potongan (Admin + Promo)
+                    const totalPercent = Number(item.marketplace_fee_percent || 0) + Number(item.promo_extra_percent || 0);
+
+                    // 3. Hitung nominal potongan dari persentase tersebut
+                    const totalAdminFee = (totalJualBaris * totalPercent) / 100;
+
+                    // 4. Hitung total biaya (Gunakan totalAdminFee, bukan adminFee yang lama)
+                    const totalFees = totalAdminFee + Number(item.flat_fees || 0) + Number(item.extra_costs || 0);
+
+                    // 5. Profit Bersih (Harga Jual - Modal - Total Biaya)
+                    const profitPerItem = totalJualBaris - totalModalBaris - totalFees;
+
+                    // 6. Hitung Margin
+                    const marginPercent = totalJualBaris > 0 ? (profitPerItem / totalJualBaris) * 100 : 0;
 
                     return (
                       <TableRow key={item.id} className="group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                        <TableCell className="py-4 text-slate-500">
+                          {formatDate(item.created_at)}
+                        </TableCell>
                         <TableCell className="py-4">
-                          <div className="font-bold capitalize">
-                            {item.product_name || 'Tanpa Nama'}
-                          </div>
-                          <div className="flex items-center text-[10px] text-blue-600 font-medium mt-1">
-                            <Store className="w-3 h-3 mr-1" />
-                            {item.marketplace_name || 'Umum'}
+                          <div className="flex flex-col gap-1">
+                            {/* Nama Produk dengan line-clamp agar tidak merusak layout jika teks terlalu panjang */}
+                            <div className="font-semibold text-sm capitalize text-slate-900 dark:text-slate-100 line-clamp-1">
+                              {item.product_name || 'Tanpa Nama'}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {/* Badge Marketplace yang lebih bergaya */}
+                              <div className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${item.marketplace_name === 'Shopee' ? 'bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-950/30 dark:border-orange-900' :
+                                item.marketplace_name === 'Tokopedia' ? 'bg-green-50 text-green-600 border-green-100 dark:bg-green-950/30 dark:border-green-900' :
+                                  item.marketplace_name === 'TikTok Shop' ? 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-200' :
+                                    'bg-blue-50 text-blue-600 border-blue-100'
+                                }`}>
+                                <Store className="w-2.5 h-2.5 mr-1" />
+                                {item.marketplace_name || 'Umum'}
+                              </div>
+
+                              {/* Info Qty dengan pemisah dot */}
+                              <span className="text-slate-300 dark:text-slate-700">•</span>
+                              <span className="text-[10px] font-medium text-slate-500 uppercase tracking-tight">
+                                {qty} Pcs
+                              </span>
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell className="py-4 text-right">Rp {formatRupiah(item.buy_price)}</TableCell>
                         <TableCell className="py-4 text-right font-medium">Rp {formatRupiah(item.sell_price)}</TableCell>
-                        <TableCell className="py-4 text-right text-red-500">- Rp {formatRupiah(feeAmount)}</TableCell>
+                        <TableCell className="py-4 text-right text-red-500">
+                          - Rp {formatRupiah(totalFees)}
+                          <div className="text-[9px] text-slate-400">({totalPercent}%)</div>
+                        </TableCell>
                         <TableCell className="py-4 text-right">
                           <div className="font-bold text-green-600">Rp {formatRupiah(profitPerItem)}</div>
+                          {/* Indikator Margin per Produk */}
+                          <div className="text-[9px] text-slate-400">
+                            Margin: {marginPercent.toFixed(1)}%
+                          </div>
                         </TableCell>
                         <TableCell className="py-4 text-center">
-                          <Form {...SalesRecordController.destroy.form(item.id)}>
+                          <div className="flex items-center justify-end gap-2">
                             <Button
-                              type="submit"
                               variant="ghost"
                               size="sm"
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer"
-                              onClick={(e) => { if (!confirm('Apakah Anda yakin ingin menghapus data ini?')) { e.preventDefault(); } }}
+                              className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 cursor-pointer"
+                              onClick={() => handleEdit(item)}
                             >
-                              <Plus className="w-4 h-4 rotate-45" />
+                              <Pencil className="w-4 h-4" />
                             </Button>
-                          </Form>
+                            <Form {...SalesRecordController.destroy.form(item.id)}>
+                              <Button
+                                type="submit"
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer"
+                                onClick={(e) => { if (!confirm('Apakah Anda yakin ingin menghapus data ini?')) { e.preventDefault(); } }}
+                              >
+                                <Plus className="w-4 h-4 rotate-45" />
+                              </Button>
+                            </Form>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -394,11 +625,32 @@ export default function Index({ products, ...props }: any) {
                 </TableBody>
                 <TableFooter>
                   <TableRow className="bg-slate-50/50 dark:bg-slate-900/50">
-                    <TableHead className="font-bold uppercase text-[12px]">Total Keseluruhan</TableHead>
-                    <TableHead className="text-right font-bold">Rp {formatRupiah(stats.totalModal)}</TableHead>
-                    <TableHead className="text-right font-bold">Rp {formatRupiah(stats.totalJual)}</TableHead>
-                    <TableHead className="text-right font-bold text-red-500">- Rp {formatRupiah(stats.totalFee)}</TableHead>
-                    <TableHead className="text-right font-bold text-green-600 text-lg">Rp {formatRupiah(stats.netProfit)}</TableHead>
+                    {/* Menggunakan colSpan=2 karena sekarang ada kolom Tanggal + Produk & Toko */}
+                    <TableHead colSpan={2} className="font-bold uppercase text-[12px] py-4">
+                      Total Keseluruhan
+                    </TableHead>
+
+                    {/* Harga Beli */}
+                    <TableHead className="text-right font-bold">
+                      Rp {formatRupiah(stats.totalModal)}
+                    </TableHead>
+
+                    {/* Harga Jual */}
+                    <TableHead className="text-right font-bold">
+                      Rp {formatRupiah(stats.totalJual)}
+                    </TableHead>
+
+                    {/* Potongan */}
+                    <TableHead className="text-right font-bold text-red-500">
+                      - Rp {formatRupiah(stats.totalFee)}
+                    </TableHead>
+
+                    {/* Margin/Profit */}
+                    <TableHead className="text-right font-bold text-green-600 text-lg">
+                      Rp {formatRupiah(stats.netProfit)}
+                    </TableHead>
+
+                    {/* Kolom Aksi (Kosong) */}
                     <TableHead></TableHead>
                   </TableRow>
                 </TableFooter>
@@ -406,7 +658,7 @@ export default function Index({ products, ...props }: any) {
                 {sales.length === 0 && (
                   <TableBody>
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center">
+                      <TableCell colSpan={7} className="h-24 text-center">
                         <Empty>
                           <EmptyHeader>
                             <EmptyMedia variant="icon">
