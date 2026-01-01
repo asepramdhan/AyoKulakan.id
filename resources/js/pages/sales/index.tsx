@@ -27,11 +27,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const formatRupiah = (value: any) => {
-  // Jika value null/undefined, jadikan 0. Jika string, paksa ke float.
-  const num = parseFloat(value);
-  if (isNaN(num)) return '0';
+  // Paksa ke float dan berikan default 0 jika gagal parse
+  const num = parseFloat(value) || 0;
 
-  // Menggunakan Intl.NumberFormat agar lebih standar Indonesia
   return new Intl.NumberFormat('id-ID', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
@@ -86,18 +84,38 @@ export default function Index({ products, ...props }: any) {
   }, [salesRecords]);
 
   const stats = useMemo(() => {
-    const totalModal = sales.reduce((acc, curr) => acc + (Number(curr.buy_price) * Number(curr.qty)), 0);
-    const totalJual = sales.reduce((acc, curr) => acc + (Number(curr.sell_price) * Number(curr.qty)), 0);
+    if (!sales || sales.length === 0) {
+      return { totalModal: 0, totalJual: 0, totalFee: 0, netProfit: 0, margin: 0 };
+    }
+
+    const totalModal = sales.reduce((acc, curr) => {
+      const buyPrice = parseFloat(curr.buy_price) || 0;
+      const qty = parseFloat(curr.qty) || 0;
+      return acc + (buyPrice * qty);
+    }, 0);
+
+    const totalJual = sales.reduce((acc, curr) => {
+      const sellPrice = parseFloat(curr.sell_price) || 0;
+      const qty = parseFloat(curr.qty) || 0;
+      return acc + (sellPrice * qty);
+    }, 0);
 
     const totalAllFees = sales.reduce((acc, curr) => {
-      const qty = Number(curr.qty || 1);
-      const sellTotal = Number(curr.sell_price) * qty;
+      const qty = parseFloat(curr.qty) || 1;
+      const sellPrice = parseFloat(curr.sell_price) || 0;
+      const sellTotal = sellPrice * qty;
 
-      // Gabungkan persen admin + promo extra
-      const totalPesen = Number(curr.marketplace_fee_percent || 0) + Number(curr.promo_extra_percent || 0);
-      const feeAmount = (sellTotal * totalPesen) / 100;
+      const mktPercent = parseFloat(curr.marketplace_fee_percent) || 0;
+      const promoPercent = parseFloat(curr.promo_extra_percent) || 0;
+      const totalPercent = mktPercent + promoPercent;
 
-      return acc + feeAmount + Number(curr.flat_fees || 0) + Number(curr.extra_costs || 0) + Number(curr.shipping_cost || 0);
+      const feeAmount = (sellTotal * totalPercent) / 100;
+
+      const flatFees = parseFloat(curr.flat_fees) || 0;
+      const extra = parseFloat(curr.extra_costs) || 0;
+      const shipping = parseFloat(curr.shipping_cost) || 0;
+
+      return acc + feeAmount + flatFees + extra + shipping;
     }, 0);
 
     const netProfit = totalJual - totalModal - totalAllFees;
