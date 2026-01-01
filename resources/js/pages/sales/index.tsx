@@ -5,6 +5,7 @@ import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -15,7 +16,7 @@ import salesRecord from '@/routes/sales-record';
 import { type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Form, Head, usePage } from '@inertiajs/react';
-import { ArrowUpRight, CheckCircle2Icon, DollarSign, Percent, Plus, Save, Store, TrendingUp } from 'lucide-react';
+import { ArrowUpRight, CheckCircle2Icon, DollarSign, Package2, Percent, Plus, Save, Store, TrendingUp } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -401,6 +402,23 @@ export default function Index({ products, ...props }: any) {
                     <TableHead></TableHead>
                   </TableRow>
                 </TableFooter>
+
+                {sales.length === 0 && (
+                  <TableBody>
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center">
+                        <Empty>
+                          <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                              <Package2 className="w-6 h-6 text-orange-500" />
+                            </EmptyMedia>
+                            <EmptyTitle className="text-slate-400">Belum ada data.</EmptyTitle>
+                          </EmptyHeader>
+                        </Empty>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                )}
               </Table>
             </div>
           </CardContent>
