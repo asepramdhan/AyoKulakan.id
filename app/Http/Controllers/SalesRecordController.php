@@ -46,6 +46,7 @@ class SalesRecordController extends Controller
 
         // 2. Validasi Lengkap
         $validated = $request->validate([
+            'created_at'              => 'nullable|date',
             'product_name'            => 'required|string',
             'qty'                     => 'required|integer|min:1', // Pastikan Qty ada
             'buy_price'               => 'required|numeric|min:0',
@@ -88,13 +89,20 @@ class SalesRecordController extends Controller
             DB::transaction(function () use ($validated, $profit, $quantity) {
                 // Update harga terakhir produk (selalu gunakan harga satuan untuk master produk)
                 Product::updateOrCreate(
+                    // 1. Cari berdasarkan ini
                     ['user_id' => Auth::id(), 'name' => $validated['product_name']],
-                    ['last_price' => $validated['buy_price']]
+
+                    // 2. Data yang diupdate/dibuat (Gabungkan jadi satu array)
+                    [
+                        'last_price'      => $validated['buy_price'],
+                        'last_sell_price' => $validated['sell_price']
+                    ]
                 );
 
                 // Simpan data transaksi
                 SalesRecord::create([
                     'user_id'                 => Auth::id(),
+                    'created_at'              => $validated['created_at'] ?? now(),
                     'product_name'            => $validated['product_name'],
                     'qty'                     => $quantity, // Pastikan kolom qty ada di table sales_records
                     'buy_price'               => $validated['buy_price'],
@@ -147,6 +155,7 @@ class SalesRecordController extends Controller
 
         // 2. Validasi Lengkap
         $validated = $request->validate([
+            'created_at'              => 'nullable|date',
             'product_name'            => 'required|string',
             'qty'                     => 'required|integer|min:1', // Pastikan Qty ada
             'buy_price'               => 'required|numeric|min:0',
@@ -159,18 +168,36 @@ class SalesRecordController extends Controller
             'extra_costs'             => 'nullable|numeric',
         ]);
 
-        $record = SalesRecord::findOrFail($id);
+        try {
+            $record = SalesRecord::findOrFail($id);
 
-        // 2. Kalkulasi ulang profit
-        $totalPercent = $validated['marketplace_fee_percent'] + $validated['promo_extra_percent'];
-        $totalSell = $validated['sell_price'] * $validated['qty'];
-        $totalPotongan = ($totalSell * $totalPercent / 100) + $validated['flat_fees'] + $validated['extra_costs'];
-        $profit = $totalSell - ($validated['buy_price'] * $validated['qty']) - $totalPotongan - ($validated['shipping_cost'] ?? 0);
+            DB::transaction(function () use ($validated, $record) {
 
-        // 3. Update data
-        $record->update(array_merge($validated, ['profit' => $profit]));
+                // 2. Kalkulasi ulang profit
+                $totalPercent = $validated['marketplace_fee_percent'] + $validated['promo_extra_percent'];
+                $totalSell = $validated['sell_price'] * $validated['qty'];
+                $totalPotongan = ($totalSell * $totalPercent / 100) + $validated['flat_fees'] + $validated['extra_costs'];
+                $profit = $totalSell - ($validated['buy_price'] * $validated['qty']) - $totalPotongan - ($validated['shipping_cost'] ?? 0);
 
-        return back()->with('message', 'Data berhasil diperbarui!');
+                Product::updateOrCreate(
+                    ['user_id' => Auth::id(), 'name' => $validated['product_name']],
+                    [
+                        'last_price' => $validated['buy_price'],
+                        'last_sell_price' => $validated['sell_price']
+                    ]
+                );
+
+                // 3. Update data
+                $record->update(array_merge($validated, [
+                    'created_at' => $validated['created_at'] ?? $record->created_at,
+                    'profit' => $profit
+                ]));
+            });
+
+            return back()->with('message', 'Data berhasil diperbarui!');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'Gagal update: ' . $e->getMessage()]);
+        }
     }
 
     /**

@@ -17,7 +17,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Form, Head, usePage } from '@inertiajs/react';
 import { ArrowUpRight, CheckCircle2Icon, DollarSign, Package2, Pencil, Percent, Plus, Save, Store, TrendingUp } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -72,35 +72,50 @@ export default function Index({ products, ...props }: any) {
     }
   }, [flash.message]);
 
+  const [filterRange, setFilterRange] = useState<'today' | 'week' | 'month' | 'year' | 'all'>(() => {
+    return (localStorage.getItem('preferred_sales_filter') as any) || 'all';
+  });
+
   const { salesRecords } = props; // Ambil data dari props Laravel
 
   // Contoh data (Nanti data ini datang dari props Laravel)
-  const sales = useMemo(() => {
+  const filteredSales = useMemo(() => {
     if (!salesRecords) return [];
-    // Mengurutkan dari tanggal terbaru
-    return [...salesRecords].sort((a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-  }, [salesRecords]);
+
+    const now = new Date();
+    const startOfDay = new Date(now.setHours(0, 0, 0, 0));
+    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+    return salesRecords.filter((item: any) => {
+      const itemDate = new Date(item.created_at);
+      if (filterRange === 'today') return itemDate >= startOfDay;
+      if (filterRange === 'week') return itemDate >= startOfWeek;
+      if (filterRange === 'month') return itemDate >= startOfMonth;
+      if (filterRange === 'year') return itemDate >= startOfYear;
+      return true; // 'all'
+    }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [salesRecords, filterRange]);
 
   const stats = useMemo(() => {
-    if (!sales || sales.length === 0) {
+    if (!filteredSales || filteredSales.length === 0) {
       return { totalModal: 0, totalJual: 0, totalFee: 0, netProfit: 0, margin: 0 };
     }
 
-    const totalModal = sales.reduce((acc, curr) => {
+    const totalModal = filteredSales.reduce((acc, curr) => {
       const buyPrice = parseFloat(curr.buy_price) || 0;
       const qty = parseFloat(curr.qty) || 0;
       return acc + (buyPrice * qty);
     }, 0);
 
-    const totalJual = sales.reduce((acc, curr) => {
+    const totalJual = filteredSales.reduce((acc, curr) => {
       const sellPrice = parseFloat(curr.sell_price) || 0;
       const qty = parseFloat(curr.qty) || 0;
       return acc + (sellPrice * qty);
     }, 0);
 
-    const totalAllFees = sales.reduce((acc, curr) => {
+    const totalAllFees = filteredSales.reduce((acc, curr) => {
       const qty = parseFloat(curr.qty) || 1;
       const sellPrice = parseFloat(curr.sell_price) || 0;
       const sellTotal = sellPrice * qty;
@@ -122,7 +137,7 @@ export default function Index({ products, ...props }: any) {
     const margin = totalJual > 0 ? (netProfit / totalJual) * 100 : 0;
 
     return { totalModal, totalJual, totalFee: totalAllFees, netProfit, margin };
-  }, [sales]);
+  }, [filteredSales]);
 
   const [open, setOpen] = useState(false); // State untuk kontrol modal
   const [isEditing, setIsEditing] = useState(false);
@@ -135,6 +150,7 @@ export default function Index({ products, ...props }: any) {
 
     // Pastikan semua nilai adalah Number untuk menghindari NaN
     setData({
+      date: item.date || new Date().toISOString().split('T')[0],
       product_name: item.product_name || '',
       qty: Number(item.qty) || 1,
       buy_price: Number(item.buy_price) || 0,
@@ -151,6 +167,7 @@ export default function Index({ products, ...props }: any) {
   };
 
   const [data, setData] = useState({
+    date: new Date().toISOString().split('T')[0], // Default hari ini (YYYY-MM-DD)
     product_name: '',
     qty: 1,
     buy_price: 0,
@@ -162,6 +179,8 @@ export default function Index({ products, ...props }: any) {
     order_process_fee: 1250,     // Biaya Proses (Flat) pengganti flat_fees
     extra_costs: 0,       // Untuk Iklan atau Affiliate
   });
+
+  const qtyInputRef = useRef<HTMLInputElement>(null);
 
   // Fungsi Handler khusus untuk Nama Produk
   const handleProductNameChange = (value: string) => {
@@ -178,8 +197,15 @@ export default function Index({ products, ...props }: any) {
       setData((prev) => ({
         ...prev,
         product_name: value,
-        buy_price: foundProduct.last_price || 0
+        buy_price: foundProduct.last_price || 0,
+        sell_price: foundProduct.last_sell_price || 0
       }));
+    }
+
+    if (foundProduct) {
+      // ... set data
+      // 3. Fokus ke Qty setelah delay tipis agar state terupdate dulu
+      setTimeout(() => qtyInputRef.current?.focus(), 100);
     }
   };
 
@@ -190,6 +216,9 @@ export default function Index({ products, ...props }: any) {
 
   // Efek kalkulasi otomatis (Reaktif)
   useEffect(() => {
+
+    localStorage.setItem('preferred_sales_filter', filterRange);
+
     const quantity = Number(data.qty || 1);
     const totalSell = data.sell_price * quantity;
 
@@ -207,7 +236,7 @@ export default function Index({ products, ...props }: any) {
       feeAmount: totalPotongan,
       netProfit: totalProfit
     });
-  }, [data]);
+  }, [data, filterRange]);
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
@@ -231,6 +260,7 @@ export default function Index({ products, ...props }: any) {
                   setIsEditing(false);
                   setEditId(null);
                   setData({
+                    date: new Date().toISOString().split('T')[0],
                     product_name: '',
                     qty: 1,
                     buy_price: 0,
@@ -260,6 +290,7 @@ export default function Index({ products, ...props }: any) {
                   setIsEditing(false);
                   setEditId(null); // Reset ID edit
                   setData({ // Reset ke default
+                    date: new Date().toISOString().split('T')[0],
                     product_name: '',
                     qty: 1,
                     buy_price: 0,
@@ -292,6 +323,17 @@ export default function Index({ products, ...props }: any) {
                     </DialogHeader>
 
                     <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label>Tanggal Transaksi</Label>
+                        <Input
+                          type="date"
+                          name="created_at"
+                          value={data.date}
+                          onChange={(e) => setData({ ...data, date: e.target.value })}
+                          className='block w-full'
+                        />
+                        <InputError message={errors.created_at} />
+                      </div>
                       {/* NAMA PRODUK */}
                       <div className="grid gap-2">
                         <Label>Nama Produk</Label>
@@ -317,6 +359,7 @@ export default function Index({ products, ...props }: any) {
                         <div className="grid gap-2">
                           <Label className="truncate">Qty</Label>
                           <Input
+                            ref={qtyInputRef}
                             type="number"
                             min="1"
                             name='qty'
@@ -466,6 +509,23 @@ export default function Index({ products, ...props }: any) {
           </Dialog>
         </div>
 
+        <div className="flex flex-wrap gap-2 mb-4">
+          {['today', 'week', 'month', 'year', 'all'].map((range) => (
+            <Button
+              key={range}
+              variant={filterRange === range ? 'default' : 'outline'}
+              size="sm"
+              className="capitalize"
+              onClick={() => setFilterRange(range as any)}
+            >
+              {range === 'today' ? 'Hari Ini' :
+                range === 'week' ? 'Minggu' :
+                  range === 'month' ? 'Bulan' :
+                    range === 'year' ? 'Tahun' : 'Semua'}
+            </Button>
+          ))}
+        </div>
+
         {/* Dashboard Ringkasan */}
         <div className="grid gap-4 md:grid-cols-3">
           {/* Total Penjualan */}
@@ -546,7 +606,7 @@ export default function Index({ products, ...props }: any) {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y">
-                  {sales.map((item: any) => {
+                  {filteredSales.map((item: any) => {
                     const qty = Number(item.qty || 1);
                     const sellPrice = Number(item.sell_price || 0);
                     const buyPrice = Number(item.buy_price || 0);
@@ -673,7 +733,7 @@ export default function Index({ products, ...props }: any) {
                   </TableRow>
                 </TableFooter>
 
-                {sales.length === 0 && (
+                {filteredSales.length === 0 && (
                   <TableBody>
                     <TableRow>
                       <TableCell colSpan={7} className="h-24 text-center">
