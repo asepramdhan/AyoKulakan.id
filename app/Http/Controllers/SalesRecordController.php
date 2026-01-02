@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\SalesRecord;
+use App\Models\Store;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +19,8 @@ class SalesRecordController extends Controller
     {
         return Inertia::render('sales/index', [
             'products' => Auth::user()->products,
-            'salesRecords' => SalesRecord::latest()->get(),
+            'salesRecords' => SalesRecord::with('store')->latest()->get(),
+            'stores' => Store::where('user_id', Auth::id())->get()
         ]);
     }
 
@@ -53,6 +55,7 @@ class SalesRecordController extends Controller
             'sell_price'              => 'required|numeric|min:0',
             'marketplace_fee_percent' => 'required|numeric|min:0',
             'promo_extra_percent'     => 'required|numeric',
+            'store_id'                => 'required|exists:stores,id',
             'marketplace_name'        => 'required|string',
             'shipping_cost'           => 'nullable|numeric',
             'flat_fees'               => 'nullable|numeric',
@@ -109,6 +112,7 @@ class SalesRecordController extends Controller
                     'sell_price'              => $validated['sell_price'],
                     'marketplace_fee_percent' => $validated['marketplace_fee_percent'],
                     'promo_extra_percent'     => $validated['promo_extra_percent'],
+                    'store_id'                => $validated['store_id'],
                     'marketplace_name'        => $validated['marketplace_name'],
                     'shipping_cost'           => $validated['shipping_cost'] ?? 0,
                     'flat_fees'               => $validated['flat_fees'] ?? 0,
@@ -162,6 +166,7 @@ class SalesRecordController extends Controller
             'sell_price'              => 'required|numeric|min:0',
             'marketplace_fee_percent' => 'required|numeric|min:0',
             'promo_extra_percent'     => 'required|numeric',
+            'store_id'                => 'required|exists:stores,id',
             'marketplace_name'        => 'required|string',
             'shipping_cost'           => 'nullable|numeric',
             'flat_fees'               => 'nullable|numeric',
@@ -190,6 +195,7 @@ class SalesRecordController extends Controller
                 // 3. Update data
                 $record->update(array_merge($validated, [
                     'created_at' => $validated['created_at'] ?? $record->created_at,
+                    'store_id' => $validated['store_id'],
                     'profit' => $profit
                 ]));
             });

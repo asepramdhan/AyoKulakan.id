@@ -292,11 +292,14 @@ export default function Edit() {
                     </datalist>
                   </div>
 
-                  <div className="flex justify-between items-center pt-4 border-t">
-                    <div className="text-xl font-bold tracking-tight text-green-600">
-                      Total: Rp {totalEstimasi ? formatRupiah(totalEstimasi) : '-'}
+                  <div className="flex flex-col md:flex-row justify-between items-center gap-4 pt-4 border-t">
+                    {/* TOTAL: Tampil rata kiri di desktop, rata tengah di HP */}
+                    <div className="text-xl md:text-2xl font-bold tracking-tight text-green-600 w-full md:w-auto text-center md:text-left">
+                      Total : Rp {totalEstimasi ? formatRupiah(totalEstimasi) : '-'}
                     </div>
-                    <div className="flex gap-2 items-center">
+
+                    <div className="flex flex-col-reverse sm:flex-row gap-2 items-center w-full md:w-auto">
+                      {/* Status Notifikasi (Tersimpan) */}
                       <Transition
                         show={recentlySuccessful}
                         enter="transition ease-in-out"
@@ -306,28 +309,34 @@ export default function Edit() {
                       >
                         <p className="text-sm text-neutral-600 dark:text-neutral-400">
                           {flash.message || 'Tersimpan'}
-                          {/* Terakhir disimpan {moment(recentlyCreated).fromNow()} */}
                         </p>
                       </Transition>
-                      {/* tombol kembali */}
+
+                      {/* Tombol Kembali - Di HP jadi lebar penuh / Full Width */}
                       <Button
                         type="button"
                         variant="ghost"
-                        className="cursor-pointer"
+                        className="cursor-pointer w-full sm:w-auto order-2 sm:order-1"
                         onClick={() => window.history.back()}
                       >
                         Kembali
                       </Button>
-                      <Button type="submit" disabled={processing} className="bg-green-600 hover:bg-green-700 cursor-pointer">
+
+                      {/* Tombol Simpan - Di HP jadi lebar penuh / Full Width */}
+                      <Button
+                        type="submit"
+                        disabled={processing}
+                        className="bg-green-600 hover:bg-green-700 cursor-pointer w-full sm:w-auto order-1 sm:order-2 py-6 md:py-2 text-lg md:text-sm"
+                      >
                         {processing ? (
                           <>
                             <Spinner className="h-4 w-4 animate-spin" />
-                            Perbaharui...
+                            Memproses...
                           </>
                         ) : (
                           <>
                             <Save className="w-4 h-4" />
-                            Simpan
+                            Simpan Data
                           </>
                         )}
                       </Button>

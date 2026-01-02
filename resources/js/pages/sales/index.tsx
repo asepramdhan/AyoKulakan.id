@@ -8,7 +8,7 @@ import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogT
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
@@ -52,7 +52,7 @@ const formatDate = (dateString: string) => {
   }).format(new Date(dateString));
 };
 
-export default function Index({ products, ...props }: any) {
+export default function Index({ products, stores, ...props }: any) {
 
   const { flash } = usePage().props as any;
 
@@ -72,6 +72,9 @@ export default function Index({ products, ...props }: any) {
     }
   }, [flash.message]);
 
+  // State untuk filter toko (default 'all')
+  const [filterStore, setFilterStore] = useState<string>('all');
+
   const [filterRange, setFilterRange] = useState<'today' | 'week' | 'month' | 'year' | 'all'>(() => {
     return (localStorage.getItem('preferred_sales_filter') as any) || 'all';
   });
@@ -83,20 +86,38 @@ export default function Index({ products, ...props }: any) {
     if (!salesRecords) return [];
 
     const now = new Date();
-    const startOfDay = new Date(now.setHours(0, 0, 0, 0));
-    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfYear = new Date(now.getFullYear(), 0, 1);
 
-    return salesRecords.filter((item: any) => {
-      const itemDate = new Date(item.created_at);
-      if (filterRange === 'today') return itemDate >= startOfDay;
-      if (filterRange === 'week') return itemDate >= startOfWeek;
-      if (filterRange === 'month') return itemDate >= startOfMonth;
-      if (filterRange === 'year') return itemDate >= startOfYear;
-      return true; // 'all'
-    }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }, [salesRecords, filterRange]);
+    return salesRecords
+      .filter((item: any) => {
+        const itemDate = new Date(item.created_at);
+
+        // 1. Logika Filter Waktu
+        let matchTime = true;
+        if (filterRange === 'today') matchTime = itemDate >= startOfDay;
+        else if (filterRange === 'week') matchTime = itemDate >= startOfWeek;
+        else if (filterRange === 'month') matchTime = itemDate >= startOfMonth;
+        else if (filterRange === 'year') matchTime = itemDate >= startOfYear;
+
+        // 2. Logika Filter Toko
+        let matchStore = true;
+        if (filterStore !== 'all') {
+          // Pastikan perbandingan menggunakan string agar aman
+          matchStore = item.store_id?.toString() === filterStore;
+        }
+
+        // Harus memenuhi kedua kondisi
+        return matchTime && matchStore;
+      })
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [salesRecords, filterRange, filterStore]); // Tambahkan filterStore di sini
 
   const stats = useMemo(() => {
     if (!filteredSales || filteredSales.length === 0) {
@@ -151,6 +172,7 @@ export default function Index({ products, ...props }: any) {
     // Pastikan semua nilai adalah Number untuk menghindari NaN
     setData({
       date: item.date || new Date().toISOString().split('T')[0],
+      store_id: item.store_id ? item.store_id.toString() : '',
       product_name: item.product_name || '',
       qty: Number(item.qty) || 1,
       buy_price: Number(item.buy_price) || 0,
@@ -168,6 +190,7 @@ export default function Index({ products, ...props }: any) {
 
   const [data, setData] = useState({
     date: new Date().toISOString().split('T')[0], // Default hari ini (YYYY-MM-DD)
+    store_id: '',
     product_name: '',
     qty: 1,
     buy_price: 0,
@@ -261,6 +284,7 @@ export default function Index({ products, ...props }: any) {
                   setEditId(null);
                   setData({
                     date: new Date().toISOString().split('T')[0],
+                    store_id: '',
                     product_name: '',
                     qty: 1,
                     buy_price: 0,
@@ -291,6 +315,7 @@ export default function Index({ products, ...props }: any) {
                   setEditId(null); // Reset ID edit
                   setData({ // Reset ke default
                     date: new Date().toISOString().split('T')[0],
+                    store_id: '',
                     product_name: '',
                     qty: 1,
                     buy_price: 0,
@@ -323,36 +348,38 @@ export default function Index({ products, ...props }: any) {
                     </DialogHeader>
 
                     <div className="grid gap-4 py-4">
-                      <div className="grid gap-2">
-                        <Label>Tanggal Transaksi</Label>
-                        <Input
-                          type="date"
-                          name="created_at"
-                          value={data.date}
-                          onChange={(e) => setData({ ...data, date: e.target.value })}
-                          className='block w-full'
-                        />
-                        <InputError message={errors.created_at} />
-                      </div>
-                      {/* NAMA PRODUK */}
-                      <div className="grid gap-2">
-                        <Label>Nama Produk</Label>
-                        <Input
-                          list="product-suggestions"
-                          name='product_name'
-                          value={data.product_name}
-                          onChange={(e) => handleProductNameChange(e.target.value)}
-                          autoComplete="off"
-                          placeholder="Contoh: Pakan Kucing"
-                        />
-                        <InputError message={errors.product_name} />
-                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label>Tanggal Transaksi</Label>
+                          <Input
+                            type="date"
+                            name="created_at"
+                            value={data.date}
+                            onChange={(e) => setData({ ...data, date: e.target.value })}
+                            className='block w-full'
+                          />
+                          <InputError message={errors.created_at} />
+                        </div>
+                        {/* NAMA PRODUK */}
+                        <div className="grid gap-2">
+                          <Label>Nama Produk</Label>
+                          <Input
+                            list="product-suggestions"
+                            name='product_name'
+                            value={data.product_name}
+                            onChange={(e) => handleProductNameChange(e.target.value)}
+                            autoComplete="off"
+                            placeholder="Contoh: Pakan Kucing"
+                          />
+                          <InputError message={errors.product_name} />
+                        </div>
 
-                      <datalist id="product-suggestions">
-                        {products.map((p: any) => (
-                          <option key={p.id} value={p.name} />
-                        ))}
-                      </datalist>
+                        <datalist id="product-suggestions">
+                          {products.map((p: any) => (
+                            <option key={p.id} value={p.name} />
+                          ))}
+                        </datalist>
+                      </div>
 
                       {/* QTY, HARGA BELI, HARGA JUAL */}
                       <div className="grid grid-cols-3 gap-4">
@@ -393,6 +420,34 @@ export default function Index({ products, ...props }: any) {
                       {/* MARKETPLACE & FEE ADMIN */}
                       <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
+                          <Label>Pilih Toko Anda</Label>
+                          <Select
+                            name='store_id'
+                            value={data.store_id}
+                            onValueChange={(val) => setData({ ...data, store_id: val })}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Pilih Toko" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectGroup>
+                                <SelectLabel>Daftar Toko Kamu</SelectLabel>
+                                {/* 3. Looping data stores dari database */}
+                                {stores && stores.length > 0 ? (
+                                  stores.map((store: any) => (
+                                    <SelectItem key={store.id} value={store.id.toString()}>
+                                      <span className="capitalize">{store.name}</span>
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <SelectItem value="none" disabled>Belum ada toko</SelectItem>
+                                )}
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
+                          <InputError message={errors.store_id} />
+                        </div>
+                        <div className="grid gap-2">
                           <Label className="truncate">Marketplace</Label>
                           <Select
                             name='marketplace_name'
@@ -409,8 +464,12 @@ export default function Index({ products, ...props }: any) {
                           </Select>
                           <InputError message={errors.marketplace_name} />
                         </div>
+                      </div>
+
+                      {/* BIAYA PROSES, PROMO, EXTRA */}
+                      <div className="grid grid-cols-4 gap-4">
                         <div className="grid gap-2">
-                          <Label className="truncate">Fee Admin (%)</Label>
+                          <Label className="truncate">Admin (%)</Label>
                           <Input
                             type="number"
                             name='marketplace_fee_percent'
@@ -419,12 +478,8 @@ export default function Index({ products, ...props }: any) {
                           />
                           <InputError message={errors.marketplace_fee_percent} />
                         </div>
-                      </div>
-
-                      {/* BIAYA PROSES, PROMO, EXTRA */}
-                      <div className="grid grid-cols-3 gap-4">
                         <div className="grid gap-2">
-                          <Label className="truncate">Biaya Proses (Tetap)</Label>
+                          <Label className="truncate">Biaya Proses</Label>
                           <Input
                             type="text"
                             name='flat_fees'
@@ -434,7 +489,7 @@ export default function Index({ products, ...props }: any) {
                           <InputError message={errors.flat_fees} />
                         </div>
                         <div className="grid gap-2">
-                          <Label className="truncate">Promo Extra (%)</Label>
+                          <Label className="truncate">Promo Extra %</Label>
                           <Input
                             type="number"
                             name='promo_extra_percent'
@@ -444,7 +499,7 @@ export default function Index({ products, ...props }: any) {
                           />
                         </div>
                         <div className="grid gap-2">
-                          <Label className="truncate">Biaya Lainnya (iklan, dll)</Label>
+                          <Label className="truncate">Lainnya (iklan, dll)</Label>
                           <Input
                             type="text"
                             name='extra_costs'
@@ -464,8 +519,10 @@ export default function Index({ products, ...props }: any) {
                             - Rp {formatRupiah((data.sell_price * data.qty * (Number(data.marketplace_fee_percent) + Number(data.promo_extra_percent))) / 100)}
                           </span>
                         </div>
-                        <div className="flex justify-between">
-                          <span>Biaya Proses & Lainnya:</span>
+                        <div className="flex justify-between items-center">
+                          <span>Biaya Proses & Lainnya:
+                            <p className="text-xs text-slate-400 italic">(iklan, affiliate, dll)</p>
+                          </span>
                           <span className="text-red-500">
                             - Rp {formatRupiah(Number(data.order_process_fee) + Number(data.extra_costs))}
                           </span>
@@ -509,21 +566,40 @@ export default function Index({ products, ...props }: any) {
           </Dialog>
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-4">
-          {['today', 'week', 'month', 'year', 'all'].map((range) => (
-            <Button
-              key={range}
-              variant={filterRange === range ? 'default' : 'outline'}
-              size="sm"
-              className="capitalize"
-              onClick={() => setFilterRange(range as any)}
+        <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
+          {/* Bagian Kiri: Filter Waktu */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {['today', 'week', 'month', 'year', 'all'].map((range) => (
+              <Button
+                key={range}
+                variant={filterRange === range ? 'default' : 'outline'}
+                size="sm"
+                className="capitalize"
+                onClick={() => setFilterRange(range as any)}
+              >
+                {range === 'today' ? 'Hari Ini' :
+                  range === 'week' ? 'Minggu' :
+                    range === 'month' ? 'Bulan' :
+                      range === 'year' ? 'Tahun' : 'Semua'}
+              </Button>
+            ))}
+          </div>
+          {/* Bagian Kanan: Filter Toko */}
+          <div className="flex items-center gap-2 min-w-[200px]">
+            <Label className="text-muted-foreground italic">Toko:</Label>
+            <select
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:ring-1 focus:ring-ring"
+              value={filterStore}
+              onChange={(e) => setFilterStore(e.target.value)}
             >
-              {range === 'today' ? 'Hari Ini' :
-                range === 'week' ? 'Minggu' :
-                  range === 'month' ? 'Bulan' :
-                    range === 'year' ? 'Tahun' : 'Semua'}
-            </Button>
-          ))}
+              <option value="all">Semua Toko</option>
+              {stores.map((s: any) => (
+                <option key={s.id} value={s.id.toString()}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Dashboard Ringkasan */}
@@ -640,24 +716,25 @@ export default function Index({ products, ...props }: any) {
                             {/* Nama Produk dengan line-clamp agar tidak merusak layout jika teks terlalu panjang */}
                             <div className="font-semibold text-sm capitalize text-slate-900 dark:text-slate-100 line-clamp-1">
                               {item.product_name || 'Tanpa Nama'}
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              {/* Badge Marketplace yang lebih bergaya */}
-                              <div className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${item.marketplace_name === 'Shopee' ? 'bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-950/30 dark:border-orange-900' :
-                                item.marketplace_name === 'Tokopedia' ? 'bg-green-50 text-green-600 border-green-100 dark:bg-green-950/30 dark:border-green-900' :
-                                  item.marketplace_name === 'TikTok Shop' ? 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-200' :
-                                    'bg-blue-50 text-blue-600 border-blue-100'
-                                }`}>
-                                <Store className="w-2.5 h-2.5 mr-1" />
-                                {item.marketplace_name || 'Umum'}
-                              </div>
-
                               {/* Info Qty dengan pemisah dot */}
-                              <span className="text-slate-300 dark:text-slate-700">•</span>
-                              <span className="text-[10px] font-medium text-slate-500 uppercase tracking-tight">
+                              <span className="text-slate-300 dark:text-slate-700 ms-1">•</span>
+                              <span className="ms-1 text-[10px] font-medium text-slate-500 uppercase tracking-tight">
                                 {qty} Pcs
                               </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className='flex items-center gap-1'>
+                                {/* Badge Marketplace yang lebih bergaya */}
+                                <div className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${item.marketplace_name === 'Shopee' ? 'bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-950/30 dark:border-orange-900' :
+                                  item.marketplace_name === 'Tokopedia' ? 'bg-green-50 text-green-600 border-green-100 dark:bg-green-950/30 dark:border-green-900' :
+                                    item.marketplace_name === 'TikTok Shop' ? 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-200' :
+                                      'bg-blue-50 text-blue-600 border-blue-100'
+                                  }`}>
+                                  <Store className="w-2.5 h-2.5 mr-1" />
+                                  {item.marketplace_name || 'Umum'}
+                                </div>
+                                <span className="font-bold text-xs capitalize text-slate-900 dark:text-slate-300">{item.store.name || 'No Store'}</span>
+                              </div>
                             </div>
                           </div>
                         </TableCell>
