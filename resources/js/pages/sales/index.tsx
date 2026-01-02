@@ -8,6 +8,7 @@ import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogT
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -346,196 +347,211 @@ export default function Index({ products, stores, ...props }: any) {
                         )}
                       </DialogTitle>
                     </DialogHeader>
+                    <ScrollArea className="h-[400px]">
+                      <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="grid gap-2">
+                            <Label>Tanggal Transaksi</Label>
+                            <Input
+                              type="date"
+                              name="created_at"
+                              value={data.date}
+                              onChange={(e) => setData({ ...data, date: e.target.value })}
+                              className='block w-full'
+                              required
+                            />
+                            <InputError message={errors.created_at} />
+                          </div>
 
-                    <div className="grid gap-4 py-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                          <Label>Tanggal Transaksi</Label>
-                          <Input
-                            type="date"
-                            name="created_at"
-                            value={data.date}
-                            onChange={(e) => setData({ ...data, date: e.target.value })}
-                            className='block w-full'
-                          />
-                          <InputError message={errors.created_at} />
-                        </div>
-                        {/* NAMA PRODUK */}
-                        <div className="grid gap-2">
-                          <Label>Nama Produk</Label>
-                          <Input
-                            list="product-suggestions"
-                            name='product_name'
-                            value={data.product_name}
-                            onChange={(e) => handleProductNameChange(e.target.value)}
-                            autoComplete="off"
-                            placeholder="Contoh: Pakan Kucing"
-                          />
-                          <InputError message={errors.product_name} />
+                          <div className='grid grid-cols-4 md:col-span-2 gap-4'>
+                            {/* NAMA PRODUK */}
+                            <div className="grid col-span-3 gap-2">
+                              <Label>Nama Produk</Label>
+                              <Input
+                                list="product-suggestions"
+                                name='product_name'
+                                value={data.product_name}
+                                onChange={(e) => handleProductNameChange(e.target.value)}
+                                autoComplete="off"
+                                placeholder="Contoh: Pakan Kucing"
+                                required
+                              />
+                              <InputError message={errors.product_name} />
+                            </div>
+
+                            <div className="grid gap-2">
+                              <Label className="truncate">Qty</Label>
+                              <Input
+                                ref={qtyInputRef}
+                                type="number"
+                                min="1"
+                                name='qty'
+                                value={data.qty}
+                                onChange={(e) => setData({ ...data, qty: Number(e.target.value) })}
+                                required
+                              />
+                              <InputError message={errors.qty} />
+                            </div>
+                          </div>
+
+                          <datalist id="product-suggestions">
+                            {products.map((p: any) => (
+                              <option key={p.id} value={p.name} />
+                            ))}
+                          </datalist>
                         </div>
 
-                        <datalist id="product-suggestions">
-                          {products.map((p: any) => (
-                            <option key={p.id} value={p.name} />
-                          ))}
-                        </datalist>
+                        {/* QTY, HARGA BELI, HARGA JUAL */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="grid gap-2">
+                            <Label className="truncate">Harga Beli (Modal)</Label>
+                            <Input
+                              type="text"
+                              name='buy_price'
+                              value={formatRupiah(data.buy_price)}
+                              onChange={(e) => setData({ ...data, buy_price: parseRupiah(e.target.value) })}
+                              required
+                            />
+                            <InputError message={errors.buy_price} />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label className="truncate">Harga Jual</Label>
+                            <Input
+                              type="text"
+                              name='sell_price'
+                              value={formatRupiah(data.sell_price)}
+                              onChange={(e) => setData({ ...data, sell_price: parseRupiah(e.target.value) })}
+                              required
+                            />
+                            <InputError message={errors.sell_price} />
+                          </div>
+                        </div>
+
+                        {/* MARKETPLACE & FEE ADMIN */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="grid gap-2">
+                            <Label>Pilih Toko Anda</Label>
+                            <Select
+                              name='store_id'
+                              value={data.store_id}
+                              onValueChange={(val) => setData({ ...data, store_id: val })}
+                              required
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Pilih Toko" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectGroup>
+                                  <SelectLabel>Daftar Toko Kamu</SelectLabel>
+                                  {/* 3. Looping data stores dari database */}
+                                  {stores && stores.length > 0 ? (
+                                    stores.map((store: any) => (
+                                      <SelectItem key={store.id} value={store.id.toString()}>
+                                        <span className="capitalize">{store.name}</span>
+                                      </SelectItem>
+                                    ))
+                                  ) : (
+                                    <SelectItem value="none" disabled>Belum ada toko</SelectItem>
+                                  )}
+                                </SelectGroup>
+                              </SelectContent>
+                            </Select>
+                            <InputError message={errors.store_id} />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label className="truncate">Marketplace</Label>
+                            <Select
+                              name='marketplace_name'
+                              value={data.marketplace_name}
+                              onValueChange={(val) => setData({ ...data, marketplace_name: val })}
+                              required
+                            >
+                              <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Shopee">Shopee</SelectItem>
+                                <SelectItem value="Lazada">Lazada</SelectItem>
+                                <SelectItem value="Tokopedia">Tokopedia</SelectItem>
+                                <SelectItem value="TikTok Shop">TikTok Shop</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <InputError message={errors.marketplace_name} />
+                          </div>
+                        </div>
+
+                        {/* BIAYA PROSES, PROMO, EXTRA */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="grid gap-2">
+                            <Label className="truncate">Admin Fee (%)</Label>
+                            <Input
+                              type="number"
+                              name='marketplace_fee_percent'
+                              value={data.marketplace_fee_percent}
+                              onChange={(e) => setData({ ...data, marketplace_fee_percent: Number(e.target.value) })}
+                              required
+                            />
+                            <InputError message={errors.marketplace_fee_percent} />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label className="truncate">Biaya Proses</Label>
+                            <Input
+                              type="text"
+                              name='flat_fees'
+                              value={formatRupiah(data.order_process_fee)}
+                              onChange={(e) => setData({ ...data, order_process_fee: parseRupiah(e.target.value) })}
+                              required
+                            />
+                            <InputError message={errors.flat_fees} />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label className="truncate">Promo Extra (%)</Label>
+                            <Input
+                              type="number"
+                              name='promo_extra_percent'
+                              step="0.1"
+                              value={data.promo_extra_percent}
+                              onChange={(e) => setData({ ...data, promo_extra_percent: Number(e.target.value) })}
+                              required
+                            />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label className="truncate">Lainnya (iklan, dll)</Label>
+                            <Input
+                              type="text"
+                              name='extra_costs'
+                              placeholder="Rp 0"
+                              value={formatRupiah(data.extra_costs)}
+                              onChange={(e) => setData({ ...data, extra_costs: parseRupiah(e.target.value) })}
+                              required
+                            />
+                            <InputError message={errors.extra_costs} />
+                          </div>
+                        </div>
+
+                        {/* RINGKASAN KALKULASI */}
+                        <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-dashed text-xs space-y-1">
+                          <div className="flex justify-between">
+                            <span>Potongan Persen ({(Number(data.marketplace_fee_percent) + Number(data.promo_extra_percent)).toFixed(2)}%):</span>
+                            <span className="text-red-500">
+                              - Rp {formatRupiah((data.sell_price * data.qty * (Number(data.marketplace_fee_percent) + Number(data.promo_extra_percent))) / 100)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span>Biaya Proses & Lainnya:
+                              <p className="text-xs text-slate-400 italic">(iklan, affiliate, dll)</p>
+                            </span>
+                            <span className="text-red-500">
+                              - Rp {formatRupiah(Number(data.order_process_fee) + Number(data.extra_costs))}
+                            </span>
+                          </div>
+                          <div className="flex justify-between font-bold text-sm pt-2 border-t">
+                            <span>Estimasi Profit Bersih:</span>
+                            <span className={(calc.netProfit || 0) >= 0 ? "text-green-600" : "text-red-600"}>
+                              Rp {formatRupiah(calc.netProfit)}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-
-                      {/* QTY, HARGA BELI, HARGA JUAL */}
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="grid gap-2">
-                          <Label className="truncate">Qty</Label>
-                          <Input
-                            ref={qtyInputRef}
-                            type="number"
-                            min="1"
-                            name='qty'
-                            value={data.qty}
-                            onChange={(e) => setData({ ...data, qty: Number(e.target.value) })}
-                          />
-                          <InputError message={errors.qty} />
-                        </div>
-                        <div className="grid gap-2">
-                          <Label className="truncate">Harga Beli (Modal)</Label>
-                          <Input
-                            type="text"
-                            name='buy_price'
-                            value={formatRupiah(data.buy_price)}
-                            onChange={(e) => setData({ ...data, buy_price: parseRupiah(e.target.value) })}
-                          />
-                          <InputError message={errors.buy_price} />
-                        </div>
-                        <div className="grid gap-2">
-                          <Label className="truncate">Harga Jual</Label>
-                          <Input
-                            type="text"
-                            name='sell_price'
-                            value={formatRupiah(data.sell_price)}
-                            onChange={(e) => setData({ ...data, sell_price: parseRupiah(e.target.value) })}
-                          />
-                          <InputError message={errors.sell_price} />
-                        </div>
-                      </div>
-
-                      {/* MARKETPLACE & FEE ADMIN */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                          <Label>Pilih Toko Anda</Label>
-                          <Select
-                            name='store_id'
-                            value={data.store_id}
-                            onValueChange={(val) => setData({ ...data, store_id: val })}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Pilih Toko" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectGroup>
-                                <SelectLabel>Daftar Toko Kamu</SelectLabel>
-                                {/* 3. Looping data stores dari database */}
-                                {stores && stores.length > 0 ? (
-                                  stores.map((store: any) => (
-                                    <SelectItem key={store.id} value={store.id.toString()}>
-                                      <span className="capitalize">{store.name}</span>
-                                    </SelectItem>
-                                  ))
-                                ) : (
-                                  <SelectItem value="none" disabled>Belum ada toko</SelectItem>
-                                )}
-                              </SelectGroup>
-                            </SelectContent>
-                          </Select>
-                          <InputError message={errors.store_id} />
-                        </div>
-                        <div className="grid gap-2">
-                          <Label className="truncate">Marketplace</Label>
-                          <Select
-                            name='marketplace_name'
-                            value={data.marketplace_name}
-                            onValueChange={(val) => setData({ ...data, marketplace_name: val })}
-                          >
-                            <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Shopee">Shopee</SelectItem>
-                              <SelectItem value="Lazada">Lazada</SelectItem>
-                              <SelectItem value="Tokopedia">Tokopedia</SelectItem>
-                              <SelectItem value="TikTok Shop">TikTok Shop</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <InputError message={errors.marketplace_name} />
-                        </div>
-                      </div>
-
-                      {/* BIAYA PROSES, PROMO, EXTRA */}
-                      <div className="grid grid-cols-4 gap-4">
-                        <div className="grid gap-2">
-                          <Label className="truncate">Admin (%)</Label>
-                          <Input
-                            type="number"
-                            name='marketplace_fee_percent'
-                            value={data.marketplace_fee_percent}
-                            onChange={(e) => setData({ ...data, marketplace_fee_percent: Number(e.target.value) })}
-                          />
-                          <InputError message={errors.marketplace_fee_percent} />
-                        </div>
-                        <div className="grid gap-2">
-                          <Label className="truncate">Biaya Proses</Label>
-                          <Input
-                            type="text"
-                            name='flat_fees'
-                            value={formatRupiah(data.order_process_fee)}
-                            onChange={(e) => setData({ ...data, order_process_fee: parseRupiah(e.target.value) })}
-                          />
-                          <InputError message={errors.flat_fees} />
-                        </div>
-                        <div className="grid gap-2">
-                          <Label className="truncate">Promo Extra %</Label>
-                          <Input
-                            type="number"
-                            name='promo_extra_percent'
-                            step="0.1"
-                            value={data.promo_extra_percent}
-                            onChange={(e) => setData({ ...data, promo_extra_percent: Number(e.target.value) })}
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                          <Label className="truncate">Lainnya (iklan, dll)</Label>
-                          <Input
-                            type="text"
-                            name='extra_costs'
-                            placeholder="Rp 0"
-                            value={formatRupiah(data.extra_costs)}
-                            onChange={(e) => setData({ ...data, extra_costs: parseRupiah(e.target.value) })}
-                          />
-                          <InputError message={errors.extra_costs} />
-                        </div>
-                      </div>
-
-                      {/* RINGKASAN KALKULASI */}
-                      <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-dashed text-xs space-y-1">
-                        <div className="flex justify-between">
-                          <span>Potongan Persen ({(Number(data.marketplace_fee_percent) + Number(data.promo_extra_percent)).toFixed(2)}%):</span>
-                          <span className="text-red-500">
-                            - Rp {formatRupiah((data.sell_price * data.qty * (Number(data.marketplace_fee_percent) + Number(data.promo_extra_percent))) / 100)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span>Biaya Proses & Lainnya:
-                            <p className="text-xs text-slate-400 italic">(iklan, affiliate, dll)</p>
-                          </span>
-                          <span className="text-red-500">
-                            - Rp {formatRupiah(Number(data.order_process_fee) + Number(data.extra_costs))}
-                          </span>
-                        </div>
-                        <div className="flex justify-between font-bold text-sm pt-2 border-t">
-                          <span>Estimasi Profit Bersih:</span>
-                          <span className={(calc.netProfit || 0) >= 0 ? "text-green-600" : "text-red-600"}>
-                            Rp {formatRupiah(calc.netProfit)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
+                    </ScrollArea>
                     <DialogFooter>
                       <Button
                         type='button'
