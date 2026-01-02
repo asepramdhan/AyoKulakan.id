@@ -19,8 +19,11 @@ class SalesRecordController extends Controller
     {
         return Inertia::render('sales/index', [
             'products' => Auth::user()->products,
-            'salesRecords' => SalesRecord::where('user_id', Auth::id())->with('store')->get(),
-            'stores' => Store::where('user_id', Auth::id())->get()
+            'stores' => Store::where('user_id', Auth::id())->get(),
+            'salesRecords' => SalesRecord::where('user_id', Auth::id())
+                ->with('store')
+                ->latest()
+                ->get(),
         ]);
     }
 
