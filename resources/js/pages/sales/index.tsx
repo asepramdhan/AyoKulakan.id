@@ -353,10 +353,14 @@ export default function Index({ products, stores, ...props }: any) {
                           <div className="grid gap-2">
                             <Label>Tanggal Transaksi</Label>
                             <Input
-                              type="date"
+                              type="datetime-local"
                               name="created_at"
-                              value={data.date}
-                              onChange={(e) => setData({ ...data, date: e.target.value })}
+                              defaultValue={(() => {
+                                const sekarang = new Date();
+                                const offset = sekarang.getTimezoneOffset() * 60000;
+                                const waktuLokal = new Date(sekarang.getTime() - offset);
+                                return waktuLokal.toISOString().slice(0, 16);
+                              })()}
                               className='block w-full'
                               required
                             />
