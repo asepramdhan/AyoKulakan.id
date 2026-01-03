@@ -4,13 +4,16 @@ import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import products from '@/routes/products';
+import shopping from '@/routes/shopping';
 import { type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Form, Head, Link, usePage } from '@inertiajs/react';
-import { CheckCircle2Icon, Package, Package2, Pencil, Store, Trash2 } from 'lucide-react';
+import { CheckCircle2Icon, Info, Package, Package2, PackageSearch, Pencil, PlusCircle, Search, Store, Trash2, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -20,31 +23,89 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Index({ products, stores, filters }: any) {
-  const { flash } = usePage().props;
+  const { flash } = usePage<any>().props as any;
+
+  // State untuk pencarian
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Logika Filter Produk (Berdasarkan Search Query)
+  const filteredProducts = useMemo(() => {
+    // Pastikan products ada sebelum difilter untuk menghindari error undefined
+    return (products || []).filter((product: any) =>
+      product.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery, products]); // Gunakan 'products' sesuai props Anda
+
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Master Produk" />
       <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant={!filters.store_id ? "default" : "outline"}
-            size="sm"
-            className="cursor-pointer"
-          >
-            <Link href={ProductController.index().url}>Semua Toko</Link>
-          </Button>
-          {stores.map((s: any) => (
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+          <div className="space-y-1">
+            <h2 className="text-xl md:text-2xl font-bold tracking-tight flex items-center gap-2 text-slate-900 dark:text-slate-100">
+              <PackageSearch className="w-6 h-6 text-blue-600" />
+              Katalog Master Produk
+            </h2>
+            <div className="flex items-start md:items-center gap-2">
+              <Info className="w-4 h-4 text-blue-500 mt-0.5 md:mt-0" />
+              <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
+                Daftar produk di sini terdata **otomatis** melalui riwayat <span className="font-semibold text-blue-600 dark:text-blue-400">Transaksi Pembelian / Restok</span> yang telah diselesaikan.
+              </p>
+            </div>
+          </div>
+
+          {/* Shortcut ke Halaman Pembelian */}
+          <div className="flex shrink-0">
+            <Link href={shopping.index().url}> {/* Sesuaikan route halaman pembelian Anda */}
+              <Button variant="outline" className="flex items-center gap-2 border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:border-blue-900 dark:hover:bg-blue-950">
+                <PlusCircle className="w-4 h-4" />
+                Tambah via Restok
+              </Button>
+            </Link>
+          </div>
+        </div>
+        <div className="flex flex-col md:flex-row gap-4 mb-4">
+          {/* Input Pencarian */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Cari nama produk..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-9 focus-visible:ring-blue-500"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Filter Toko */}
+          <div className="flex flex-wrap gap-2 items-center">
             <Button
-              key={s.id}
-              variant={filters.store_id == s.id ? "default" : "outline"}
+              variant={!filters.store_id ? "default" : "outline"}
               size="sm"
-              className="cursor-pointer"
+              asChild
             >
-              <Link href={ProductController.index().url + `?store_id=${s.id}`} className="flex items-center">
-                <Store className="w-3 h-3 mr-1" /> {s.name}
-              </Link>
+              <Link href={ProductController.index().url}>Semua Toko</Link>
             </Button>
-          ))}
+            {stores.map((s: any) => (
+              <Button
+                key={s.id}
+                variant={filters.store_id == s.id ? "default" : "outline"}
+                size="sm"
+                asChild
+              >
+                <Link href={ProductController.index().url + `?store_id=${s.id}`}>
+                  <Store className="w-3 h-3 mr-1" /> {s.name}
+                </Link>
+              </Button>
+            ))}
+          </div>
         </div>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -78,10 +139,8 @@ export default function Index({ products, stores, filters }: any) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {products.map((product: any) => {
-                  // Logika pengecekan stok kritis
+                {filteredProducts.map((product: any) => {
                   const isCritical = product.stock <= (product.stock_warning || 0);
-
                   return (
                     <TableRow key={product.id}>
                       <TableCell className="font-medium capitalize">
@@ -135,9 +194,10 @@ export default function Index({ products, stores, filters }: any) {
                         </div>
                       </TableCell>
                     </TableRow>
-                  )
+                  );
                 })}
-                {products.length == 0 &&
+                {/* Tampilan jika hasil pencarian kosong */}
+                {filteredProducts.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center">
                       <Empty>
@@ -149,7 +209,8 @@ export default function Index({ products, stores, filters }: any) {
                         </EmptyHeader>
                       </Empty>
                     </TableCell>
-                  </TableRow>}
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </CardContent>

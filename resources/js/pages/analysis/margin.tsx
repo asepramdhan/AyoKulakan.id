@@ -18,18 +18,23 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function MarginAnalysis({ analysisData }: { analysisData: any[] }) {
   // 1. State untuk menyimpan nilai Persen Admin secara dinamis
-  const [adminPercent, setAdminPercent] = useState<number>(6);
+  const [adminPercent, setAdminPercent] = useState<number>(9.5);
   const [fixFee, setFixFee] = useState<number>(1250); // Biaya proses pesanan tetap
-  const [extraPercent, setExtraPercent] = useState<number>(0); // Gratis Ongkir/Cashback Extra
+  const [extraPercent, setExtraPercent] = useState<number>(4.5); // Gratis Ongkir/Cashback Extra
   const [marketingFee, setMarketingFee] = useState<number>(0); // Iklan/Affiliate
   // Tambahkan ini: filterStatus bisa 'all', 'kritis', 'tipis', atau 'sehat'
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>(''); // State pencarian
+  const [selectedStore, setSelectedStore] = useState<string>('all'); // State filter toko
 
   const targetMarginPercent = 20;
 
-  const { summary, filteredData } = useMemo(() => {
+  const { summary, filteredData, stores } = useMemo(() => {
     let totalProfit = 0;
     let totalInvValue = 0;
+
+    // Ambil daftar toko unik dari analysisData untuk dropdown filter
+    const uniqueStores = Array.from(new Set(analysisData.map(item => item.store_name).filter(Boolean)));
 
     const allData = analysisData.map((product) => {
       // Pastikan semua diconvert ke Number dan handle jika null/undefined
@@ -73,23 +78,37 @@ export default function MarginAnalysis({ analysisData }: { analysisData: any[] }
     });
 
     // LOGIKA FILTER:
+    // GABUNGAN SEMUA FILTER
     const filtered = allData.filter((item) => {
-      if (filterStatus === 'all') return true;
-      if (filterStatus === 'kritis') return item.margin_percent <= 5;
-      if (filterStatus === 'tipis') return item.margin_percent > 5 && item.margin_percent <= 15;
-      if (filterStatus === 'sehat') return item.margin_percent > 15;
-      return true;
+      // 1. Filter Status Kesehatan
+      const matchesStatus =
+        filterStatus === 'all' ||
+        (filterStatus === 'kritis' && item.margin_percent <= 5) ||
+        (filterStatus === 'tipis' && item.margin_percent > 5 && item.margin_percent <= 15) ||
+        (filterStatus === 'sehat' && item.margin_percent > 15);
+
+      // 2. Filter Pencarian Nama Produk
+      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+      // 3. Filter Nama Toko
+      const matchesStore = selectedStore === 'all' || item.store_name === selectedStore;
+
+      return matchesStatus && matchesSearch && matchesStore;
+    });
+
+    // Hitung ulang summary hanya dari data yang sudah di-filter (agar angka di Card ikut berubah)
+    filtered.forEach(item => {
+      const currentStock = Number(item.stock || 0);
+      totalInvValue += (Number(item.buy_price) * currentStock);
+      totalProfit += (item.net_profit * currentStock);
     });
 
     return {
-      calculatedData: allData,
-      summary: {
-        totalPotentialProfit: totalProfit,
-        totalInventoryValue: totalInvValue,
-      },
-      filteredData: filtered // Kita pakai ini untuk di render di Table
+      summary: { totalPotentialProfit: totalProfit, totalInventoryValue: totalInvValue },
+      filteredData: filtered,
+      stores: uniqueStores
     };
-  }, [adminPercent, extraPercent, marketingFee, fixFee, analysisData, filterStatus]);
+  }, [adminPercent, extraPercent, marketingFee, fixFee, analysisData, filterStatus, searchQuery, selectedStore]);
 
   const getMarginBadge = (percent: number) => {
     if (percent <= 5) return <Badge variant="destructive">Kritis ({percent}%)</Badge>;
@@ -203,41 +222,71 @@ export default function MarginAnalysis({ analysisData }: { analysisData: any[] }
         </div>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-xl flex items-center gap-2">
-              <BarChart3 className="w-5 h-5" /> Hasil Simulasi Profit
-            </CardTitle>
-            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-              <Button
-                variant={filterStatus === 'all' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setFilterStatus('all')}
-                className="text-xs h-8"
+          <CardHeader className="space-y-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <BarChart3 className="w-5 h-5" /> Hasil Simulasi Profit
+              </CardTitle>
+
+              {/* Indikator Jumlah */}
+              <span className="text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+                Menampilkan {filteredData.length} Produk
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {/* Input Pencarian */}
+              <div className="relative">
+                <Input
+                  placeholder="Cari nama produk..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-3"
+                />
+              </div>
+
+              {/* Filter Toko */}
+              <select
+                value={selectedStore}
+                onChange={(e) => setSelectedStore(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-950"
               >
-                Semua
-              </Button>
-              <Button
-                variant={filterStatus === 'kritis' ? 'destructive' : 'ghost'}
-                size="sm"
-                onClick={() => setFilterStatus('kritis')}
-                className="text-xs h-8"
-              >
-                Kritis (≤5%)
-              </Button>
-              <Button
-                variant={filterStatus === 'tipis' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setFilterStatus('tipis')}
-                className="text-xs h-8 bg-orange-500 text-white hover:bg-orange-600"
-              >
-                Tipis
-              </Button>
+                <option value="all">Semua Toko</option>
+                {stores.map(store => (
+                  <option key={store} value={store}>{store}</option>
+                ))}
+              </select>
+
+              {/* Filter Status (Tombol yang tadi) */}
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg w-full">
+                <Button
+                  variant={filterStatus === 'all' ? 'default' : 'ghost'}
+                  size="sm" onClick={() => setFilterStatus('all')}
+                  className="flex-1 text-[10px] h-8 px-1"
+                >Semua</Button>
+                <Button
+                  variant={filterStatus === 'kritis' ? 'destructive' : 'ghost'}
+                  size="sm" onClick={() => setFilterStatus('kritis')}
+                  className="flex-1 text-[10px] h-8 px-1"
+                >Kritis</Button>
+                <Button
+                  variant={filterStatus === 'tipis' ? 'secondary' : 'ghost'}
+                  size="sm" onClick={() => setFilterStatus('tipis')}
+                  className={`flex-1 text-[10px] h-8 px-1 ${filterStatus === 'tipis' ? 'bg-orange-500 text-white' : ''}`}
+                >Tipis</Button>
+                <Button
+                  variant={filterStatus === 'sehat' ? 'secondary' : 'ghost'}
+                  size="sm" onClick={() => setFilterStatus('sehat')}
+                  className={`flex-1 text-[10px] h-8 px-1 ${filterStatus === 'sehat' ? 'bg-green-600 text-white' : ''}`}
+                >Sehat</Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader className="bg-slate-50 dark:bg-slate-900">
                 <TableRow>
+                  <TableHead>Toko</TableHead>
                   <TableHead>Produk</TableHead>
                   <TableHead>Harga Modal</TableHead>
                   <TableHead>Harga Jual</TableHead>
@@ -251,6 +300,7 @@ export default function MarginAnalysis({ analysisData }: { analysisData: any[] }
                 {filteredData.length > 0 ? (
                   filteredData.map((item) => (
                     <TableRow key={item.id}>
+                      <TableCell className="text-xs text-slate-500 capitalize">{item.store_name || '-'}</TableCell>
                       <TableCell className="font-medium capitalize">{item.name}</TableCell>
                       <TableCell>Rp {item.buy_price.toLocaleString('id-ID')}</TableCell>
                       <TableCell>Rp {item.sell_price.toLocaleString('id-ID')}</TableCell>
