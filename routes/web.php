@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MarginAnalysisController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SalesRecordController;
 use App\Http\Controllers\ShoppingListController;
@@ -27,6 +28,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/shopping/{shoppingList}/duplicate', [ShoppingListController::class, 'duplicate'])
         ->name('shopping.duplicate');
+
+    route::get('/analysis/margin', [MarginAnalysisController::class, 'index'])->name('analysis.margin.index');
+    route::patch('/analysis/margin/{id}/update-price', [MarginAnalysisController::class, 'updatePrice'])
+        ->name('analysis.margin.update-price');
 
     Route::resource('shopping', ShoppingListController::class);
     Route::resource('products', ProductController::class);

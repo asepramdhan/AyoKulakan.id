@@ -83,7 +83,7 @@ export default function Edit({ product }: any) {
 
                     {/* Harga Terakhir */}
                     <div className="grid col-span-2 gap-2">
-                      <Label htmlFor="price">Harga Terakhir</Label>
+                      <Label htmlFor="price">Harga Modal</Label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
                           Rp

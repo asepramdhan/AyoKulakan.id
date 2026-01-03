@@ -18,6 +18,7 @@ import AppLogo from './app-logo';
 import shopping from '@/routes/shopping';
 import products from '@/routes/products';
 import stores from '@/routes/stores';
+import analysis from '@/routes/analysis';
 import salesRecord from '@/routes/sales-record';
 
 const mainNavItems: NavItem[] = [
@@ -64,7 +65,7 @@ const premiumNavItems: NavItem[] = [
     },
     {
         title: 'Analisa Margin',
-        href: '#',
+        href: analysis.margin.index(),
         icon: PieChart,
     },
 ];

@@ -87,23 +87,31 @@ export default function ActiveLists({ lists }: { lists: any[] }) {
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-300 cursor-pointer"
-              onClick={() => {
-                // Memastikan UI selesai render sebelum print
-                setTimeout(() => {
-                  window.print();
-                }, 100);
-              }}
-            >
-              <Printer className="w-5 h-5" />
-              Print Semua Daftar Belanja
+          {lists.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-300 cursor-pointer"
+                onClick={() => {
+                  // Memastikan UI selesai render sebelum print
+                  setTimeout(() => {
+                    window.print();
+                  }, 100);
+                }}
+              >
+                <Printer className="w-5 h-5" />
+                Print Semua Daftar Belanja
+              </div>
             </div>
-          </div>
+          )}
 
           {lists.length === 0 ? (
             <div className="text-center py-20 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-dashed">
               <p className="text-slate-400">Belum ada daftar belanja aktif.</p>
+              <Link
+                href={shopping.index().url}
+                className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-500 mt-2"
+              >
+                Buat Daftar Belanja
+              </Link>
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">

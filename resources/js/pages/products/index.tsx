@@ -72,7 +72,7 @@ export default function Index({ products, stores, filters }: any) {
                 <TableRow>
                   <TableHead>Nama Produk</TableHead>
                   <TableHead>Toko</TableHead>
-                  <TableHead>Harga Terakhir</TableHead>
+                  <TableHead>Harga Modal</TableHead>
                   <TableHead>Stok</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
