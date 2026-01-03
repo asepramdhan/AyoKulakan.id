@@ -76,6 +76,7 @@ class ProductController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'last_price' => 'required', // Kita validasi string dulu karena ada titiknya
+            'stock' => 'required|integer|min:0',
         ]);
 
         // 2. Bersihkan titik dari harga sebelum disimpan

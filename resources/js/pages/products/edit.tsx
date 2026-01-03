@@ -63,45 +63,60 @@ export default function Edit({ product }: any) {
               className="space-y-6"
             >
               {({ processing, errors }) => (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
 
-                  {/* Nama Produk */}
-                  <div className="grid gap-2">
-                    <Label htmlFor="name">Nama Produk</Label>
-                    <Input
-                      id="name"
-                      type="text"
-                      name="name"
-                      defaultValue={product.name}
-                      placeholder="Masukkan nama produk..."
-                      required
-                      className="capitalize"
-                    />
-                    <InputError message={errors.name} />
-                  </div>
-
-                  {/* Harga Terakhir */}
-                  <div className="grid gap-2">
-                    <Label htmlFor="price">Harga Terakhir</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
-                        Rp
-                      </span>
+                    {/* Nama Produk */}
+                    <div className="grid col-span-2 gap-2">
+                      <Label htmlFor="name">Nama Produk</Label>
                       <Input
-                        id="price"
-                        name="last_price" // Sesuaikan dengan nama field di DB/Controller
-                        className="pl-8 font-semibold"
-                        defaultValue={formatRupiah(product.last_price)}
-                        onChange={handlePriceChange}
+                        id="name"
+                        type="text"
+                        name="name"
+                        defaultValue={product.name}
+                        placeholder="Masukkan nama produk..."
+                        required
+                        className="capitalize"
+                      />
+                      <InputError message={errors.name} />
+                    </div>
+
+                    {/* Harga Terakhir */}
+                    <div className="grid col-span-2 gap-2">
+                      <Label htmlFor="price">Harga Terakhir</Label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
+                          Rp
+                        </span>
+                        <Input
+                          id="price"
+                          name="last_price" // Sesuaikan dengan nama field di DB/Controller
+                          className="pl-8 font-semibold"
+                          defaultValue={formatRupiah(product.last_price)}
+                          onChange={handlePriceChange}
+                          placeholder="0"
+                          required
+                        />
+                      </div>
+                      <InputError message={errors.last_price || errors.price} />
+                    </div>
+
+                    {/* Stok */}
+                    <div className="grid col-span-2 md:col-span-1 gap-2">
+                      <Label htmlFor="stock">Stok</Label>
+                      <Input
+                        type="number"
+                        id="stock"
+                        name="stock"
+                        className="font-semibold"
+                        defaultValue={product.stock}
                         placeholder="0"
                         required
                       />
+                      <InputError message={errors.stock} />
                     </div>
-                    <InputError message={errors.last_price || errors.price} />
                   </div>
-
-                  {/* Tombol Aksi */}
-                  <div className="md:col-span-2 flex justify-end pt-4 border-t">
+                  <div className="flex justify-end">
                     <Button
                       type="submit"
                       disabled={processing}
@@ -115,7 +130,7 @@ export default function Edit({ product }: any) {
                       Simpan Perubahan
                     </Button>
                   </div>
-                </div>
+                </>
               )}
             </Form>
           </CardContent>

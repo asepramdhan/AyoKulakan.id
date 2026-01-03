@@ -93,17 +93,28 @@ class SalesRecordController extends Controller
 
         try {
             DB::transaction(function () use ($validated, $profit, $quantity) {
-                // Update harga terakhir produk (selalu gunakan harga satuan untuk master produk)
-                Product::updateOrCreate(
-                    // 1. Cari berdasarkan ini
-                    ['user_id' => Auth::id(), 'name' => $validated['product_name']],
+                // Cari Produk & Update Harga & POTONG STOK
+                $product = Product::where('user_id', Auth::id())
+                    ->where('name', $validated['product_name'])
+                    ->first();
 
-                    // 2. Data yang diupdate/dibuat (Gabungkan jadi satu array)
-                    [
+                if ($product) {
+                    $product->update([
                         'last_price'      => $validated['buy_price'],
-                        'last_sell_price' => $validated['sell_price']
-                    ]
-                );
+                        'last_sell_price' => $validated['sell_price'],
+                        'stock'           => $product->stock - $quantity // Potong stok di sini
+                    ]);
+                } else {
+                    // Jika produk belum ada di master, buat baru dengan stok minus (atau 0)
+                    Product::create([
+                        'user_id'         => Auth::id(),
+                        'store_id'        => $validated['store_id'],
+                        'name'            => $validated['product_name'],
+                        'last_price'      => $validated['buy_price'],
+                        'last_sell_price' => $validated['sell_price'],
+                        'stock'           => -$quantity // Karena terjual tapi master belum ada stoknya
+                    ]);
+                }
 
                 // Simpan data transaksi
                 SalesRecord::create([
@@ -178,8 +189,10 @@ class SalesRecordController extends Controller
 
         try {
             $record = SalesRecord::findOrFail($id);
+            $oldQty = $record->qty; // Simpan qty lama
+            $newQty = $validated['qty']; // Qty baru dari input
 
-            DB::transaction(function () use ($validated, $record) {
+            DB::transaction(function () use ($validated, $record, $oldQty, $newQty) {
 
                 // 2. Kalkulasi ulang profit
                 $totalPercent = $validated['marketplace_fee_percent'] + $validated['promo_extra_percent'];
@@ -187,13 +200,28 @@ class SalesRecordController extends Controller
                 $totalPotongan = ($totalSell * $totalPercent / 100) + $validated['flat_fees'] + $validated['extra_costs'];
                 $profit = $totalSell - ($validated['buy_price'] * $validated['qty']) - $totalPotongan - ($validated['shipping_cost'] ?? 0);
 
-                Product::updateOrCreate(
-                    ['user_id' => Auth::id(), 'name' => $validated['product_name']],
-                    [
-                        'last_price' => $validated['buy_price'],
-                        'last_sell_price' => $validated['sell_price']
-                    ]
-                );
+                $product = Product::where('user_id', Auth::id())
+                    ->where('name', $validated['product_name'])
+                    ->first();
+
+                if ($product) {
+                    $product->user_id = Auth::id();
+                    $product->name = $validated['product_name'];
+                    // Balikkan stok lama, lalu kurangi dengan stok baru
+                    // Rumus: Stok Sekarang + Qty Lama - Qty Baru
+                    $product->stock = ($product->stock + $oldQty) - $newQty;
+                    $product->last_price = $validated['buy_price'];
+                    $product->last_sell_price = $validated['sell_price'];
+                    $product->save();
+                }
+
+                // Product::updateOrCreate(
+                //     ['user_id' => Auth::id(), 'name' => $validated['product_name']],
+                //     [
+                //         'last_price' => $validated['buy_price'],
+                //         'last_sell_price' => $validated['sell_price']
+                //     ]
+                // );
 
                 // 3. Update data
                 $record->update(array_merge($validated, [
@@ -217,8 +245,19 @@ class SalesRecordController extends Controller
         // 1. Cari datanya
         $sales = SalesRecord::findOrFail($id);
 
-        // 2. Hapus datanya
-        $sales->delete();
+        DB::transaction(function () use ($sales) {
+            // Kembalikan stok ke master produk
+            $product = Product::where('user_id', Auth::id())
+                ->where('name', $sales->product_name)
+                ->first();
+
+            if ($product) {
+                $product->increment('stock', $sales->qty);
+            }
+
+            // 2. Hapus datanya
+            $sales->delete();
+        });
 
         return back()->with('message', 'Data penjualan berhasil dihapus!');
     }

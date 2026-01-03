@@ -108,7 +108,9 @@ class ShoppingListController extends Controller
                         ],
                         [
                             'store_id' => $validated['store_id'],
-                            'last_price' => $item['price']
+                            'last_price' => $item['price'],
+                            'stock' => 0, // Produk baru mulai dari 0, nanti bertambah saat di-check
+                            'stock_warning' => 5 // Default warning
                         ]
                     );
 
@@ -207,7 +209,12 @@ class ShoppingListController extends Controller
                 // Cari atau buat produk di master data
                 $product = Product::updateOrCreate(
                     ['user_id' => Auth::id(), 'name' => $itemData['product_name']],
-                    ['store_id' => $validated['store_id'], 'last_price' => $itemData['price']]
+                    [
+                        'store_id' => $validated['store_id'],
+                        'last_price' => $itemData['price'],
+                        'stock' => 0, // Produk baru mulai dari 0, nanti bertambah saat di-check
+                        'stock_warning' => 5 // Default warning
+                    ]
                 );
 
                 // LOGIKA SYNC ITEM:
@@ -316,10 +323,29 @@ class ShoppingListController extends Controller
         // 1. Cari item yang dimaksud
         $item = ShoppingItem::findOrFail($itemId);
 
+        $previousStatus = $item->is_bought;
+
         // 2. Toggle status is_bought
         $item->update([
             'is_bought' => !$item->is_bought
         ]);
+
+        // --- LOGIKA UPDATE STOK MASTER ---
+        // Cari produk di master data berdasarkan product_id
+        $product = Product::find($item->product_id);
+
+        if ($product) {
+            if ($item->is_bought && !$previousStatus) {
+                // JIKA: Baru saja diceklis (is_bought jadi true)
+                // MAKA: Tambah stok di master produk
+                $product->increment('stock', $item->quantity);
+            } elseif (!$item->is_bought && $previousStatus) {
+                // JIKA: Ceklis dibatalkan (is_bought jadi false)
+                // MAKA: Kurangi kembali stok di master produk (koreksi)
+                $product->decrement('stock', $item->quantity);
+            }
+        }
+        // ---------------------------------
 
         // 3. Ambil Shopping List terkait
         $shoppingList = ShoppingList::with('items')->find($item->shopping_list_id);

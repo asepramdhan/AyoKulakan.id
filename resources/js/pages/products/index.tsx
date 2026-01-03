@@ -73,47 +73,73 @@ export default function Index({ products, stores, filters }: any) {
                   <TableHead>Nama Produk</TableHead>
                   <TableHead>Toko</TableHead>
                   <TableHead>Harga Terakhir</TableHead>
+                  <TableHead>Stok</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {products.map((product: any) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="font-medium capitalize">{product.name}</TableCell>
-                    <TableCell>
-                      <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded capitalize">
-                        {product.store?.name}
-                      </span>
-                    </TableCell>
-                    <TableCell>Rp {Number(product.last_price).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2 justify-end">
-                        <Link href={ProductController.edit(product.id)}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-slate-500 cursor-pointer"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                        </Link>
-                        <Form {...ProductController.destroy.form(product.id)}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-red-500 cursor-pointer"
-                            onClick={(e) => { if (!confirm('Apakah anda yakin ingin menghapus data ini?')) { e.preventDefault(); } }}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </Form>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {products.map((product: any) => {
+                  // Logika pengecekan stok kritis
+                  const isCritical = product.stock <= (product.stock_warning || 0);
+
+                  return (
+                    <TableRow key={product.id}>
+                      <TableCell className="font-medium capitalize">
+                        <div className="flex flex-col">
+                          {product.name}
+                          {isCritical && product.stock > 0 && (
+                            <span className="text-[10px] text-orange-500 font-bold animate-pulse">
+                              STOK HAMPIR HABIS
+                            </span>
+                          )}
+                          {product.stock <= 0 && (
+                            <span className="text-[10px] text-red-500 font-bold">
+                              STOK KOSONG
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded capitalize">
+                          {product.store?.name}
+                        </span>
+                      </TableCell>
+                      <TableCell>Rp {Number(product.last_price).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
+                      <TableCell>
+                        <div className={`flex items-center gap-1 font-bold ${isCritical ? 'text-red-600' : 'text-slate-700 dark:text-slate-300'}`}>
+                          {product.stock}
+                          <span className="text-[10px] font-normal text-slate-400">pcs</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2 justify-end">
+                          <Link href={ProductController.edit(product.id)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-slate-500 cursor-pointer"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                          </Link>
+                          <Form {...ProductController.destroy.form(product.id)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-red-500 cursor-pointer"
+                              onClick={(e) => { if (!confirm('Apakah anda yakin ingin menghapus data ini?')) { e.preventDefault(); } }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </Form>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
                 {products.length == 0 &&
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center">
+                    <TableCell colSpan={5} className="text-center">
                       <Empty>
                         <EmptyHeader>
                           <EmptyMedia variant="icon">
