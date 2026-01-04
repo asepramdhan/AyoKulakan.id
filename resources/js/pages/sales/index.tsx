@@ -17,7 +17,7 @@ import salesRecord from '@/routes/sales-record';
 import { type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Form, Head, usePage } from '@inertiajs/react';
-import { ArrowUpRight, CheckCircle2Icon, DollarSign, Package2, Pencil, Percent, Plus, Save, Store, TrendingUp } from 'lucide-react';
+import { ArrowUpRight, CheckCircle2Icon, DollarSign, Package2, Pencil, Percent, Plus, Save, Search, Store, TrendingUp, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -56,9 +56,9 @@ const formatDate = (dateString: string) => {
 export default function Index({ products, stores, ...props }: any) {
 
   const { flash } = usePage().props as any;
-
   // State lokal untuk mengontrol visibilitas alert
   const [showSuccess, setShowSuccess] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (flash.message) {
@@ -114,11 +114,17 @@ export default function Index({ products, stores, ...props }: any) {
           matchStore = item.store_id?.toString() === filterStore;
         }
 
-        // Harus memenuhi kedua kondisi
-        return matchTime && matchStore;
+        // 3. LOGIKA PENCARIAN (Baru)
+        const searchLower = searchQuery.toLowerCase();
+        const matchSearch =
+          item.product_name?.toLowerCase().includes(searchLower) ||
+          item.store?.name?.toLowerCase().includes(searchLower) ||
+          item.marketplace_name?.toLowerCase().includes(searchLower);
+
+        return matchTime && matchStore && matchSearch; // Tambahkan matchSearch
       })
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }, [salesRecords, filterRange, filterStore]); // Tambahkan filterStore di sini
+  }, [salesRecords, filterRange, filterStore, searchQuery]); // Tambahkan searchQuery di sini
 
   const stats = useMemo(() => {
     if (!filteredSales || filteredSales.length === 0) {
@@ -439,7 +445,6 @@ export default function Index({ products, stores, ...props }: any) {
                               name='store_id'
                               value={data.store_id}
                               onValueChange={(val) => setData({ ...data, store_id: val })}
-                              required
                             >
                               <SelectTrigger className="w-full">
                                 <SelectValue placeholder="Pilih Toko" />
@@ -569,7 +574,7 @@ export default function Index({ products, stores, ...props }: any) {
                       </Button>
                       <Button
                         type='submit'
-                        disabled={processing}
+                        disabled={processing || !data.store_id}
                         className={`${isEditing ? 'bg-blue-600 hover:bg-blue-700' : 'bg-orange-600 hover:bg-orange-700'} cursor-pointer text-white`}
                       >
                         {processing ? (
@@ -684,8 +689,32 @@ export default function Index({ products, stores, ...props }: any) {
 
         {/* Tabel Data Penjualan */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Detail Margin per Produk</CardTitle>
+          <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 space-y-0">
+            <div>
+              <CardTitle className="text-lg">Detail Margin per Produk</CardTitle>
+              <p className="text-xs text-muted-foreground">Menampilkan {filteredSales.length} transaksi</p>
+            </div>
+
+            {/* INPUT PENCARIAN DI DALAM CARD HEADER */}
+            <div className="relative w-full md:w-72">
+              <Input
+                placeholder="Cari produk..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-9" // h-9 agar tingginya pas dengan desain Shadcn
+              />
+              <span className="absolute left-3 top-2.5 text-muted-foreground">
+                <Search className="w-4 h-4" />
+              </span>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">

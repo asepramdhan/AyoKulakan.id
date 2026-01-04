@@ -64,47 +64,64 @@ export default function Index({ products, stores, filters }: any) {
             </Link>
           </div>
         </div>
-        <div className="flex flex-col md:flex-row gap-4 mb-4">
-          {/* Input Pencarian */}
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Cari nama produk..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-9 focus-visible:ring-blue-500"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
+        {/* Container Filter & Pencarian */}
+        <div className="space-y-4 mb-6">
+          {/* Baris 1: Pencarian & Info */}
+          <div className="flex flex-col md:flex-row gap-4 items-center">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Cari nama produk di katalog ini..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-9 focus-visible:ring-blue-500 h-11 bg-white dark:bg-slate-950 shadow-sm"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Info Jumlah (Opsional tapi membantu) */}
+            <div className="hidden md:block shrink-0 text-sm text-muted-foreground bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-lg">
+              Total: <b>{filteredProducts.length}</b> Produk
+            </div>
           </div>
 
-          {/* Filter Toko */}
-          <div className="flex flex-wrap gap-2 items-center">
-            <Button
-              variant={!filters.store_id ? "default" : "outline"}
-              size="sm"
-              asChild
-            >
-              <Link href={ProductController.index().url}>Semua Toko</Link>
-            </Button>
-            {stores.map((s: any) => (
+          {/* Baris 2: Filter Toko (Scrollable jika terlalu banyak) */}
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1">
+              <Store className="w-3 h-3" /> Filter Berdasarkan Toko
+            </label>
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar scroll-smooth">
               <Button
-                key={s.id}
-                variant={filters.store_id == s.id ? "default" : "outline"}
+                variant={!filters.store_id ? "default" : "outline"}
                 size="sm"
+                className="rounded-full px-4"
                 asChild
               >
-                <Link href={ProductController.index().url + `?store_id=${s.id}`}>
-                  <Store className="w-3 h-3 mr-1" /> {s.name}
-                </Link>
+                <Link href={ProductController.index().url}>Semua Toko</Link>
               </Button>
-            ))}
+
+              {stores.map((s: any) => (
+                <Button
+                  key={s.id}
+                  variant={filters.store_id == s.id ? "default" : "outline"}
+                  size="sm"
+                  className="rounded-full px-4 transition-all"
+                  asChild
+                >
+                  <Link href={ProductController.index().url + `?store_id=${s.id}`}>
+                    <Store className="w-3 h-3" />
+                    {s.name}
+                  </Link>
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
         <Card>

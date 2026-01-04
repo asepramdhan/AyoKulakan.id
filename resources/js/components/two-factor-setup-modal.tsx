@@ -96,7 +96,7 @@ function TwoFactorSetupStep({
                     <div className="relative flex w-full items-center justify-center">
                         <div className="absolute inset-0 top-1/2 h-px w-full bg-border" />
                         <span className="relative bg-card px-2 py-1">
-                            or, enter the code manually
+                            atau, masukkan kode secara manual
                         </span>
                     </div>
 
@@ -253,27 +253,27 @@ export default function TwoFactorSetupModal({
     }>(() => {
         if (twoFactorEnabled) {
             return {
-                title: 'Two-Factor Authentication Enabled',
+                title: 'Autentikasi 2FA Diaktifkan',
                 description:
-                    'Two-factor authentication is now enabled. Scan the QR code or enter the setup key in your authenticator app.',
-                buttonText: 'Close',
+                    'Autentikasi 2FA kini diaktifkan. Pindai kode QR atau masukkan kunci pengaturan di aplikasi autentikasi Anda.',
+                buttonText: 'Tutup',
             };
         }
 
         if (showVerificationStep) {
             return {
-                title: 'Verify Authentication Code',
+                title: 'Verifikasi Kode Otentikasi',
                 description:
-                    'Enter the 6-digit code from your authenticator app',
-                buttonText: 'Continue',
+                    'Masukkan kode 6 digit dari aplikasi otentikasi Anda.',
+                buttonText: 'Lanjutkan',
             };
         }
 
         return {
-            title: 'Enable Two-Factor Authentication',
+            title: 'Aktifkan Otentikasi 2FA',
             description:
-                'To finish enabling two-factor authentication, scan the QR code or enter the setup key in your authenticator app',
-            buttonText: 'Continue',
+                'Untuk menyelesaikan aktivasi otentikasi 2FA, pindai kode QR atau masukkan kunci pengaturan di aplikasi otentikator Anda.',
+            buttonText: 'Lanjutkan',
         };
     }, [twoFactorEnabled, showVerificationStep]);
 
