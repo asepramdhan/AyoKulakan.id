@@ -29,6 +29,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/shopping/{shoppingList}/duplicate', [ShoppingListController::class, 'duplicate'])
         ->name('shopping.duplicate');
 
+    Route::post('/products/{product}/adjust-stock', [ProductController::class, 'adjustStock'])
+        ->name('products.adjust-stock');
+
     route::get('/analysis/margin', [MarginAnalysisController::class, 'index'])->name('analysis.margin.index');
     route::patch('/analysis/margin/{id}/update-price', [MarginAnalysisController::class, 'updatePrice'])
         ->name('analysis.margin.update-price');

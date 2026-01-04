@@ -64,7 +64,7 @@ export default function Edit({ product }: any) {
             >
               {({ processing, errors }) => (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
 
                     {/* Nama Produk */}
                     <div className="grid col-span-2 gap-2">
@@ -99,21 +99,6 @@ export default function Edit({ product }: any) {
                         />
                       </div>
                       <InputError message={errors.last_price || errors.price} />
-                    </div>
-
-                    {/* Stok */}
-                    <div className="grid col-span-2 md:col-span-1 gap-2">
-                      <Label htmlFor="stock">Stok</Label>
-                      <Input
-                        type="number"
-                        id="stock"
-                        name="stock"
-                        className="font-semibold"
-                        defaultValue={product.stock}
-                        placeholder="0"
-                        required
-                      />
-                      <InputError message={errors.stock} />
                     </div>
                   </div>
                   <div className="flex justify-end">

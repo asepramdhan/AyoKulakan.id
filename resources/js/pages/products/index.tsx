@@ -3,17 +3,19 @@ import ProductController from '@/actions/App/Http/Controllers/ProductController'
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import products from '@/routes/products';
 import shopping from '@/routes/shopping';
 import { type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
-import { Form, Head, Link, usePage } from '@inertiajs/react';
+import { Form, Head, Link, useForm, usePage } from '@inertiajs/react';
 import { CheckCircle2Icon, Info, Package, Package2, PackageSearch, Pencil, PlusCircle, Search, Store, Trash2, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -24,9 +26,26 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function Index({ products, stores, filters }: any) {
   const { flash } = usePage<any>().props as any;
+  // State lokal untuk mengontrol visibilitas alert
+  const [showSuccess, setShowSuccess] = useState(false);
 
+  useEffect(() => {
+    if (flash.message) {
+      setShowSuccess(true);
+
+      // Hilangkan alert setelah 3 detik
+      const timer = setTimeout(() => {
+        setShowSuccess(false);
+      }, 3000);
+
+      return () => clearTimeout(timer); // Cleanup timer jika komponen unmount
+    }
+  }, [flash.message]);
   // State untuk pencarian
   const [searchQuery, setSearchQuery] = useState('');
+  // State untuk Modal Opname
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [isOpnameOpen, setIsOpnameOpen] = useState(false);
 
   // Logika Filter Produk (Berdasarkan Search Query)
   const filteredProducts = useMemo(() => {
@@ -35,6 +54,21 @@ export default function Index({ products, stores, filters }: any) {
       product.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [searchQuery, products]); // Gunakan 'products' sesuai props Anda
+
+  // Gunakan useForm dari Inertia untuk handle submit
+  const opnameForm = useForm({
+    actual_stock: 0,
+    reason: '',
+  });
+
+  const handleOpname = (product: any) => {
+    setSelectedProduct(product);
+    opnameForm.setData({
+      actual_stock: product.stock, // Defaultnya samakan dengan stok sistem
+      reason: 'Stock Opname Rutin',
+    });
+    setIsOpnameOpen(true);
+  };
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
@@ -132,11 +166,15 @@ export default function Index({ products, stores, filters }: any) {
           </CardHeader>
           <CardContent>
             <Transition
-              show={flash.message}
-              enter="transition ease-in-out"
-              enterFrom="opacity-0"
-              leave="transition ease-in-out"
-              leaveTo="opacity-0"
+              show={showSuccess}
+              // Animasi masuk: slide down + fade in
+              enter="transition-all duration-500 ease-out"
+              enterFrom="opacity-0 -translate-y-2 max-h-0"
+              enterTo="opacity-100 translate-y-0 max-h-20"
+              // Animasi keluar: slide up + fade out
+              leave="transition-all duration-300 ease-in"
+              leaveFrom="opacity-100 max-h-20"
+              leaveTo="opacity-0 -translate-y-2 max-h-0"
             >
               <Alert className="mb-2 text-green-600 bg-green-50 dark:bg-green-800 dark:text-green-200">
                 <CheckCircle2Icon />
@@ -189,7 +227,18 @@ export default function Index({ products, stores, filters }: any) {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2 justify-end">
+                          {/* TOMBOL OPNAME (Baru) */}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-orange-500 cursor-pointer hover:bg-orange-50 dark:hover:bg-orange-800"
+                            onClick={() => handleOpname(product)}
+                            title="Stock Opname"
+                          >
+                            <PackageSearch className="w-4 h-4" />
+                          </Button>
                           <Link href={ProductController.edit(product.id)}>
+                            {/* ... tombol edit ... */}
                             <Button
                               variant="ghost"
                               size="icon"
@@ -233,6 +282,71 @@ export default function Index({ products, stores, filters }: any) {
           </CardContent>
         </Card>
       </div>
-    </AppLayout>
+      <Dialog open={isOpnameOpen} onOpenChange={setIsOpnameOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Stock Opname</DialogTitle>
+            <DialogDescription>
+              Sesuaikan jumlah stok sistem dengan stok fisik di toko.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 dark:bg-slate-800">
+              <p className="text-xs text-slate-500 dark:text-slate-400">Produk</p>
+              <p className="font-bold text-slate-900 dark:text-slate-50 capitalize">{selectedProduct?.name}</p>
+              <div className="flex justify-between mt-2">
+                <span className="text-xs text-slate-500 dark:text-slate-400">Stok Sistem: <b>{selectedProduct?.stock} pcs</b></span>
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="actual_stock">Jumlah Stok Fisik (Nyata)</Label>
+              <Input
+                id="actual_stock"
+                type="number"
+                min="0" // agar user tidak bisa menginput angka negatif
+                value={opnameForm.data.actual_stock}
+                onChange={(e) => opnameForm.setData('actual_stock', parseInt(e.target.value))}
+              />
+              {/* Kalkulasi Selisih secara visual */}
+              <p className={`text-[11px] font-medium ${opnameForm.data.actual_stock - (selectedProduct?.stock || 0) < 0 ? 'text-red-500' : 'text-green-600'}`}>
+                Selisih: {opnameForm.data.actual_stock - (selectedProduct?.stock || 0)} pcs
+              </p>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="reason">Alasan Penyesuaian</Label>
+              <Input
+                id="reason"
+                placeholder="Misal: Barang rusak, salah hitung, dll"
+                value={opnameForm.data.reason}
+                onChange={(e) => opnameForm.setData('reason', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsOpnameOpen(false)}>Batal</Button>
+            <Button
+              className='bg-orange-500 hover:bg-orange-600 text-white dark:bg-orange-600 dark:hover:bg-orange-700'
+              disabled={opnameForm.processing}
+              onClick={() => {
+                // Menggunakan opnameForm.post agar state 'processing' dan 'onSuccess' sinkron
+                opnameForm.post(ProductController.adjustStock(selectedProduct?.id || 0).url, {
+                  preserveScroll: true,
+                  onSuccess: () => {
+                    setIsOpnameOpen(false); // Tutup modal setelah berhasil
+                    opnameForm.reset();     // Kembalikan form ke awal
+                  },
+                });
+              }}
+            >
+              {opnameForm.processing ? 'Menyimpan...' : 'Simpan Perubahan'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </AppLayout >
   );
 }

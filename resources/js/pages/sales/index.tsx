@@ -674,10 +674,14 @@ export default function Index({ products, stores, ...props }: any) {
 
         <Transition
           show={showSuccess}
-          enter="transition ease-in-out"
-          enterFrom="opacity-0"
-          leave="transition ease-in-out"
-          leaveTo="opacity-0"
+          // Animasi masuk: slide down + fade in
+          enter="transition-all duration-500 ease-out"
+          enterFrom="opacity-0 -translate-y-2 max-h-0"
+          enterTo="opacity-100 translate-y-0 max-h-20"
+          // Animasi keluar: slide up + fade out
+          leave="transition-all duration-300 ease-in"
+          leaveFrom="opacity-100 max-h-20"
+          leaveTo="opacity-0 -translate-y-2 max-h-0"
         >
           <Alert className="mb-2 text-green-600 bg-green-50 dark:bg-green-800 dark:text-green-200">
             <CheckCircle2Icon />

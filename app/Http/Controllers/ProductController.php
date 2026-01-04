@@ -76,7 +76,6 @@ class ProductController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'last_price' => 'required', // Kita validasi string dulu karena ada titiknya
-            'stock' => 'required|integer|min:0',
         ]);
 
         // 2. Bersihkan titik dari harga sebelum disimpan
@@ -88,6 +87,28 @@ class ProductController extends Controller
 
         // 4. Kembali dengan pesan sukses
         return to_route('products.index')->with('message', 'Produk berhasil diperbarui');
+    }
+
+    public function adjustStock(Request $request, $id)
+    {
+        $request->validate([
+            'actual_stock' => 'required|integer|min:0',
+            'reason' => 'required|string|max:255',
+        ]);
+
+        $product = Product::findOrFail($id);
+
+        // Hitung selisih untuk pesan notifikasi
+        $diff = $request->actual_stock - $product->stock;
+        $status = $diff >= 0 ? "bertambah" : "berkurang";
+
+        // Update stok
+        $product->update([
+            'stock' => $request->actual_stock
+        ]);
+
+        // Berikan response kembali ke Inertia
+        return back()->with('message', "Stok {$product->name} berhasil diupdate. Selisih: {$diff} ({$status})");
     }
 
     /**
