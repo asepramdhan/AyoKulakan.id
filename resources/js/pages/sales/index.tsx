@@ -16,8 +16,8 @@ import AppLayout from '@/layouts/app-layout';
 import salesRecord from '@/routes/sales-record';
 import { type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
-import { Form, Head, usePage } from '@inertiajs/react';
-import { ArrowUpRight, CheckCircle2Icon, DollarSign, Package2, Pencil, Percent, Plus, Save, Search, Store, TrendingUp, X } from 'lucide-react';
+import { Form, Head, router, usePage } from '@inertiajs/react';
+import { ArrowUpRight, CheckCircle2Icon, DollarSign, Loader2, Package2, Pencil, Percent, Plus, Save, Search, Store, TrendingUp, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -56,6 +56,30 @@ const formatDate = (dateString: string) => {
 export default function Index({ products, stores, ...props }: any) {
 
   const { flash } = usePage().props as any;
+  const { todayAdCost } = usePage().props as any;
+
+  const [dailyAdCost, setDailyAdCost] = useState(todayAdCost?.amount || 0);
+  const [isSavingAd, setIsSavingAd] = useState(false);
+
+  useEffect(() => {
+    // Jika database punya data iklan hari ini, update state lokalnya
+    if (todayAdCost) {
+      setDailyAdCost(Number(todayAdCost.amount));
+    }
+  }, [todayAdCost]); // Efek ini jalan setiap kali props 'todayAdCost' berubah
+
+  const saveAdCost = () => {
+    setIsSavingAd(true);
+    router.post(salesRecord.updateAdCost().url, {
+      date: new Date().toISOString().split('T')[0],
+      amount: dailyAdCost,
+      note: 'Biaya Iklan Harian'
+    }, {
+      onSuccess: () => setIsSavingAd(false),
+      preserveScroll: true
+    });
+  };
+
   // State lokal untuk mengontrol visibilitas alert
   const [showSuccess, setShowSuccess] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -128,7 +152,14 @@ export default function Index({ products, stores, ...props }: any) {
 
   const stats = useMemo(() => {
     if (!filteredSales || filteredSales.length === 0) {
-      return { totalModal: 0, totalJual: 0, totalFee: 0, netProfit: 0, margin: 0 };
+      return {
+        totalModal: 0,
+        totalJual: 0,
+        totalFee: 0,
+        grossProfit: 0,
+        netProfit: 0 - (Number(dailyAdCost) || 0),
+        margin: 0
+      };
     }
 
     const totalModal = filteredSales.reduce((acc, curr) => {
@@ -161,11 +192,13 @@ export default function Index({ products, stores, ...props }: any) {
       return acc + feeAmount + flatFees + extra + shipping;
     }, 0);
 
-    const netProfit = totalJual - totalModal - totalAllFees;
+    const grossProfit = totalJual - totalModal - totalAllFees;
+
+    const netProfit = grossProfit - (Number(dailyAdCost) || 0);
     const margin = totalJual > 0 ? (netProfit / totalJual) * 100 : 0;
 
-    return { totalModal, totalJual, totalFee: totalAllFees, netProfit, margin };
-  }, [filteredSales]);
+    return { totalModal, totalJual, totalFee: totalAllFees, netProfit, margin, grossProfit };
+  }, [filteredSales, dailyAdCost]);
 
   const [open, setOpen] = useState(false); // State untuk kontrol modal
   const [isEditing, setIsEditing] = useState(false);
@@ -627,6 +660,46 @@ export default function Index({ products, stores, ...props }: any) {
           </div>
         </div>
 
+        <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 p-4 rounded-xl mb-4 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-orange-500 rounded-lg shadow-orange-200 shadow-lg">
+              <TrendingUp className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-orange-900 dark:text-orange-400">Input Biaya Iklan Hari Ini</h3>
+              <p className="text-[11px] text-orange-700 dark:text-orange-500 italic font-medium">Klik simpan setelah selesai input semua transaksi</p>
+            </div>
+          </div>
+          <div className="flex w-full md:w-auto gap-2">
+            <div className="relative flex-1 md:w-48">
+              <span className="absolute left-3 top-2 text-sm text-muted-foreground font-bold">Rp</span>
+              <Input
+                type="text"
+                className="pl-10 border-orange-300 focus:ring-orange-500"
+                placeholder="Masukkan biaya iklan..."
+                value={formatRupiah(dailyAdCost)}
+                onChange={(e) => setDailyAdCost(parseRupiah(e.target.value))}
+              />
+              {dailyAdCost > 0 && (
+                <button
+                  onClick={() => setDailyAdCost(0)}
+                  className="absolute right-2 top-2 text-orange-400 hover:text-orange-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            <Button
+              onClick={saveAdCost}
+              disabled={isSavingAd}
+              className="bg-orange-600 hover:bg-orange-700 text-white shadow-md active:scale-95 transition-transform cursor-pointer"
+            >
+              {isSavingAd ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              Simpan
+            </Button>
+          </div>
+        </div>
+
         {/* Dashboard Ringkasan */}
         <div className="grid gap-4 md:grid-cols-3">
           {/* Total Penjualan */}
@@ -644,16 +717,19 @@ export default function Index({ products, stores, ...props }: any) {
           {/* Profit Bersih */}
           <Card className="bg-green-50 dark:bg-green-900/20 border-green-200">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium">Profit Bersih</CardTitle>
+              <CardTitle className="text-sm font-medium">Profit Bersih (Real)</CardTitle>
               <TrendingUp className="w-4 h-4 text-green-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">Rp {formatRupiah(stats.netProfit)}</div>
-              <p className="text-xs text-green-600 mt-1 flex items-center">
-                <ArrowUpRight className="w-3 h-3 mr-1" />
-                {/* Tambahkan pengecekan jika margin NaN (pembagi nol) */}
-                {isFinite(stats.margin) ? stats.margin.toFixed(1) : 0}% Margin
-              </p>
+              <div className="flex justify-between items-center mt-1">
+                <p className="text-[10px] text-muted-foreground">
+                  Bruto: Rp {formatRupiah(stats.grossProfit)}
+                </p>
+                <p className="text-xs text-green-600 font-semibold">
+                  {isFinite(stats.margin) ? stats.margin.toFixed(1) : 0}% Margin
+                </p>
+              </div>
             </CardContent>
           </Card>
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DailyCost;
 use App\Models\Product;
 use App\Models\SalesRecord;
 use App\Models\Store;
@@ -17,6 +18,8 @@ class SalesRecordController extends Controller
      */
     public function index()
     {
+        $today = now()->toDateString();
+
         return Inertia::render('sales/index', [
             'products' => Auth::user()->products,
             'stores' => Store::where('user_id', Auth::id())->get(),
@@ -24,6 +27,7 @@ class SalesRecordController extends Controller
                 ->with('store')
                 ->latest()
                 ->get(),
+            'todayAdCost' => DailyCost::where('user_id', Auth::id())->where('date', $today)->first(),
         ]);
     }
 
@@ -235,6 +239,28 @@ class SalesRecordController extends Controller
         } catch (\Exception $e) {
             return back()->withErrors(['error' => 'Gagal update: ' . $e->getMessage()]);
         }
+    }
+
+    // Tambahkan fungsi untuk simpan/update biaya iklan
+    public function updateAdCost(Request $request)
+    {
+        // Bersihkan format rupiah agar menjadi angka murni
+        $cleanAmount = (float) str_replace(['.', ','], '', (string)$request->amount);
+
+        DailyCost::updateOrCreate(
+            // 1. Cari berdasarkan user_id DAN tanggal
+            [
+                'user_id' => Auth::id(),
+                'date'    => $request->date,
+            ],
+            // 2. Data yang diupdate/simpan
+            [
+                'amount' => $cleanAmount,
+                'note'   => $request->note ?? 'Biaya Iklan Harian'
+            ]
+        );
+
+        return back()->with('message', 'Biaya iklan berhasil diperbarui!');
     }
 
     /**
