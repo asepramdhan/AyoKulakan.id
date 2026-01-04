@@ -428,13 +428,13 @@ class ShoppingListController extends Controller
     {
         $lists = ShoppingList::with(['store'])
             ->where('user_id', Auth::id())
-            ->where('status', 'completed') // Filter yang sudah selesai
+            ->where('status', 'completed')
             ->withCount('items')
             ->withSum(['items as total_price' => function ($q) {
                 $q->where('is_bought', true);
             }], 'subtotal')
             ->latest('shopping_date')
-            ->get();
+            ->simplePaginate(50); // Ambil agak banyak di awal agar search enak
 
         return Inertia::render('shopping/history', [
             'lists' => $lists
