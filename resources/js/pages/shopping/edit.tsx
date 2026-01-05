@@ -7,13 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Spinner } from '@/components/ui/spinner';
 import AppLayout from '@/layouts/app-layout';
 import shopping from '@/routes/shopping'; // Wayfinder routes
 import { SharedData, type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
-import { Form, Head, Link, useForm, usePage } from '@inertiajs/react'; // Gunakan useForm untuk state management
+import { Form, Head, useForm, usePage } from '@inertiajs/react'; // Gunakan useForm untuk state management
 import { ArrowLeft, Plus, Save, Trash2 } from 'lucide-react';
+import { useEffect } from 'react';
+import { toast } from 'sonner';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -134,216 +135,215 @@ export default function Edit() {
             <CardTitle>Edit Daftar Belanja</CardTitle>
           </CardHeader>
           <CardContent>
-            <Form {...ShoppingListController.update.form(list.id)} options={{
-              preserveScroll: true,
-            }} className="space-y-6">
-              {({ processing, recentlySuccessful, errors }) => (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="store">Pilih Toko</Label>
-                      <Select name='store_id' defaultValue={list.store_id.toString()} required>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Pilih Toko" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectLabel>Daftar Toko Kamu</SelectLabel>
-                            {stores.map((store: any) => (
-                              <SelectItem key={store.id} value={store.id.toString()}>
-                                <span className="capitalize">{store.name}</span>
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                      <InputError message={errors.store_id} />
+            <Form {...ShoppingListController.update.form(list.id)}
+              options={{
+                preserveScroll: true,
+              }} className="space-y-6">
+              {({ processing, recentlySuccessful, errors }) => {
+
+                // eslint-disable-next-line react-hooks/rules-of-hooks
+                useEffect(() => {
+                  if (recentlySuccessful) {
+                    toast.promise<{ name: string }>(
+                      () =>
+                        new Promise((resolve) =>
+                          setTimeout(() => resolve({ name: flash.message }), 1000)
+                        ),
+                      {
+                        loading: "Memperbarui...",
+                        success: (data) => `${data.name}`,
+                        error: "Error",
+                      }
+                    )
+                  }
+                }, [recentlySuccessful]);
+
+                return (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="store">Pilih Toko</Label>
+                        <Select name='store_id' defaultValue={list.store_id.toString()} required>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Pilih Toko" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectLabel>Daftar Toko Kamu</SelectLabel>
+                              {stores.map((store: any) => (
+                                <SelectItem key={store.id} value={store.id.toString()}>
+                                  <span className="capitalize">{store.name}</span>
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                        <InputError message={errors.store_id} />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="title">Judul Belanja</Label>
+                        <Input
+                          id="title"
+                          name='title'
+                          defaultValue={list.title}
+                          className="mt-1 block w-full"
+                          placeholder='Contoh: Belanja Bulanan MeowMeal.id'
+                          required
+                        />
+                        <InputError message={errors.title} />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="tanggal">Tanggal</Label>
+                        <Input
+                          id="tanggal"
+                          type="datetime-local"
+                          name="shopping_date"
+                          // Perbaikan format di sini:
+                          defaultValue={
+                            list.shopping_date
+                              ? new Date(new Date(list.shopping_date).getTime() - (new Date().getTimezoneOffset() * 60000))
+                                .toISOString()
+                                .slice(0, 16)
+                              : ''
+                          }
+                          className="mt-1 block w-full"
+                          required
+                        />
+                        <InputError message={errors.shopping_date} />
+                      </div>
                     </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="title">Judul Belanja</Label>
-                      <Input
-                        id="title"
-                        name='title'
-                        defaultValue={list.title}
-                        className="mt-1 block w-full"
-                        placeholder='Contoh: Belanja Bulanan MeowMeal.id'
-                        required
-                      />
-                      <InputError message={errors.title} />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="tanggal">Tanggal</Label>
-                      <Input
-                        id="tanggal"
-                        type="datetime-local"
-                        name="shopping_date"
-                        // Perbaikan format di sini:
-                        defaultValue={
-                          list.shopping_date
-                            ? new Date(new Date(list.shopping_date).getTime() - (new Date().getTimezoneOffset() * 60000))
-                              .toISOString()
-                              .slice(0, 16)
-                            : ''
-                        }
-                        className="mt-1 block w-full"
-                        required
-                      />
-                      <InputError message={errors.shopping_date} />
-                    </div>
-                  </div>
 
-                  <hr />
+                    <hr />
 
-                  <div className="space-y-6">
-                    <div className="flex justify-between items-center border-b pb-2">
-                      <h3 className="font-bold text-lg text-slate-800 dark:text-slate-50">Daftar Barang</h3>
-                      <Button type="button" variant="outline" size="sm" onClick={addRow} className='cursor-pointer border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-800'>
-                        <Plus className="w-4 h-4" />Tambah
-                      </Button>
-                    </div>
+                    <div className="space-y-6">
+                      <div className="flex justify-between items-center border-b pb-2">
+                        <h3 className="font-bold text-lg text-slate-800 dark:text-slate-50">Daftar Barang</h3>
+                        <Button type="button" variant="outline" size="sm" onClick={addRow} className='cursor-pointer border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-800'>
+                          <Plus className="w-4 h-4" />Tambah
+                        </Button>
+                      </div>
 
-                    <div className="space-y-6 md:space-y-2">
-                      {data.items.map((item: any, index: number) => (
-                        <div key={index} className="relative transition-all border-b md:border-b-0 pb-4 md:pb-0">
-                          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start md:items-center">
+                      <div className="space-y-6 md:space-y-2">
+                        {data.items.map((item: any, index: number) => (
+                          <div key={index} className="relative transition-all border-b md:border-b-0 pb-4 md:pb-0">
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start md:items-center">
 
-                            {/* 1. Nama Produk */}
-                            <div className="md:col-span-6">
-                              <Label className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 md:hidden">Nama Barang</Label>
-                              <Input
-                                list="product-suggestions"
-                                className={item.is_bought ? "text-slate-400 dark:text-slate-600 bg-white md:mt-0 dark:bg-slate-800 line-through" : "bg-white md:mt-0 dark:bg-slate-800"}
-                                name={`items.${index}.product_name`}
-                                defaultValue={item.product_name}
-                                onChange={(e) => updateItem(index, 'product_name', e.target.value)}
-                                placeholder="Nama barang..."
-                                required
-                                autoComplete="off"
-                              />
-                            </div>
-
-                            {/* 2. Wrapper Qty dan Harga */}
-                            <div className="md:col-span-6 grid grid-cols-12 gap-3 items-center">
-
-                              {/* Quantity */}
-                              <div className="col-span-4 md:col-span-3">
-                                <Label className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 md:hidden">Qty</Label>
+                              {/* 1. Nama Produk */}
+                              <div className="md:col-span-6">
+                                <Label className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 md:hidden">Nama Barang</Label>
                                 <Input
-                                  type="number"
-                                  className={item.is_bought ? "text-slate-400 dark:text-slate-600 bg-white md:mt-0 dark:bg-slate-800 line-through text-center" : "bg-white md:mt-0 dark:bg-slate-800 text-center"}
-                                  name={`items.${index}.quantity`}
-                                  defaultValue={item.quantity}
-                                  onChange={(e) => updateItem(index, 'quantity', e.target.value)}
-                                  placeholder="Qty"
+                                  list="product-suggestions"
+                                  className={item.is_bought ? "text-slate-400 dark:text-slate-600 bg-white md:mt-0 dark:bg-slate-800 line-through" : "bg-white md:mt-0 dark:bg-slate-800"}
+                                  name={`items.${index}.product_name`}
+                                  defaultValue={item.product_name}
+                                  onChange={(e) => updateItem(index, 'product_name', e.target.value)}
+                                  placeholder="Nama barang..."
                                   required
+                                  autoComplete="off"
                                 />
                               </div>
 
-                              {/* Harga */}
-                              <div className="col-span-8 md:col-span-7">
-                                <Label className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 md:hidden">Harga</Label>
-                                <div className="relative mt-1 md:mt-0">
-                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs dark:text-slate-300">Rp</span>
+                              {/* 2. Wrapper Qty dan Harga */}
+                              <div className="md:col-span-6 grid grid-cols-12 gap-3 items-center">
+
+                                {/* Quantity */}
+                                <div className="col-span-4 md:col-span-3">
+                                  <Label className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 md:hidden">Qty</Label>
                                   <Input
-                                    className={item.is_bought ? "pl-8 font-medium text-slate-400 dark:text-slate-600 bg-white md:mt-0 dark:bg-slate-800 line-through" : "pl-8 font-medium bg-white md:mt-0 dark:bg-slate-800"}
-                                    name={`items.${index}.price`}
-                                    value={formatRupiah(item.price)}
-                                    onChange={(e) => updateItem(index, 'price', e.target.value)}
-                                    placeholder="100.000"
+                                    type="number"
+                                    className={item.is_bought ? "text-slate-400 dark:text-slate-600 bg-white md:mt-0 dark:bg-slate-800 line-through text-center" : "bg-white md:mt-0 dark:bg-slate-800 text-center"}
+                                    name={`items.${index}.quantity`}
+                                    defaultValue={item.quantity}
+                                    onChange={(e) => updateItem(index, 'quantity', e.target.value)}
+                                    placeholder="Qty"
                                     required
                                   />
                                 </div>
-                              </div>
 
-                              {/* 3. Tombol Hapus */}
-                              <div className="absolute -top-3 -right-3 md:relative md:top-0 md:right-0 md:col-span-2 flex justify-end">
-                                {data.items.length > 1 && (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => removeRow(index)}
-                                    className="h-8 w-8 rounded-full bg-red-100 text-red-600 md:bg-transparent md:text-slate-400 md:hover:text-red-600 md:hover:bg-red-50 cursor-pointer transition-colors dark:hover:bg-red-800 dark:hover:text-red-400"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                )}
-                              </div>
+                                {/* Harga */}
+                                <div className="col-span-8 md:col-span-7">
+                                  <Label className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 md:hidden">Harga</Label>
+                                  <div className="relative mt-1 md:mt-0">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs dark:text-slate-300">Rp</span>
+                                    <Input
+                                      className={item.is_bought ? "pl-8 font-medium text-slate-400 dark:text-slate-600 bg-white md:mt-0 dark:bg-slate-800 line-through" : "pl-8 font-medium bg-white md:mt-0 dark:bg-slate-800"}
+                                      name={`items.${index}.price`}
+                                      value={formatRupiah(item.price)}
+                                      onChange={(e) => updateItem(index, 'price', e.target.value)}
+                                      placeholder="100.000"
+                                      required
+                                    />
+                                  </div>
+                                </div>
 
+                                {/* 3. Tombol Hapus */}
+                                <div className="absolute -top-3 -right-3 md:relative md:top-0 md:right-0 md:col-span-2 flex justify-end">
+                                  {data.items.length > 1 && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => removeRow(index)}
+                                      className="h-8 w-8 rounded-full bg-red-100 text-red-600 md:bg-transparent md:text-slate-400 md:hover:text-red-600 md:hover:bg-red-50 cursor-pointer transition-colors dark:hover:bg-red-800 dark:hover:text-red-400"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  )}
+                                </div>
+
+                              </div>
+                            </div>
+
+                            {/* Error Messages */}
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                              <div className="md:col-span-6">
+                                <InputError message={errors[`items.${index}.product_name` as keyof typeof errors]} />
+                              </div>
+                              <div className="md:col-span-6">
+                                <InputError message={errors[`items.${index}.price` as keyof typeof errors]} />
+                              </div>
                             </div>
                           </div>
-
-                          {/* Error Messages */}
-                          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                            <div className="md:col-span-6">
-                              <InputError message={errors[`items.${index}.product_name` as keyof typeof errors]} />
-                            </div>
-                            <div className="md:col-span-6">
-                              <InputError message={errors[`items.${index}.price` as keyof typeof errors]} />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <datalist id="product-suggestions">
-                      {products.map((p: any) => (
-                        <option key={p.id} value={p.name} />
-                      ))}
-                    </datalist>
-                  </div>
-
-                  <div className="flex flex-col md:flex-row justify-between items-center gap-4 pt-4 border-t">
-                    {/* TOTAL: Tampil rata kiri di desktop, rata tengah di HP */}
-                    <div className="text-xl md:text-2xl font-bold tracking-tight text-green-600 w-full md:w-auto text-center md:text-left">
-                      Total : Rp {totalEstimasi ? formatRupiah(totalEstimasi) : '-'}
+                        ))}
+                      </div>
+                      <datalist id="product-suggestions">
+                        {products.map((p: any) => (
+                          <option key={p.id} value={p.name} />
+                        ))}
+                      </datalist>
                     </div>
 
-                    <div className="flex flex-col-reverse sm:flex-row gap-2 items-center w-full md:w-auto">
-                      {/* Status Notifikasi (Tersimpan) */}
-                      <Transition
-                        show={recentlySuccessful}
-                        enter="transition ease-in-out"
-                        enterFrom="opacity-0"
-                        leave="transition ease-in-out"
-                        leaveTo="opacity-0"
-                      >
-                        <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                          {flash.message || 'Tersimpan'}
-                        </p>
-                      </Transition>
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 pt-4 border-t">
+                      {/* TOTAL: Tampil rata kiri di desktop, rata tengah di HP */}
+                      <div className="text-xl md:text-2xl font-bold tracking-tight text-green-600 w-full md:w-auto text-center md:text-left">
+                        Total : Rp {totalEstimasi ? formatRupiah(totalEstimasi) : '-'}
+                      </div>
 
-                      {/* Tombol Kembali - Di HP jadi lebar penuh / Full Width */}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="cursor-pointer w-full sm:w-auto order-2 sm:order-1"
-                        onClick={() => window.history.back()}
-                      >
-                        Kembali
-                      </Button>
+                      <div className="flex flex-col-reverse sm:flex-row gap-2 items-center w-full md:w-auto">
+                        {/* Tombol Kembali - Di HP jadi lebar penuh / Full Width */}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="cursor-pointer w-full sm:w-auto order-2 sm:order-1"
+                          onClick={() => window.history.back()}
+                        >
+                          Kembali
+                        </Button>
 
-                      {/* Tombol Simpan - Di HP jadi lebar penuh / Full Width */}
-                      <Button
-                        type="submit"
-                        disabled={processing}
-                        className="bg-green-600 hover:bg-green-700 cursor-pointer w-full sm:w-auto order-1 sm:order-2 py-6 md:py-2 text-lg md:text-sm"
-                      >
-                        {processing ? (
-                          <>
-                            <Spinner className="h-4 w-4 animate-spin" />
-                            Memproses...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="w-4 h-4" />
-                            Simpan Data
-                          </>
-                        )}
-                      </Button>
+                        {/* Tombol Simpan - Di HP jadi lebar penuh / Full Width */}
+                        <Button
+                          type="submit"
+                          disabled={processing || recentlySuccessful}
+                          className="bg-green-600 hover:bg-green-700 cursor-pointer w-full sm:w-auto order-1 sm:order-2 py-6 md:py-2 text-lg md:text-sm"
+                        >
+                          <Save className="w-4 h-4" />
+                          Perbarui
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </>
-              )}
+                  </>
+                )
+              }}
             </Form>
           </CardContent>
         </Card>
