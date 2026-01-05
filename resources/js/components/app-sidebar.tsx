@@ -20,6 +20,7 @@ import products from '@/routes/products';
 import stores from '@/routes/stores';
 import analysis from '@/routes/analysis';
 import salesRecord from '@/routes/sales-record';
+import AppLogoIcon from './app-logo-icon';
 
 const mainNavItems: NavItem[] = [
     {
@@ -28,17 +29,17 @@ const mainNavItems: NavItem[] = [
         icon: LayoutGrid,
     },
     {
-        title: 'Daftar Belanja',
+        title: 'Buat Daftar Belanja',
         href: shopping.index(),
         icon: ShoppingBag,
     },
     {
-        title: 'Sedang Berjalan',
+        title: 'Daftar Belanja Aktif',
         href: shopping.active(),
         icon: ShoppingCart,
     },
     {
-        title: 'Riwayat',
+        title: 'Riwayat Belanja',
         href: shopping.history(),
         icon: History,
     },
@@ -81,7 +82,19 @@ export function AppSidebar() {
                                 <AppLogo />
                             </Link> */}
                             <a href='/dashboard'>
-                                <AppLogo />
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700 shadow-lg shadow-gray/10 dark:shadow-none">
+                                        <AppLogoIcon className="w-7 h-7 text-orange-600" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-md sm:text-xl font-black tracking-tighter leading-none text-orange-600">
+                                            ayokulakan<span className="text-gray-900 dark:text-white">.id</span>
+                                        </span>
+                                        <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400 leading-none mt-1">
+                                            Smart Seller Tools
+                                        </span>
+                                    </div>
+                                </div>
                             </a>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

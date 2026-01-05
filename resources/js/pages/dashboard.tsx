@@ -174,7 +174,7 @@ export default function Dashboard({ stats }: { stats: any }) {
                         <div className="w-12 h-12 bg-green-600 text-white dark:bg-green-500 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                             <PlusCircle className="w-6 h-6" />
                         </div>
-                        <span className="text-sm font-semibold text-green-900 dark:text-green-50">Buat Daftar</span>
+                        <span className="text-sm font-semibold text-green-900 dark:text-green-50">Buat Daftar Belanja</span>
                     </Link>
 
                     {/* Pintasan 2: Cek Belanjaan Aktif */}
@@ -185,7 +185,7 @@ export default function Dashboard({ stats }: { stats: any }) {
                         <div className="w-12 h-12 bg-orange-500 text-white dark:bg-orange-600 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                             <ShoppingCart className="w-6 h-6" />
                         </div>
-                        <span className="text-sm font-semibold text-orange-900 dark:text-orange-50">Sedang Belanja</span>
+                        <span className="text-sm font-semibold text-orange-900 dark:text-orange-50">Daftar Belanja</span>
                     </Link>
 
                     {/* Pintasan 3: Kelola Toko */}
@@ -207,7 +207,7 @@ export default function Dashboard({ stats }: { stats: any }) {
                         <div className="w-12 h-12 bg-slate-600 text-white dark:bg-slate-500 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                             <History className="w-6 h-6" />
                         </div>
-                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-50">Riwayat</span>
+                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-50">Riwayat Belanja</span>
                     </Link>
                 </div>
 
@@ -229,7 +229,7 @@ export default function Dashboard({ stats }: { stats: any }) {
                                     return (
                                         <Link
                                             key={list.id}
-                                            href={list.status === 'completed' ? shopping.history() : shopping.active()}
+                                            href={list.status === 'completed' ? shopping.history() : shopping.check(list.id)}
                                             className="flex items-center justify-between p-3 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all group"
                                         >
                                             <div className="flex items-center gap-4">
@@ -241,12 +241,11 @@ export default function Dashboard({ stats }: { stats: any }) {
                                                 </div>
                                                 <div>
                                                     <div className="flex items-center gap-2">
-                                                        <p className="font-bold text-sm dark:text-slate-200 group-hover:text-blue-500 transition-colors uppercase leading-none">{list.title}</p>
-                                                        {isToday && <span className="text-[9px] font-bold uppercase text-blue-700 bg-blue-100 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded">Hari Ini</span>}
+                                                        <p className="font-bold text-sm dark:text-slate-200 group-hover:text-blue-500 transition-colors uppercase leading-none truncate max-w-[150px] md:max-w-full">{list.title}</p>
                                                     </div>
                                                     <div className="flex items-center gap-2 mt-1.5">
                                                         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase">{list.store?.name}</span>
-                                                        <span className="text-[10px] text-muted-foreground italic">{new Date(list.shopping_date).toLocaleDateString('id-ID')}</span>
+                                                        {isToday ? <span className="text-[9px] font-bold uppercase text-blue-700 bg-blue-100 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded">Hari Ini</span> : <span className="text-[10px] text-muted-foreground italic">{new Date(list.shopping_date).toLocaleDateString('id-ID')}</span>}
                                                     </div>
                                                 </div>
                                             </div>

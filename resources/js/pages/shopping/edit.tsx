@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import ShoppingListController from '@/actions/App/Http/Controllers/ShoppingListController';
 import InputError from '@/components/input-error';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,8 +12,8 @@ import AppLayout from '@/layouts/app-layout';
 import shopping from '@/routes/shopping'; // Wayfinder routes
 import { SharedData, type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
-import { Form, Head, useForm, usePage } from '@inertiajs/react'; // Gunakan useForm untuk state management
-import { ArrowLeft, Plus, Save, Trash2 } from 'lucide-react';
+import { Form, Head, router, useForm, usePage } from '@inertiajs/react'; // Gunakan useForm untuk state management
+import { AlertTriangle, ArrowLeft, Plus, Save, Trash2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -43,7 +44,6 @@ const parseRupiah = (value: string): number => {
 
 export default function Edit() {
   const { list, store, stores, products }: any = usePage<SharedData>().props;
-  const { flash } = usePage().props as any;
 
   // Inisialisasi useForm (Data items diambil dari list.items)
   const { data, setData } = useForm({
@@ -61,20 +61,6 @@ export default function Edit() {
   };
 
   const removeRow = (index: number) => {
-    const item = data.items[index];
-
-    // Jika barang sudah dibeli, minta konfirmasi
-    if (item.is_bought) {
-      const confirmDelete = window.confirm(
-        `Barang "${item.product_name}" sudah diceklis/dibeli. Yakin ingin menghapusnya?`
-      );
-
-      if (!confirmDelete) {
-        return; // Batalkan penghapusan
-      }
-    }
-
-    // Jika belum dibeli (atau user klik OK pada konfirmasi), langsung hapus
     const newItems = [...data.items];
     newItems.splice(index, 1);
     setData('items', newItems);
@@ -114,22 +100,12 @@ export default function Edit() {
     setData('items', newItems);
   };
 
-  const totalEstimasi = data.items.reduce((acc, item) => acc + (item.quantity * item.price), 0);
+  const totalEstimasi = data.items.reduce((acc: number, item: { quantity: number; price: number; }) => acc + (item.quantity * item.price), 0);
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Daftar Belanja" />
       <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-        <div className="flex justify-end">
-          <Button
-            variant="ghost"
-            className="cursor-pointer flex items-center mb-2"
-            onClick={() => window.history.back()}
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Kembali
-          </Button>
-        </div>
         <Card>
           <CardHeader>
             <CardTitle>Edit Daftar Belanja</CardTitle>
@@ -147,12 +123,17 @@ export default function Edit() {
                     toast.promise<{ name: string }>(
                       () =>
                         new Promise((resolve) =>
-                          setTimeout(() => resolve({ name: flash.message }), 1000)
+                          setTimeout(() => resolve({ name: 'Daftar belanja berhasil diperbarui!' }), 700)
                         ),
                       {
                         loading: "Memperbarui...",
-                        success: (data) => `${data.name}`,
-                        error: "Error",
+                        success: (data) => {
+                          setTimeout(() => {
+                            router.visit(shopping.active().url); // Ganti ke route tujuan Anda
+                          }, 5000);
+                          return `${data.name}`;
+                        },
+                        error: "Terjadi kesalahan",
                       }
                     )
                   }
@@ -279,15 +260,69 @@ export default function Edit() {
                                 {/* 3. Tombol Hapus */}
                                 <div className="absolute -top-3 -right-3 md:relative md:top-0 md:right-0 md:col-span-2 flex justify-end">
                                   {data.items.length > 1 && (
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => removeRow(index)}
-                                      className="h-8 w-8 rounded-full bg-red-100 text-red-600 md:bg-transparent md:text-slate-400 md:hover:text-red-600 md:hover:bg-red-50 cursor-pointer transition-colors dark:hover:bg-red-800 dark:hover:text-red-400"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
+                                    <>
+                                      {item.is_bought ?
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 cursor-pointer transition-colors rounded-full"
+                                            >
+                                              <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                          </AlertDialogTrigger>
+
+                                          <AlertDialogContent className="w-[90vw] max-w-[400px] rounded-[2rem] p-6 gap-6 sm:w-full">
+                                            <AlertDialogHeader>
+                                              <div className="flex flex-col items-center gap-4 text-center">
+                                                {/* Icon Warning yang Cantik */}
+                                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-900/30">
+                                                  <AlertTriangle className="h-6 w-6 text-rose-600" />
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                  <AlertDialogTitle className="text-xl font-bold tracking-tight">
+                                                    Hapus Barang Belanjaan?
+                                                  </AlertDialogTitle>
+                                                  <AlertDialogDescription className="text-sm text-slate-500 dark:text-slate-400">
+                                                    Barang <span className="font-bold text-slate-900 dark:text-slate-200 capitalize">"{item.product_name}"</span> sudah diceklis/dibeli. Yakin ingin menghapusnya?
+                                                  </AlertDialogDescription>
+                                                </div>
+                                              </div>
+                                            </AlertDialogHeader>
+
+                                            <AlertDialogFooter className="flex-col sm:flex-row gap-2 pt-4">
+                                              <AlertDialogCancel className="w-full sm:w-auto rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-50 cursor-pointer">
+                                                Batal
+                                              </AlertDialogCancel>
+
+                                              <AlertDialogAction
+                                                asChild
+                                                className="w-full sm:w-auto bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-lg shadow-rose-200 dark:shadow-none border-none cursor-pointer"
+                                              >
+                                                <Button
+                                                  type="button"
+                                                  onClick={() => removeRow(index)}
+                                                >
+                                                  Ya, Hapus
+                                                </Button>
+                                              </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog> :
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => removeRow(index)}
+                                          className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 cursor-pointer transition-colors rounded-full"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                      }
+                                    </>
                                   )}
                                 </div>
 
@@ -325,7 +360,7 @@ export default function Edit() {
                           type="button"
                           variant="ghost"
                           className="cursor-pointer w-full sm:w-auto order-2 sm:order-1"
-                          onClick={() => window.history.back()}
+                          onClick={() => router.visit(shopping.active().url)}
                         >
                           Kembali
                         </Button>

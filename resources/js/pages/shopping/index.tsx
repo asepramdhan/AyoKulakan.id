@@ -1,28 +1,22 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import ShoppingListController from '@/actions/App/Http/Controllers/ShoppingListController';
 import InputError from '@/components/input-error';
-import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Spinner } from '@/components/ui/spinner';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import shopping from '@/routes/shopping'; // Wayfinder routes
 import { type BreadcrumbItem } from '@/types';
-import { Transition } from '@headlessui/react';
-import { Form, Head, Link, router, useForm, usePage } from '@inertiajs/react'; // Gunakan useForm untuk state management
-import { CheckCircle2, CheckCircle2Icon, DownloadCloud, Pencil, Plus, Save, ShoppingBag, Trash2 } from 'lucide-react';
+import { Form, Head, router, useForm, } from '@inertiajs/react'; // Gunakan useForm untuk state management
+import { Plus, Save, Trash2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
-    title: 'Daftar Belanja',
+    title: 'Buat Daftar Belanja',
     href: shopping.index().url,
   },
 ];
@@ -45,36 +39,19 @@ const parseRupiah = (value: string): number => {
   return cleanNumber ? parseInt(cleanNumber, 10) : 0;
 };
 
-const formatSingkat = (dateString: string) => {
-  const d = new Date(dateString);
-  const hari = d.toLocaleDateString('id-ID', { weekday: 'long' });
-  const tgl = d.toLocaleDateString('id-ID', {
-    day: '2-digit',
-    month: '2-digit',
-    year: '2-digit'
-  }).replace(/\//g, '-');
-  const jam = d.toLocaleTimeString('id-ID', {
-    hour: '2-digit',
-    minute: '2-digit'
-  }).replace('.', ':');
-
-  return `${hari}, ${tgl} ${jam}`;
-};
-
-export default function Index({ stores, shoppingLists, products }: { stores: any[], shoppingLists: any[], products: any[] }) {
-  const { flash } = usePage().props as any;
+export default function Index({ stores, products }: { stores: any[], products: any[] }) {
 
   // Inisialisasi useForm agar sinkron dengan Controller store()
   const { data, setData } = useForm({
     store_id: stores?.[0]?.id || '', // Default ke toko pertama
     title: '',
     shopping_date: new Date().toISOString().split('T')[0],
-    items: [{ product_id: null, product_name: '', quantity: null, price: null }],
+    items: [{ product_id: null, product_name: '', quantity: 1, price: 0 }],
   });
 
   // Handler Tambah Baris
   const addRow = () => {
-    setData('items', [...data.items, { product_id: null, product_name: '', quantity: 1, price: null }]);
+    setData('items', [...data.items, { product_id: null, product_name: '', quantity: 1, price: 0 }]);
   };
 
   // Handler Hapus Baris
@@ -119,13 +96,9 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
 
   const totalEstimasi = data.items.reduce((acc, item) => acc + (item.quantity * item.price), 0);
 
-  function route(arg0: string, id: any): string | URL | undefined {
-    throw new Error('Function not implemented.');
-  }
-
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
-      <Head title="Daftar Belanja" />
+      <Head title="Buat Daftar Belanja" />
       <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
         <Card>
           <CardHeader>
@@ -143,12 +116,17 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
                     toast.promise<{ name: string }>(
                       () =>
                         new Promise((resolve) =>
-                          setTimeout(() => resolve({ name: flash.message }), 1000)
+                          setTimeout(() => resolve({ name: 'Daftar belanja berhasil disimpan!' }), 700)
                         ),
                       {
                         loading: "Menyimpan...",
-                        success: (data) => `${data.name}`,
-                        error: "Error",
+                        success: (data) => {
+                          setTimeout(() => {
+                            router.visit(shopping.active().url); // Ganti ke route tujuan Anda
+                          }, 5000);
+                          return `${data.name}`;
+                        },
+                        error: "Terjadi kesalahan sistem saat menyimpan data.",
                       }
                     )
                   }
@@ -329,160 +307,6 @@ export default function Index({ stores, shoppingLists, products }: { stores: any
                 )
               }}
             </Form>
-          </CardContent>
-        </Card>
-
-        {/* BAGIAN TABEL RIWAYAT BELANJA */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Riwayat Belanja Terakhir</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tanggal</TableHead>
-                  <TableHead>Toko</TableHead>
-                  <TableHead>Judul</TableHead>
-                  <TableHead>Total Estimasi</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {shoppingLists.length > 0 ? (
-                  shoppingLists.map((list: any) => (
-                    <TableRow
-                      key={list.id}
-                      className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                      onClick={() => router.visit(shopping.check(list.id).url)}>
-                      <TableCell>{formatSingkat(list.shopping_date)}</TableCell>
-                      <TableCell>
-                        <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-700 dark:text-blue-100 text-xs font-medium capitalize">
-                          {list.store.name}
-                        </span>
-                      </TableCell>
-                      <TableCell className="font-medium capitalize">{list.title}</TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <div className="flex flex-col">
-                          <div className="text-sm font-semibold">
-                            {/* Total yang sudah dibeli */}
-                            <span className="text-green-600" title="Sudah dibeli">
-                              Rp {Number(list.total_bought_price || 0).toLocaleString('id-ID')}
-                            </span>
-                            <span className="text-slate-400 mx-1">/</span>
-                            {/* Total Estimasi Keseluruhan */}
-                            <span className="text-slate-500" title="Total estimasi">
-                              {Number(list.total_estimated_price).toLocaleString('id-ID')}
-                            </span>
-                          </div>
-
-                          {/* Menghitung Sisa Anggaran */}
-                          {list.status !== 'completed' ? (
-                            <span className="text-[10px] text-amber-600 font-medium">
-                              Sisa: Rp {Number(list.total_estimated_price - (list.total_bought_price || 0)).toLocaleString('id-ID')} lagi
-                            </span>
-                          ) : (
-                            <span className="text-[10px] text-green-600 font-medium flex items-center gap-1">
-                              <CheckCircle2 className="w-2.5 h-2.5" /> Lunas / Selesai
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="min-w-[120px]">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className={`text-[10px] font-bold ${list.status === 'completed' ? 'text-green-600' : 'text-amber-600'}`}>
-                              {list.status === 'completed' ? '100%' : 'Sedang Berjalan'}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">
-                              {list.completed_items_count || 0}/{list.items_count || 0}
-                            </span>
-                          </div>
-                          {/* Progress Bar Sederhana */}
-                          <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full transition-all ${list.status === 'completed' ? 'bg-green-500' : 'bg-amber-500'}`}
-                              style={{ width: `${(list.completed_items_count / list.items_count) * 100}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
-                        <Link href={shopping.check(list.id)}>
-                          <Button
-                            variant="default"
-                            size="sm"
-                            className="bg-orange-500 hover:bg-orange-600 cursor-pointer"
-                          >
-                            <CheckCircle2 className="w-4 h-4" />
-                          </Button>
-                        </Link>
-                        <Link href={shopping.edit(list.id)}>
-                          <Button
-                            variant="default"
-                            size="sm"
-                            className="bg-sky-500 hover:bg-sky-600 cursor-pointer"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                        </Link>
-                        <Link href={shopping.export(list.id)}>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="hover:text-sky-600 cursor-pointer"
-                          >
-                            <DownloadCloud className="w-4 h-4" />
-                          </Button>
-                        </Link>
-                        <Link href={shopping.destroy(list.id)}
-                          className="cursor-pointer"
-                          onClick={(e) => {
-                            if (!confirm('Anda yakin ingin menghapus riwayat belanja ini?')) {
-                              e.preventDefault();
-                              return;
-                            }
-                            toast.promise<{ name: string }>(
-                              () =>
-                                new Promise((resolve) =>
-                                  setTimeout(() => resolve({ name: flash.delete }), 1000)
-                                ),
-                              {
-                                loading: "Menghapus...",
-                                success: (data) => `${data.name}`,
-                                error: "Error",
-                              }
-                            )
-                          }}
-                        >
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="hover:text-rose-600 cursor-pointer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </Link>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
-                      <Empty>
-                        <EmptyHeader>
-                          <EmptyMedia variant="icon">
-                            <ShoppingBag className="w-8 h-8 text-slate-400" />
-                          </EmptyMedia>
-                          <EmptyTitle className="text-slate-400">Belum ada data belanja.</EmptyTitle>
-                        </EmptyHeader>
-                      </Empty>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
           </CardContent>
         </Card>
       </div>

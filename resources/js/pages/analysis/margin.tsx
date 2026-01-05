@@ -346,7 +346,7 @@ export default function MarginAnalysis({ analysisData }: { analysisData: any[] }
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-10 text-slate-400">
+                    <TableCell colSpan={8} className="text-center py-10 text-slate-400">
                       Tidak ada produk dengan kategori ini.
                     </TableCell>
                   </TableRow>

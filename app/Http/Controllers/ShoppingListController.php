@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
+use function Symfony\Component\String\b;
+
 class ShoppingListController extends Controller
 {
     /**
@@ -79,7 +81,7 @@ class ShoppingListController extends Controller
 
         try {
             // 2. Gunakan Transaction (Wajib diaktifkan agar aman)
-            $shoppingList = DB::transaction(function () use ($validated) {
+            DB::transaction(function () use ($validated) {
                 // Buat Induk
                 $list = ShoppingList::create([
                     'user_id' => Auth::id(),
@@ -135,9 +137,9 @@ class ShoppingListController extends Controller
                 return $list;
             });
 
-            return to_route('shopping.index')->with('message', 'Daftar belanja berhasil disimpan!');
+            return back();
         } catch (\Exception $e) {
-            return back()->withErrors(['items' => 'Terjadi kesalahan sistem saat menyimpan data.']);
+            return back();
         }
     }
 
@@ -269,9 +271,7 @@ class ShoppingListController extends Controller
             ]);
         });
 
-        // return to_route('shopping.index')->with('message', 'Daftar belanja berhasil diperbarui tanpa merusak status ceklis!');
-        // saya mau kembali ke halaman sebelumnya
-        return back()->with('message', 'Daftar belanja berhasil diperbarui!');
+        return back();
     }
 
     /**
@@ -287,7 +287,7 @@ class ShoppingListController extends Controller
             $list->delete();
         });
 
-        return back()->with('delete', 'Riwayat belanja berhasil dihapus.');
+        return back();
     }
 
     public function check($id)

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
 import shopping from '@/routes/shopping';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { CheckCircle2, Circle, ArrowLeft } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -50,11 +50,12 @@ export default function CheckShopping({ shoppingList, otherLists = [] }: { shopp
         <div className="flex justify-end">
           <Button
             variant="ghost"
-            className="cursor-pointer flex items-center mb-2"
-            onClick={() => window.history.back()}
+            size="sm"
+            className="group cursor-pointer flex items-center gap-2 text-slate-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-all rounded-lg"
+            onClick={() => router.visit(shopping.active().url)} // Gunakan router.visit ke index
           >
-            <ArrowLeft className="w-4 h-4" />
-            Kembali
+            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+            <span className="font-medium">Kembali ke Daftar Belanja</span>
           </Button>
         </div>
 

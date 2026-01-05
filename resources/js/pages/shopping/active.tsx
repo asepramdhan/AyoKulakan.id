@@ -1,13 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
 import shopping from '@/routes/shopping';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
-import { Clock, ChevronRight, ShoppingCart, Pencil, Wallet, Share2, Printer } from 'lucide-react';
+import { Clock, ChevronRight, ShoppingCart, Pencil, Wallet, Share2, Printer, Trash2, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Sedang Berjalan', href: shopping.active().url }];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Daftar Belanja Aktif', href: shopping.active().url }];
 const today = new Date().toISOString().split('T')[0];
 
 const formatSingkat = (dateString: string) => {
@@ -59,7 +61,7 @@ export default function ActiveLists({ lists }: { lists: any[] }) {
   return (
     <>
       <AppLayout breadcrumbs={breadcrumbs}>
-        <Head title='Sedang Berjalan' />
+        <Head title='Daftar Belanja Aktif' />
         <div className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6">
 
           {/* Header & Grand Total */}
@@ -136,16 +138,68 @@ export default function ActiveLists({ lists }: { lists: any[] }) {
                         <ChevronRight className="text-slate-300 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
                       </div>
 
-                      <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-4">
-                        <div className="bg-orange-500 h-full rounded-full transition-all" style={{ width: `${progress}%` }} />
+                      <div className="w-full space-y-2 mt-4">
+                        {/* Header: Label & Persentase */}
+                        <div className="flex justify-between items-end">
+                          <div className="flex flex-col">
+                            <span className="text-xs font-black text-slate-700 dark:text-slate-200">
+                              {list.completed_items_count} <span className="text-slate-400 font-normal">dari</span> {list.items_count} Item
+                            </span>
+                          </div>
+
+                          <div className="text-right">
+                            <span className={`text-xs font-black ${Math.round(progress) === 100 ? 'text-green-500' : 'text-orange-500'}`}>
+                              {Math.round(progress)}%
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Progress Bar Track */}
+                        <div className="relative w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden border border-slate-200/50 dark:border-slate-700/50">
+                          {/* Progress Fill */}
+                          <div
+                            className={`h-full rounded-full transition-all duration-700 ease-in-out shadow-[0_0_8px_rgba(234,88,12,0.3)] ${Math.round(progress) === 100
+                              ? 'bg-green-500 shadow-green-200'
+                              : 'bg-orange-500'
+                              }`}
+                            style={{ width: `${progress}%` }}
+                          />
+
+                          {/* Efek kilau (Glow effect) agar lebih mewah */}
+                          <div
+                            className="absolute top-0 left-0 h-full w-full opacity-20 pointer-events-none"
+                            style={{
+                              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
+                              transform: `translateX(${progress - 100}%)`,
+                              transition: 'transform 0.7s ease-in-out'
+                            }}
+                          />
+                        </div>
                       </div>
                     </Link>
 
                     {/* Bagian Bawah: Tombol Aksi (Diletakkan di luar Link agar tidak bentrok) */}
                     <div className="px-5 py-4 flex items-center justify-between border-t dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-                      <div className="text-sm font-black dark:text-white">
-                        <span className="text-[9px] text-slate-400 block font-normal uppercase">Estimasi</span>
-                        Rp {Number(list.total_estimated_price || 0).toLocaleString('id-ID')}
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-2">
+                          {/* Label Estimasi dengan gaya yang lebih subtle */}
+                          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                            Estimasi
+                          </span>
+
+                          {/* Badge Jumlah Item yang lebih estetik */}
+                          {/* <span className="flex items-center px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold border border-blue-100 dark:border-blue-800">
+                            {list.items_count} Item
+                          </span> */}
+                        </div>
+
+                        {/* Nilai Harga dengan font yang lebih tegas dan rapi */}
+                        <div className="text-sm font-black text-slate-900 dark:text-white flex items-baseline gap-0.5">
+                          <span className="text-[11px] font-bold text-slate-500">Rp</span>
+                          <span className="tracking-tight">
+                            {Number(list.total_estimated_price || 0).toLocaleString('id-ID')}
+                          </span>
+                        </div>
                       </div>
 
                       <div className="flex gap-2">
@@ -163,6 +217,76 @@ export default function ActiveLists({ lists }: { lists: any[] }) {
                             <Pencil className="w-4 h-4" />
                           </Button>
                         </Link>
+
+                        {/* Tombol hapus */}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="rounded-full h-8 w-8 hover:text-rose-600 hover:bg-rose-50 dark:border-slate-700 cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+
+                          <AlertDialogContent className="w-[90vw] max-w-[400px] rounded-[2rem] p-6 gap-6 sm:w-full">
+                            <AlertDialogHeader>
+                              <div className="flex flex-col items-center gap-4 text-center">
+                                {/* Icon Warning yang Cantik */}
+                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-900/30">
+                                  <AlertTriangle className="h-6 w-6 text-rose-600" />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <AlertDialogTitle className="text-xl font-bold tracking-tight">
+                                    Hapus Daftar Belanja Aktif
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription className="text-sm text-slate-500 dark:text-slate-400">
+                                    Apakah kamu yakin ingin menghapus daftar belanja <span className="font-bold text-slate-900 dark:text-slate-200">"{list.title}"</span>?
+                                    <p>
+                                      Cek list ini terlebih dahulu sebelum menghapus
+                                      <Link href={shopping.check(list.id)} className="ms-1 underline font-bold text-slate-900 dark:text-slate-200">disini</Link>
+                                    </p>
+                                  </AlertDialogDescription>
+                                </div>
+                              </div>
+                            </AlertDialogHeader>
+
+                            <AlertDialogFooter className="flex-col sm:flex-row gap-2 pt-4">
+                              <AlertDialogCancel className="w-full sm:w-auto rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-50 cursor-pointer">
+                                Batal
+                              </AlertDialogCancel>
+
+                              <AlertDialogAction
+                                asChild
+                                className="w-full sm:w-auto bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-lg shadow-rose-200 dark:shadow-none border-none cursor-pointer"
+                              >
+                                <Link
+                                  href={shopping.destroy(list.id)}
+                                  method="delete"
+                                  as="button"
+                                  preserveScroll={true}
+                                  onClick={() => {
+                                    toast.promise<{ name: string }>(
+                                      () =>
+                                        new Promise((resolve) =>
+                                          setTimeout(() => resolve({ name: list.title }), 1000)
+                                        ),
+                                      {
+                                        loading: "Menghapus...",
+                                        success: (data) => `Daftar Belanja ${data.name} Berhasil Dihapus`,
+                                        error: "Terjadi Kesalahan",
+                                      }
+                                    )
+                                  }}
+                                >
+                                  Ya, Hapus
+                                </Link>
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   </div>
