@@ -10,11 +10,11 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { BadgeDollarSign, History, LayoutGrid, Package2Icon, PieChart, ShoppingBag, ShoppingCart, Store } from 'lucide-react';
-import AppLogo from './app-logo';
 import shopping from '@/routes/shopping';
 import products from '@/routes/products';
 import stores from '@/routes/stores';
@@ -72,28 +72,38 @@ const premiumNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    // Ambil status sidebar (expanded atau collapsed)
+    const { state } = useSidebar();
+    const isCollapsed = state === "collapsed";
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            {/* <Link href={dashboard()} prefetch>
-                                <AppLogo />
-                            </Link> */}
+                            {/* logo sebelumnya <Link href={dashboard()} prefetch><AppLogo /></Link> */}
                             <a href='/dashboard'>
                                 <div className="flex items-center gap-3">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700 shadow-lg shadow-gray/10 dark:shadow-none">
-                                        <AppLogoIcon className="w-7 h-7 text-orange-600" />
+                                    {/* Kotak Logo: Ukuran berubah berdasarkan isCollapsed */}
+                                    <div className={`
+                                        flex items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700 shadow-lg shadow-gray/10 dark:shadow-none transition-all duration-300
+                                        ${isCollapsed ? 'h-8 w-8' : 'h-10 w-10'}
+                                    `}>
+                                        <AppLogoIcon className={`text-orange-600 transition-all duration-300 ${isCollapsed ? 'w-6 h-6' : 'w-8 h-8'}`} />
                                     </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-md sm:text-xl font-black tracking-tighter leading-none text-orange-600">
-                                            ayokulakan<span className="text-gray-900 dark:text-white">.id</span>
-                                        </span>
-                                        <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400 leading-none mt-1">
-                                            Smart Seller Tools
-                                        </span>
-                                    </div>
+
+                                    {/* Teks Logo: Hilang otomatis saat collapsed dikelola oleh SidebarMenuButton, 
+                                        tapi kita bungkus agar transisinya halus */}
+                                    {!isCollapsed && (
+                                        <div className="flex flex-col overflow-hidden transition-all duration-300">
+                                            <span className="text-2xl font-black tracking-tighter leading-none text-orange-600">
+                                                ayokulakan<span className="text-gray-900 dark:text-white">.id</span>
+                                            </span>
+                                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 leading-none mt-1 whitespace-nowrap">
+                                                Smart Seller Tools
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             </a>
                         </SidebarMenuButton>

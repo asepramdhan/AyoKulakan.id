@@ -10,7 +10,7 @@ import AppLayout from '@/layouts/app-layout';
 import shopping from '@/routes/shopping'; // Wayfinder routes
 import { type BreadcrumbItem } from '@/types';
 import { Form, Head, router, useForm, } from '@inertiajs/react'; // Gunakan useForm untuk state management
-import { Plus, Save, Trash2 } from 'lucide-react';
+import { Calendar, Plus, Save, ShoppingCart, Store, Trash2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -99,12 +99,17 @@ export default function Index({ stores, products }: { stores: any[], products: a
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Buat Daftar Belanja" />
-      <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-        <Card>
-          <CardHeader>
+      <div className="flex flex-1 flex-col gap-6 p-4 md:p-8 max-w-6xl mx-auto w-full">
+
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-black tracking-tight dark:text-white">Buat Daftar Belanja</h1>
+          <p className="text-slate-500 text-sm">Input rencana belanja kamu untuk memantau pengeluaran.</p>
+        </div>
+        <Card className="border-none shadow-sm bg-white/50 dark:bg-slate-900/50 backdrop-blur">
+          {/* <CardHeader>
             <CardTitle>Buat Daftar Belanja Baru</CardTitle>
-          </CardHeader>
-          <CardContent>
+          </CardHeader> */}
+          <CardContent className="p-6">
             <Form {...ShoppingListController.store()} options={{
               preserveScroll: true,
             }} className="space-y-6">
@@ -134,11 +139,15 @@ export default function Index({ stores, products }: { stores: any[], products: a
 
                 return (
                   <>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="grid gap-2">
-                        <Label htmlFor="store">Pilih Toko</Label>
+                        <Label
+                          htmlFor="store"
+                          className="flex items-center gap-2 font-bold text-slate-600 dark:text-slate-400">
+                          <Store className="w-4 h-4" />Pilih Toko
+                        </Label>
                         <Select name='store_id' required>
-                          <SelectTrigger className="w-full">
+                          <SelectTrigger className="w-full bg-white dark:bg-slate-800 border-slate-200">
                             <SelectValue placeholder="Pilih Toko" />
                           </SelectTrigger>
                           <SelectContent>
@@ -156,18 +165,26 @@ export default function Index({ stores, products }: { stores: any[], products: a
                         <InputError message={errors.store_id} />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="title">Judul Belanja</Label>
+                        <Label
+                          htmlFor="title"
+                          className="flex items-center gap-2 font-bold text-slate-600 dark:text-slate-400">
+                          <ShoppingCart className="w-4 h-4" />Judul Belanja
+                        </Label>
                         <Input
                           id="title"
                           name='title'
-                          className="mt-1 block w-full"
-                          placeholder='Contoh: pakan kucing'
+                          className="bg-white dark:bg-slate-800 border-slate-200 w-full"
+                          placeholder='Contoh: Belanja Bulanan'
                           required
                         />
                         <InputError message={errors.title} />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="tanggal">Tanggal</Label>
+                        <Label
+                          htmlFor="tanggal"
+                          className="flex items-center gap-2 font-bold text-slate-600 dark:text-slate-400">
+                          <Calendar className="w-4 h-4" />Tanggal
+                        </Label>
                         <Input
                           id="tanggal"
                           type='datetime-local'
@@ -178,53 +195,55 @@ export default function Index({ stores, products }: { stores: any[], products: a
                             const waktuLokal = new Date(sekarang.getTime() - offset);
                             return waktuLokal.toISOString().slice(0, 16);
                           })()}
-                          className="mt-1 block w-full"
+                          className="bg-white dark:bg-slate-800 border-slate-200 block w-full"
                           required
                         />
                         <InputError message={errors.shopping_date} />
                       </div>
                     </div>
 
-                    <hr />
-
-                    <div className="space-y-6">
-                      <div className="flex justify-between items-center border-b pb-2">
-                        <h3 className="font-bold text-lg text-slate-800 dark:text-slate-50">Daftar Barang</h3>
-                        <Button type="button" variant="outline" size="sm" onClick={addRow} className='cursor-pointer border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-800'>
-                          <Plus className="w-4 h-4" />Tambah
+                    {/* AREA DAFTAR BARANG */}
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-black text-lg text-slate-800 dark:text-slate-50 uppercase tracking-tight">Daftar Barang</h3>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={addRow}
+                          className='cursor-pointer border-orange-500 text-orange-600 hover:bg-orange-50 rounded-full font-bold'
+                        >
+                          <Plus className="w-4 h-4" />Tambah Barang
                         </Button>
                       </div>
 
-                      <div className="space-y-6 md:space-y-2"> {/* Rapatkan jarak antar baris di desktop */}
+                      <div className="space-y-3">
                         {data.items.map((item, index) => (
-                          <div key={index} className="relative transition-all">
-
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start md:items-center"> {/* md:items-center supaya sejajar vertikal */}
+                          <div key={index} className="group relative p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:border-orange-200">
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
 
                               {/* 1. Nama Produk (6 Kolom Desktop) */}
                               <div className="md:col-span-6">
-                                <Label className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 md:hidden">Nama Barang</Label>
+                                <Label className="text-[10px] uppercase font-black text-slate-400 mb-1 block">Nama Barang</Label>
                                 <Input
                                   list="product-suggestions"
-                                  className="mt-1 bg-white md:mt-0 dark:bg-slate-800"
+                                  className="bg-slate-50 dark:bg-slate-800 border-none focus-visible:ring-1 focus-visible:ring-orange-500 font-medium"
                                   name={`items.${index}.product_name`}
                                   value={item.product_name}
                                   onChange={(e) => updateItem(index, 'product_name', e.target.value)}
-                                  placeholder="Nama barang..."
+                                  placeholder="Ketik nama barang..."
                                   required
                                   autoComplete="off"
                                 />
                               </div>
 
                               {/* 2. Wrapper Qty, Harga, dan Tombol Hapus */}
-                              <div className="md:col-span-6 grid grid-cols-12 gap-3 items-center">
-
-                                {/* Quantity (4 kolom dari 12 bagian wrapper) */}
-                                <div className="col-span-4 md:col-span-3">
-                                  <Label className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 md:hidden">Qty</Label>
+                              <div className="md:col-span-5 grid grid-cols-12 gap-3 items-center">
+                                <div className="col-span-4">
+                                  <Label className="text-[10px] uppercase font-black text-slate-400 mb-1 block">Qty</Label>
                                   <Input
                                     type="number"
-                                    className="mt-1 bg-white md:mt-0 dark:bg-slate-800 text-center"
+                                    className="bg-slate-50 dark:bg-slate-800 border-none text-center font-bold"
                                     name={`items.${index}.quantity`}
                                     value={item.quantity}
                                     onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value))}
@@ -233,14 +252,13 @@ export default function Index({ stores, products }: { stores: any[], products: a
                                   />
                                 </div>
 
-                                {/* Harga (8 kolom dari 12 bagian wrapper di mobile, 7 di desktop) */}
-                                <div className="col-span-8 md:col-span-7">
-                                  <Label className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 md:hidden">Harga</Label>
-                                  <div className="relative mt-1 md:mt-0">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs dark:text-slate-300">Rp</span>
+                                <div className="col-span-8">
+                                  <Label className="text-[10px] uppercase font-black text-slate-400 mb-1 block">Harga Satuan</Label>
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">Rp</span>
                                     <Input
                                       type="text"
-                                      className="pl-8 bg-white font-medium dark:bg-slate-800"
+                                      className="pl-8 bg-slate-50 dark:bg-slate-800 border-none font-black text-orange-600 dark:text-orange-400"
                                       name={`items.${index}.price`}
                                       value={formatRupiah(item.price)}
                                       onChange={(e) => updateItem(index, 'price', e.target.value)}
@@ -249,30 +267,29 @@ export default function Index({ stores, products }: { stores: any[], products: a
                                     />
                                   </div>
                                 </div>
-
-                                {/* 3. Tombol Hapus (Desktop: Sejajar | Mobile: Tetap Melayang atau di samping harga) */}
-                                <div className="absolute -top-3 -right-3 md:relative md:top-0 md:right-0 md:col-span-2 flex justify-end">
-                                  {data.items.length > 1 && (
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => removeRow(index)}
-                                      className="h-8 w-8 rounded-full bg-red-100 text-red-600 md:bg-transparent md:text-slate-400 md:hover:text-red-600 md:hover:bg-red-50 cursor-pointer transition-colors dark:hover:bg-red-800 dark:hover:text-red-400"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                  )}
-                                </div>
+                              </div>
+                              {/* Tombol Hapus */}
+                              <div className="md:col-span-1 flex justify-end">
+                                {data.items.length > 1 && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => removeRow(index)}
+                                    className="text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors cursor-pointer"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                )}
                               </div>
                             </div>
 
-                            {/* Error message di bawah baris */}
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                            {/* Error Handling */}
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-1">
                               <div className="md:col-span-6">
                                 <InputError message={errors[`items.${index}.product_name` as keyof typeof errors]} />
                               </div>
-                              <div className="md:col-span-6">
+                              <div className="md:col-span-6 text-right">
                                 <InputError message={errors[`items.${index}.price` as keyof typeof errors]} />
                               </div>
                             </div>
@@ -287,21 +304,23 @@ export default function Index({ stores, products }: { stores: any[], products: a
                       </datalist>
                     </div>
 
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 pt-4 border-t">
-                      <div className="text-xl md:text-2xl font-bold tracking-tight text-green-600 w-full md:w-auto text-center md:text-left">
-                        Total: Rp {totalEstimasi ? formatRupiah(totalEstimasi) : '-'}
+                    {/* FOOTER TOTAL & SAVE */}
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-6 p-6 bg-orange-500 rounded-2xl text-white shadow-lg shadow-orange-200 dark:shadow-none">
+                      <div className="flex flex-col items-center md:items-start">
+                        <span className="text-orange-100 text-xs font-bold uppercase tracking-wider">Total Estimasi Belanja</span>
+                        <span className="text-3xl font-black italic">
+                          Rp {totalEstimasi ? formatRupiah(totalEstimasi) : '0'}
+                        </span>
                       </div>
 
-                      <div className="flex flex-col-reverse sm:flex-row gap-2 items-center w-full md:w-auto">
-                        <Button
-                          type="submit"
-                          disabled={processing || recentlySuccessful}
-                          className="bg-green-600 hover:bg-green-700 cursor-pointer w-full sm:w-auto order-1 sm:order-2 py-6 md:py-2 text-lg md:text-sm"
-                        >
-                          <Save className="w-4 h-4" />
-                          Simpan
-                        </Button>
-                      </div>
+                      <Button
+                        type="submit"
+                        disabled={processing || recentlySuccessful}
+                        className="bg-white text-orange-600 hover:bg-slate-100 cursor-pointer w-full md:w-auto px-10 py-6 rounded-xl font-black text-lg shadow-xl transition-transform hover:scale-105 active:scale-95"
+                      >
+                        <Save className="w-5 h-5" />
+                        SIMPAN DAFTAR
+                      </Button>
                     </div>
                   </>
                 )

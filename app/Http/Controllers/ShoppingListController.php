@@ -111,7 +111,7 @@ class ShoppingListController extends Controller
                         [
                             'store_id' => $validated['store_id'],
                             'last_price' => $item['price'],
-                            'stock' => 0, // Produk baru mulai dari 0, nanti bertambah saat di-check
+                            'stock' => 0,
                             'stock_warning' => 5 // Default warning
                         ]
                     );
@@ -214,8 +214,6 @@ class ShoppingListController extends Controller
                     [
                         'store_id' => $validated['store_id'],
                         'last_price' => $itemData['price'],
-                        'stock' => 0, // Produk baru mulai dari 0, nanti bertambah saat di-check
-                        'stock_warning' => 5 // Default warning
                     ]
                 );
 

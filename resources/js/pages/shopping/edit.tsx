@@ -4,16 +4,15 @@ import ShoppingListController from '@/actions/App/Http/Controllers/ShoppingListC
 import InputError from '@/components/input-error';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import shopping from '@/routes/shopping'; // Wayfinder routes
 import { SharedData, type BreadcrumbItem } from '@/types';
-import { Transition } from '@headlessui/react';
 import { Form, Head, router, useForm, usePage } from '@inertiajs/react'; // Gunakan useForm untuk state management
-import { AlertTriangle, ArrowLeft, Plus, Save, Trash2 } from 'lucide-react';
+import { AlertTriangle, Calendar, FolderSync, Plus, ShoppingCart, Store, Trash2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -105,12 +104,17 @@ export default function Edit() {
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Daftar Belanja" />
-      <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-        <Card>
-          <CardHeader>
+      <div className="flex flex-1 flex-col gap-6 p-4 md:p-8 max-w-6xl mx-auto w-full">
+
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-black tracking-tight dark:text-white">Edit Daftar Belanja</h1>
+          <p className="text-slate-500 text-sm">Inputkan daftar belanja yang akan diperbarui.</p>
+        </div>
+        <Card className="border-none shadow-sm bg-white/50 dark:bg-slate-900/50 backdrop-blur">
+          {/* <CardHeader>
             <CardTitle>Edit Daftar Belanja</CardTitle>
-          </CardHeader>
-          <CardContent>
+          </CardHeader> */}
+          <CardContent className="p-6">
             <Form {...ShoppingListController.update.form(list.id)}
               options={{
                 preserveScroll: true,
@@ -143,14 +147,19 @@ export default function Edit() {
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="store">Pilih Toko</Label>
+                        <Label
+                          htmlFor="store"
+                          className="flex items-center gap-2 font-bold text-slate-600 dark:text-slate-400">
+                          <Store className="w-4 h-4" />Pilih Toko
+                        </Label>
                         <Select name='store_id' defaultValue={list.store_id.toString()} required>
-                          <SelectTrigger className="w-full">
+                          <SelectTrigger className="w-full bg-white dark:bg-slate-800 border-slate-200">
                             <SelectValue placeholder="Pilih Toko" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectGroup>
                               <SelectLabel>Daftar Toko Kamu</SelectLabel>
+                              {/* 3. Looping data stores dari database */}
                               {stores.map((store: any) => (
                                 <SelectItem key={store.id} value={store.id.toString()}>
                                   <span className="capitalize">{store.name}</span>
@@ -162,23 +171,31 @@ export default function Edit() {
                         <InputError message={errors.store_id} />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="title">Judul Belanja</Label>
+                        <Label
+                          htmlFor="title"
+                          className="flex items-center gap-2 font-bold text-slate-600 dark:text-slate-400">
+                          <ShoppingCart className="w-4 h-4" />Judul Belanja
+                        </Label>
                         <Input
                           id="title"
                           name='title'
                           defaultValue={list.title}
-                          className="mt-1 block w-full"
-                          placeholder='Contoh: Belanja Bulanan MeowMeal.id'
+                          className="bg-white dark:bg-slate-800 border-slate-200 w-full"
+                          placeholder='Contoh: Belanja Bulanan'
                           required
                         />
                         <InputError message={errors.title} />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="tanggal">Tanggal</Label>
+                        <Label
+                          htmlFor="tanggal"
+                          className="flex items-center gap-2 font-bold text-slate-600 dark:text-slate-400">
+                          <Calendar className="w-4 h-4" />Tanggal
+                        </Label>
                         <Input
                           id="tanggal"
-                          type="datetime-local"
-                          name="shopping_date"
+                          type='datetime-local'
+                          name='shopping_date'
                           // Perbaikan format di sini:
                           defaultValue={
                             list.shopping_date
@@ -187,52 +204,55 @@ export default function Edit() {
                                 .slice(0, 16)
                               : ''
                           }
-                          className="mt-1 block w-full"
+                          className="bg-white dark:bg-slate-800 border-slate-200 block w-full"
                           required
                         />
                         <InputError message={errors.shopping_date} />
                       </div>
                     </div>
 
-                    <hr />
-
-                    <div className="space-y-6">
-                      <div className="flex justify-between items-center border-b pb-2">
-                        <h3 className="font-bold text-lg text-slate-800 dark:text-slate-50">Daftar Barang</h3>
-                        <Button type="button" variant="outline" size="sm" onClick={addRow} className='cursor-pointer border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-800'>
-                          <Plus className="w-4 h-4" />Tambah
+                    {/* AREA DAFTAR BARANG */}
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-black text-lg text-slate-800 dark:text-slate-50 uppercase tracking-tight">Daftar Barang</h3>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={addRow}
+                          className='cursor-pointer border-orange-500 text-orange-600 hover:bg-orange-50 rounded-full font-bold'
+                        >
+                          <Plus className="w-4 h-4" />Tambah Barang
                         </Button>
                       </div>
 
-                      <div className="space-y-6 md:space-y-2">
+                      <div className="space-y-3">
                         {data.items.map((item: any, index: number) => (
-                          <div key={index} className="relative transition-all border-b md:border-b-0 pb-4 md:pb-0">
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start md:items-center">
+                          <div key={index} className="group relative p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:border-orange-200">
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
 
                               {/* 1. Nama Produk */}
                               <div className="md:col-span-6">
-                                <Label className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 md:hidden">Nama Barang</Label>
+                                <Label className="text-[10px] uppercase font-black text-slate-400 mb-1 block">Nama Barang</Label>
                                 <Input
                                   list="product-suggestions"
-                                  className={item.is_bought ? "text-slate-400 dark:text-slate-600 bg-white md:mt-0 dark:bg-slate-800 line-through" : "bg-white md:mt-0 dark:bg-slate-800"}
+                                  className={item.is_bought ? "bg-slate-50 dark:bg-slate-800 border-none focus-visible:ring-1 focus-visible:ring-orange-500 font-medium line-through" : "bg-slate-50 dark:bg-slate-800 border-none focus-visible:ring-1 focus-visible:ring-orange-500 font-medium"}
                                   name={`items.${index}.product_name`}
                                   defaultValue={item.product_name}
                                   onChange={(e) => updateItem(index, 'product_name', e.target.value)}
-                                  placeholder="Nama barang..."
+                                  placeholder="Ketik nama barang..."
                                   required
                                   autoComplete="off"
                                 />
                               </div>
 
-                              {/* 2. Wrapper Qty dan Harga */}
-                              <div className="md:col-span-6 grid grid-cols-12 gap-3 items-center">
-
-                                {/* Quantity */}
-                                <div className="col-span-4 md:col-span-3">
-                                  <Label className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 md:hidden">Qty</Label>
+                              {/* 2. Wrapper Qty, Harga, dan Tombol Hapus */}
+                              <div className="md:col-span-5 grid grid-cols-12 gap-3 items-center">
+                                <div className="col-span-4">
+                                  <Label className="text-[10px] uppercase font-black text-slate-400 mb-1 block">Qty</Label>
                                   <Input
                                     type="number"
-                                    className={item.is_bought ? "text-slate-400 dark:text-slate-600 bg-white md:mt-0 dark:bg-slate-800 line-through text-center" : "bg-white md:mt-0 dark:bg-slate-800 text-center"}
+                                    className={item.is_bought ? "bg-slate-50 dark:bg-slate-800 border-none text-center font-bold line-through" : "bg-slate-50 dark:bg-slate-800 border-none text-center font-bold"}
                                     name={`items.${index}.quantity`}
                                     defaultValue={item.quantity}
                                     onChange={(e) => updateItem(index, 'quantity', e.target.value)}
@@ -240,14 +260,14 @@ export default function Edit() {
                                     required
                                   />
                                 </div>
-
                                 {/* Harga */}
-                                <div className="col-span-8 md:col-span-7">
-                                  <Label className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 md:hidden">Harga</Label>
-                                  <div className="relative mt-1 md:mt-0">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs dark:text-slate-300">Rp</span>
+                                <div className="col-span-8">
+                                  <Label className="text-[10px] uppercase font-black text-slate-400 mb-1 block">Harga Satuan</Label>
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">Rp</span>
                                     <Input
-                                      className={item.is_bought ? "pl-8 font-medium text-slate-400 dark:text-slate-600 bg-white md:mt-0 dark:bg-slate-800 line-through" : "pl-8 font-medium bg-white md:mt-0 dark:bg-slate-800"}
+                                      type="text"
+                                      className={item.is_bought ? "pl-8 bg-slate-50 dark:bg-slate-800 border-none font-black text-orange-600 dark:text-orange-400 line-through" : "pl-8 bg-slate-50 dark:bg-slate-800 border-none font-black text-orange-600 dark:text-orange-400"}
                                       name={`items.${index}.price`}
                                       value={formatRupiah(item.price)}
                                       onChange={(e) => updateItem(index, 'price', e.target.value)}
@@ -256,76 +276,75 @@ export default function Edit() {
                                     />
                                   </div>
                                 </div>
+                              </div>
 
-                                {/* 3. Tombol Hapus */}
-                                <div className="absolute -top-3 -right-3 md:relative md:top-0 md:right-0 md:col-span-2 flex justify-end">
-                                  {data.items.length > 1 && (
-                                    <>
-                                      {item.is_bought ?
-                                        <AlertDialog>
-                                          <AlertDialogTrigger asChild>
-                                            <Button
-                                              type="button"
-                                              variant="ghost"
-                                              size="icon"
-                                              className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 cursor-pointer transition-colors rounded-full"
-                                            >
-                                              <Trash2 className="w-4 h-4" />
-                                            </Button>
-                                          </AlertDialogTrigger>
+                              {/* Tombol Hapus */}
+                              <div className="md:col-span-1 flex justify-end">
+                                {data.items.length > 1 && (
+                                  <>
+                                    {item.is_bought ?
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 cursor-pointer transition-colors rounded-full"
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </Button>
+                                        </AlertDialogTrigger>
 
-                                          <AlertDialogContent className="w-[90vw] max-w-[400px] rounded-[2rem] p-6 gap-6 sm:w-full">
-                                            <AlertDialogHeader>
-                                              <div className="flex flex-col items-center gap-4 text-center">
-                                                {/* Icon Warning yang Cantik */}
-                                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-900/30">
-                                                  <AlertTriangle className="h-6 w-6 text-rose-600" />
-                                                </div>
-
-                                                <div className="space-y-2">
-                                                  <AlertDialogTitle className="text-xl font-bold tracking-tight">
-                                                    Hapus Barang Belanjaan?
-                                                  </AlertDialogTitle>
-                                                  <AlertDialogDescription className="text-sm text-slate-500 dark:text-slate-400">
-                                                    Barang <span className="font-bold text-slate-900 dark:text-slate-200 capitalize">"{item.product_name}"</span> sudah diceklis/dibeli. Yakin ingin menghapusnya?
-                                                  </AlertDialogDescription>
-                                                </div>
+                                        <AlertDialogContent className="w-[90vw] max-w-[400px] rounded-[2rem] p-6 gap-6 sm:w-full">
+                                          <AlertDialogHeader>
+                                            <div className="flex flex-col items-center gap-4 text-center">
+                                              {/* Icon Warning yang Cantik */}
+                                              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-900/30">
+                                                <AlertTriangle className="h-6 w-6 text-rose-600" />
                                               </div>
-                                            </AlertDialogHeader>
 
-                                            <AlertDialogFooter className="flex-col sm:flex-row gap-2 pt-4">
-                                              <AlertDialogCancel className="w-full sm:w-auto rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-50 cursor-pointer">
-                                                Batal
-                                              </AlertDialogCancel>
+                                              <div className="space-y-2">
+                                                <AlertDialogTitle className="text-xl font-bold tracking-tight">
+                                                  Hapus Barang Belanjaan?
+                                                </AlertDialogTitle>
+                                                <AlertDialogDescription className="text-sm text-slate-500 dark:text-slate-400">
+                                                  Barang <span className="font-bold text-slate-900 dark:text-slate-200 capitalize">"{item.product_name}"</span> sudah diceklis/dibeli. Yakin ingin menghapusnya?
+                                                </AlertDialogDescription>
+                                              </div>
+                                            </div>
+                                          </AlertDialogHeader>
 
-                                              <AlertDialogAction
-                                                asChild
-                                                className="w-full sm:w-auto bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-lg shadow-rose-200 dark:shadow-none border-none cursor-pointer"
+                                          <AlertDialogFooter className="flex-col sm:flex-row gap-2 pt-4">
+                                            <AlertDialogCancel className="w-full sm:w-auto rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-50 cursor-pointer">
+                                              Batal
+                                            </AlertDialogCancel>
+
+                                            <AlertDialogAction
+                                              asChild
+                                              className="w-full sm:w-auto bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-lg shadow-rose-200 dark:shadow-none border-none cursor-pointer"
+                                            >
+                                              <Button
+                                                type="button"
+                                                onClick={() => removeRow(index)}
                                               >
-                                                <Button
-                                                  type="button"
-                                                  onClick={() => removeRow(index)}
-                                                >
-                                                  Ya, Hapus
-                                                </Button>
-                                              </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                          </AlertDialogContent>
-                                        </AlertDialog> :
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon"
-                                          onClick={() => removeRow(index)}
-                                          className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 cursor-pointer transition-colors rounded-full"
-                                        >
-                                          <Trash2 className="w-4 h-4" />
-                                        </Button>
-                                      }
-                                    </>
-                                  )}
-                                </div>
-
+                                                Ya, Hapus
+                                              </Button>
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog> :
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => removeRow(index)}
+                                        className="text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors cursor-pointer"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    }
+                                  </>
+                                )}
                               </div>
                             </div>
 
@@ -348,33 +367,23 @@ export default function Edit() {
                       </datalist>
                     </div>
 
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 pt-4 border-t">
-                      {/* TOTAL: Tampil rata kiri di desktop, rata tengah di HP */}
-                      <div className="text-xl md:text-2xl font-bold tracking-tight text-green-600 w-full md:w-auto text-center md:text-left">
-                        Total : Rp {totalEstimasi ? formatRupiah(totalEstimasi) : '-'}
+                    {/* FOOTER TOTAL & UPDATE */}
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-6 p-6 bg-orange-500 rounded-2xl text-white shadow-lg shadow-orange-200 dark:shadow-none">
+                      <div className="flex flex-col items-center md:items-start">
+                        <span className="text-orange-100 text-xs font-bold uppercase tracking-wider">Total Estimasi Belanja</span>
+                        <span className="text-3xl font-black italic">
+                          Rp {totalEstimasi ? formatRupiah(totalEstimasi) : '0'}
+                        </span>
                       </div>
 
-                      <div className="flex flex-col-reverse sm:flex-row gap-2 items-center w-full md:w-auto">
-                        {/* Tombol Kembali - Di HP jadi lebar penuh / Full Width */}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          className="cursor-pointer w-full sm:w-auto order-2 sm:order-1"
-                          onClick={() => router.visit(shopping.active().url)}
-                        >
-                          Kembali
-                        </Button>
-
-                        {/* Tombol Simpan - Di HP jadi lebar penuh / Full Width */}
-                        <Button
-                          type="submit"
-                          disabled={processing || recentlySuccessful}
-                          className="bg-green-600 hover:bg-green-700 cursor-pointer w-full sm:w-auto order-1 sm:order-2 py-6 md:py-2 text-lg md:text-sm"
-                        >
-                          <Save className="w-4 h-4" />
-                          Perbarui
-                        </Button>
-                      </div>
+                      <Button
+                        type="submit"
+                        disabled={processing || recentlySuccessful}
+                        className="bg-white text-orange-600 hover:bg-slate-100 cursor-pointer w-full md:w-auto px-10 py-6 rounded-xl font-black text-lg shadow-xl transition-transform hover:scale-105 active:scale-95"
+                      >
+                        <FolderSync className="w-5 h-5" />
+                        PERBARUI
+                      </Button>
                     </div>
                   </>
                 )
