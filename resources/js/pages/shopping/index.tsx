@@ -2,7 +2,7 @@
 import ShoppingListController from '@/actions/App/Http/Controllers/ShoppingListController';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -49,6 +49,33 @@ export default function Index({ stores, products }: { stores: any[], products: a
     items: [{ product_id: null, product_name: '', quantity: 1, price: 0 }],
   });
 
+  // --- TAMBAHKAN LOGIC INI ---
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const productId = urlParams.get('product_id');
+
+    if (productId && products.length > 0) {
+      const foundProduct = products.find((p: any) => p.id.toString() === productId.toString());
+
+      if (foundProduct) {
+        setData((prev) => ({
+          ...prev,
+          title: `Restok ${foundProduct.name}`,
+          // Pastikan dikonversi ke string agar cocok dengan value SelectItem
+          store_id: foundProduct.store_id ? foundProduct.store_id.toString() : prev.store_id,
+          items: [{
+            product_id: foundProduct.id,
+            product_name: foundProduct.name,
+            quantity: 1,
+            price: foundProduct.last_price || 0
+          }]
+        }));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products]);
+  // ---------------------------
+
   // Handler Tambah Baris
   const addRow = () => {
     setData('items', [...data.items, { product_id: null, product_name: '', quantity: 1, price: 0 }]);
@@ -66,27 +93,33 @@ export default function Index({ stores, products }: { stores: any[], products: a
     const newItems = [...data.items] as any;
 
     if (field === 'price') {
-      // Pastikan ini menjadi angka: misal input "12.500" -> 12500
       newItems[index][field] = parseRupiah(value);
     } else if (field === 'quantity') {
-      newItems[index][field] = parseInt(value) || 0;
+      newItems[index][field] = parseInt(value) || '';
     } else {
       newItems[index][field] = value;
     }
 
-    // FITUR AUTO-FILL HARGA
+    // FITUR AUTO-FILL
     if (field === 'product_name') {
-      // Cari produk yang namanya cocok (case-insensitive)
       const foundProduct = products.find(
         (p: any) => p.name.toLowerCase() === value.toLowerCase()
       );
 
       if (foundProduct) {
-        // Jika ketemu, isi harga otomatis dan simpan ID produknya
         newItems[index]['price'] = foundProduct.last_price || 0;
         newItems[index]['product_id'] = foundProduct.id;
+
+        // PERBAIKAN: Set store_id pada level form (data.store_id)
+        if (foundProduct.store_id) {
+          setData((prevData) => ({
+            ...prevData,
+            items: newItems,
+            store_id: foundProduct.store_id.toString() // Auto-select toko
+          }));
+          return; // Return agar tidak menjalankan setData di bawah lagi
+        }
       } else {
-        // Jika tidak ketemu (produk baru), kosongkan product_id
         newItems[index]['product_id'] = null;
       }
     }
@@ -99,7 +132,7 @@ export default function Index({ stores, products }: { stores: any[], products: a
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Buat Daftar Belanja" />
-      <div className="flex flex-1 flex-col gap-6 p-4 md:p-8 max-w-6xl mx-auto w-full">
+      <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
 
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-black tracking-tight dark:text-white">Buat Daftar Belanja</h1>
@@ -146,14 +179,21 @@ export default function Index({ stores, products }: { stores: any[], products: a
                           className="flex items-center gap-2 font-bold text-slate-600 dark:text-slate-400">
                           <Store className="w-4 h-4" />Pilih Toko
                         </Label>
-                        <Select name='store_id' required>
+
+                        {/* PERBAIKAN: Tambahkan value dan onValueChange */}
+                        <Select
+                          key={data.store_id}
+                          name='store_id'
+                          required
+                          value={data.store_id.toString()}
+                          onValueChange={(val) => setData('store_id', val)}
+                        >
                           <SelectTrigger className="w-full bg-white dark:bg-slate-800 border-slate-200">
                             <SelectValue placeholder="Pilih Toko" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectGroup>
                               <SelectLabel>Daftar Toko Kamu</SelectLabel>
-                              {/* 3. Looping data stores dari database */}
                               {stores.map((store: any) => (
                                 <SelectItem key={store.id} value={store.id.toString()}>
                                   <span className="capitalize">{store.name}</span>
@@ -173,6 +213,8 @@ export default function Index({ stores, products }: { stores: any[], products: a
                         <Input
                           id="title"
                           name='title'
+                          value={data.title}
+                          onChange={(e) => setData('title', e.target.value)}
                           className="bg-white dark:bg-slate-800 border-slate-200 w-full"
                           placeholder='Contoh: Belanja Bulanan'
                           required

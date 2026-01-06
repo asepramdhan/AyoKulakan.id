@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import StoreController from '@/actions/App/Http/Controllers/StoreController';
 import InputError from '@/components/input-error';
-import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
@@ -9,105 +8,143 @@ import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
-import stores from '@/routes/stores';
+import storesRoute from '@/routes/stores';
 import { type BreadcrumbItem } from '@/types';
-import { Transition } from '@headlessui/react';
 import { Form, Head, usePage } from '@inertiajs/react';
-import { CheckCircle2Icon, Plus, StoreIcon, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Globe, ShoppingBag, ExternalLink } from 'lucide-react';
+import { toast } from 'sonner';
+import { useEffect } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
-    title: 'Kelola Toko',
-    href: stores.index().url,
+    title: 'Kelola Seller Online',
+    href: storesRoute.index().url,
   },
 ];
 
-export default function index({ stores }: { stores: any[] }) {
+export default function Index({ stores }: { stores: any[] }) {
   const { flash } = usePage().props as any;
+
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
-      <Head title="Kelola Toko" />
+      <Head title="Kelola Seller Online" />
       <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <StoreIcon className="w-6 h-6 text-orange-500" /> Manajemen Toko
-        </h2>
 
-        <div className="grid gap-6 md:grid-cols-3">
-          {/* Form Tambah Toko */}
-          <Card className="md:col-span-1">
+        {/* Header Section */}
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-black tracking-tight dark:text-white flex items-center gap-2">
+            <ShoppingBag className="w-6 h-6 text-indigo-500" /> Daftar Seller Online
+          </h1>
+          <p className="text-slate-500 text-sm">Kelola daftar toko marketplace (Shopee, Lazada, dll) tempat kamu restok barang.</p>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-12 items-start">
+
+          {/* Form Tambah Seller (Kiri) */}
+          <Card className="md:col-span-4 border-none shadow-sm bg-white/50 dark:bg-slate-900/50 backdrop-blur">
             <CardHeader>
-              <CardTitle className="text-sm">Tambah Toko Baru</CardTitle>
+              <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-400">Input Seller Baru</CardTitle>
             </CardHeader>
             <CardContent>
               <Form {...StoreController.store()} className="space-y-4">
-                {({ processing, recentlySuccessful, errors }) => (
-                  <>
-                    <Transition
-                      show={recentlySuccessful}
-                      enter="transition ease-in-out"
-                      enterFrom="opacity-0"
-                      leave="transition ease-in-out"
-                      leaveTo="opacity-0"
-                    >
-                      <Alert className="mb-2 text-green-600 bg-green-50 dark:bg-green-800 dark:text-green-200">
-                        <CheckCircle2Icon />
-                        <AlertTitle>
-                          {flash.message || 'Tersimpan'}
-                        </AlertTitle>
-                      </Alert>
-                      {/* <p className="text-sm text-neutral-600">
-                        Terakhir disimpan {moment(recentlyCreated).fromNow()}
-                      </p> */}
-                    </Transition>
-                    <div className="space-y-2">
-                      <Input
-                        name='name'
-                        placeholder="Nama Toko (ex: petshop abc)"
-                        required
-                      />
-                      <InputError message={errors.name} />
-                    </div>
-                    <Button disabled={processing} className="w-full bg-orange-500 hover:bg-orange-600 cursor-pointer">
-                      {processing ? (
-                        <>
+                {({ processing, recentlySuccessful, errors, reset }) => {
+
+                  // Pola Toast Promise yang benar sesuai contoh Anda
+                  // eslint-disable-next-line react-hooks/rules-of-hooks
+                  useEffect(() => {
+                    if (recentlySuccessful) {
+                      toast.promise<{ message: string }>(
+                        () =>
+                          new Promise((resolve) =>
+                            // Simulasi delay sedikit agar user bisa melihat status "Menyimpan..."
+                            setTimeout(() => resolve({ message: flash.message || 'Seller berhasil disimpan!' }), 700)
+                          ),
+                        {
+                          loading: "Menyimpan seller...",
+                          success: (data) => {
+                            reset('name'); // Reset input nama setelah berhasil
+                            return `${data.message}`;
+                          },
+                          error: "Terjadi kesalahan sistem saat menyimpan data.",
+                        }
+                      );
+                    }
+                    // eslint-disable-next-line react-hooks/exhaustive-deps
+                  }, [recentlySuccessful]);
+
+                  return (
+                    <>
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <Input
+                            name='name'
+                            className="pl-9 bg-white dark:bg-slate-800 border-slate-200 focus-visible:ring-indigo-500"
+                            placeholder="Contoh: Official Store Shopee"
+                            required
+                            autoFocus
+                          />
+                        </div>
+                        <InputError message={errors.name} />
+                      </div>
+
+                      <Button
+                        disabled={processing}
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 cursor-pointer font-bold rounded-xl shadow-lg shadow-indigo-100 dark:shadow-none transition-all active:scale-95"
+                      >
+                        {processing ? (
                           <Spinner className="h-4 w-4 animate-spin" />
-                          Menyimpan...
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="w-4 h-4" />
-                          Simpan
-                        </>
-                      )}
-                    </Button>
-                  </>
-                )}
+                        ) : (
+                          <>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Simpan Seller
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  );
+                }}
               </Form>
             </CardContent>
           </Card>
 
-          {/* Tabel Daftar Toko */}
-          <Card className="md:col-span-2">
-            <CardContent className="pt-6">
+          {/* Tabel Daftar Seller (Kanan) */}
+          <Card className="md:col-span-8 border-none shadow-sm bg-white/50 dark:bg-slate-900/50 backdrop-blur">
+            <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Nama Toko</TableHead>
-                    <TableHead className="text-right">Aksi</TableHead>
+                  <TableRow className="hover:bg-transparent border-slate-100 dark:border-slate-800">
+                    <TableHead className="w-[50px] pl-6"></TableHead>
+                    <TableHead className="font-bold text-slate-700 dark:text-slate-300">Nama Seller / Toko</TableHead>
+                    <TableHead className="text-right pr-6">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {stores.map((store: any) => (
-                    <TableRow key={store.id}>
-                      <TableCell className="font-medium capitalize">{store.name}</TableCell>
-                      <TableCell className="text-right">
+                    <TableRow key={store.id} className="group border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                      <TableCell className="pl-6">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700">
+                          <ExternalLink className="w-3 h-3 text-slate-400" />
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-bold capitalize text-slate-700 dark:text-slate-200 leading-none">
+                            {store.name}
+                          </span>
+                          <span className="text-[10px] text-slate-400 uppercase font-medium mt-1">Online Marketplace</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right pr-6">
                         <Form {...StoreController.destroy.form(store.id)}>
                           <Button
                             type="submit"
                             variant="ghost"
                             size="icon"
-                            className="text-red-500 cursor-pointer"
-                            onClick={(e) => { if (!confirm('Anda yakin ingin menghapus toko ini?')) { e.preventDefault(); } }}
+                            className="text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                            onClick={(e) => {
+                              if (!confirm('Hapus seller ini?')) { e.preventDefault(); }
+                            }}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -115,23 +152,22 @@ export default function index({ stores }: { stores: any[] }) {
                       </TableCell>
                     </TableRow>
                   ))}
-                </TableBody>
-                {stores.length === 0 && (
-                  <TableBody>
+
+                  {stores.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={2} className="h-24 text-center">
+                      <TableCell colSpan={3} className="h-64 text-center">
                         <Empty>
                           <EmptyHeader>
                             <EmptyMedia variant="icon">
-                              <StoreIcon className="w-6 h-6 text-orange-500" />
+                              <ShoppingBag className="w-10 h-10 text-slate-200" />
                             </EmptyMedia>
-                            <EmptyTitle className="text-slate-400">Belum ada toko, silahkan tambahkan.</EmptyTitle>
+                            <EmptyTitle className="text-slate-400 font-medium">Belum ada seller yang terdaftar</EmptyTitle>
                           </EmptyHeader>
                         </Empty>
                       </TableCell>
                     </TableRow>
-                  </TableBody>
-                )}
+                  )}
+                </TableBody>
               </Table>
             </CardContent>
           </Card>

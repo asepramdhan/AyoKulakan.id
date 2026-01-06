@@ -15,25 +15,20 @@ export default ({ children, breadcrumbs, ...props }: AppLayoutProps) => (
             richColors
             position="top-center"
             toastOptions={{
-                className: "group", // Tetap bawa class group
+                className: "group",
                 style: {
-                    // Kita override variabel warna sonner di sini
-                    // Ini akan membuat toast sukses berwarna Orange khas ayokulakan
+                    // --- WARNA LOADING (Vibrant Orange dengan Glass Effect) ---
+                    '--normal-bg': 'rgba(234, 88, 12, 83%)', // Orange-600 dengan sedikit transparansi
+                    '--normal-text': '#ffffff',
+                    // '--normal-border': '#EA580C',
+                    '--normal-border': 'rgba(234, 88, 12, 85%)',
+
+                    // --- WARNA SUKSES (Solid & Clean) ---
                     '--success-bg': '#EA580C',
                     '--success-text': '#ffffff',
                     '--success-border': '#EA580C',
 
-                    // Emerald Green yang modern dan bersih
-                    // '--success-bg': '#10b981',
-                    // '--success-text': '#ffffff',
-                    // '--success-border': '#10b981',
-
-                    // Atau Forest Green (lebih gelap, lebih profesional)
-                    // '--success-bg': '#059669',
-                    // '--success-text': '#ffffff',
-                    // '--success-border': '#059669',
-
-                    // Warna untuk Error
+                    // --- WARNA ERROR ---
                     '--error-bg': '#ef4444',
                     '--error-text': '#ffffff',
                     '--error-border': '#ef4444',
@@ -41,6 +36,11 @@ export default ({ children, breadcrumbs, ...props }: AppLayoutProps) => (
                     display: 'flex',
                     justifyContent: 'center',
                     textAlign: 'center',
+                    backdropFilter: 'blur(8px)', // Membuat efek blur di belakang toast
+                    boxShadow: '0 20px 25px -5px rgba(234, 88, 12, 20%)', // Shadow berwarna orange lembut
+                    borderRadius: '12px',
+                    padding: '12px 24px',
+                    fontWeight: '600',
                 } as React.CSSProperties,
             }}
         />

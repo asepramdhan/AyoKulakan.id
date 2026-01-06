@@ -62,7 +62,7 @@ export default function ActiveLists({ lists }: { lists: any[] }) {
     <>
       <AppLayout breadcrumbs={breadcrumbs}>
         <Head title='Daftar Belanja Aktif' />
-        <div className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6">
+        <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
 
           {/* Header & Grand Total */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

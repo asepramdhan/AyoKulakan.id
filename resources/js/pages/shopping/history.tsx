@@ -83,7 +83,7 @@ export default function History({ lists }: { lists: any }) {
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title='Riwayat Belanja' />
-      <div className="flex h-full flex-1 flex-col gap-4 p-4 pb-20">
+      <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <HistoryIcon className="w-6 h-6 text-slate-500" />

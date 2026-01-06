@@ -119,7 +119,7 @@ export default function MarginAnalysis({ analysisData }: { analysisData: any[] }
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Simulator Analisa Margin" />
-      <div className="flex h-full flex-1 flex-col gap-4 p-4">
+      <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
 
         {/* Bagian Input Simulator */}
         <Card className="border-none bg-gradient-to-br from-slate-50 to-blue-50 shadow-sm dark:from-slate-900/50 dark:to-blue-950/20">
