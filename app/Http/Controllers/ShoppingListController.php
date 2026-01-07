@@ -269,7 +269,7 @@ class ShoppingListController extends Controller
             ]);
         });
 
-        return back();
+        return to_route('shopping.active');
     }
 
     /**

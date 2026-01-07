@@ -1,10 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import ProductController from '@/actions/App/Http/Controllers/ProductController';
-import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,27 +11,18 @@ import AppLayout from '@/layouts/app-layout';
 import products from '@/routes/products';
 import shopping from '@/routes/shopping';
 import { type BreadcrumbItem } from '@/types';
-import { Transition } from '@headlessui/react';
-import { Form, Head, Link, useForm, usePage } from '@inertiajs/react';
-import { CheckCircle2Icon, Info, Package2, PackageSearch, Pencil, PlusCircle, Search, Store, Trash2, X, AlertTriangle, ShoppingCart, PackagePlus } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { Info, Package2, PackageSearch, Pencil, PlusCircle, Search, Store, Trash2, X, AlertTriangle, PackagePlus } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Master Produk', href: products.index().url }];
 
 export default function Index({ products, stores, filters }: any) {
-  const { flash } = usePage<any>().props as any;
-  const [showSuccess, setShowSuccess] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [isOpnameOpen, setIsOpnameOpen] = useState(false);
-
-  useEffect(() => {
-    if (flash.message) {
-      setShowSuccess(true);
-      const timer = setTimeout(() => setShowSuccess(false), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [flash.message]);
 
   const filteredProducts = useMemo(() => {
     return (products || []).filter((product: any) =>
@@ -48,6 +37,61 @@ export default function Index({ products, stores, filters }: any) {
     opnameForm.setData({ actual_stock: product.stock, reason: 'Stock Opname Rutin' });
     setIsOpnameOpen(true);
   };
+
+  const updateOpname = () =>
+    setTimeout(() => {
+      toast.promise<{ name: string }>(
+        new Promise((resolve) => {
+          opnameForm.post(ProductController.adjustStock(selectedProduct?.id || 0).url,
+            { preserveScroll: true, }
+          );
+          setIsOpnameOpen(false);
+          // Beri jeda sedikit agar user melihat status "loading" di toast
+          setTimeout(() => {
+            resolve({ name: "Berhasil diperbarui stok!" });
+          }, 600);
+        }),
+        {
+          loading: 'Memperbarui stok...',
+          success: (data: any) => { return `${data.name}`; },
+          error: 'Gagal memperbarui stok.',
+        }
+      );
+    }, 400);
+
+  const restock = () =>
+    setTimeout(() => {
+      toast.promise<{ name: string }>(
+        new Promise((resolve) => {
+          // Beri jeda sedikit agar user melihat status "loading" di toast
+          setTimeout(() => {
+            resolve({ name: "Daftar restock berhasil diinput!" });
+          }, 1000);
+        }),
+        {
+          loading: 'Memproses daftar restock...',
+          success: (data: any) => { return `${data.name}`; },
+          error: 'Gagal memproses daftar restock.',
+        }
+      );
+    }, 400);
+
+  const deleteProduct = () =>
+    setTimeout(() => {
+      toast.promise<{ name: string }>(
+        new Promise((resolve) => {
+          // Beri jeda sedikit agar user melihat status "loading" di toast
+          setTimeout(() => {
+            resolve({ name: "Berhasil dihapus!" });
+          }, 600);
+        }),
+        {
+          loading: 'Menghapus...',
+          success: (data: any) => { return `${data.name}`; },
+          error: 'Gagal menghapus.',
+        }
+      );
+    }, 400);
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
@@ -70,7 +114,7 @@ export default function Index({ products, stores, filters }: any) {
           </div>
           <Link href={shopping.index().url}>
             <Button className="bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-600/20 border-none font-bold rounded-xl h-11 px-6 active:scale-95 transition-all">
-              <PlusCircle className="w-4 h-4 mr-2" />
+              <PlusCircle className="w-4 h-4" />
               Tambah / Restok
             </Button>
           </Link>
@@ -117,7 +161,7 @@ export default function Index({ products, stores, filters }: any) {
                 asChild
               >
                 <Link href={ProductController.index().url + `?store_id=${s.id}`}>
-                  <Store className="w-3 h-3 mr-2 opacity-70" />
+                  <Store className="w-3 h-3 opacity-70" />
                   {s.name}
                 </Link>
               </Button>
@@ -128,23 +172,6 @@ export default function Index({ products, stores, filters }: any) {
         {/* --- MAIN TABLE CARD --- */}
         <Card className="border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/40 dark:shadow-none bg-white dark:bg-slate-900 overflow-hidden rounded-3xl">
           <CardContent className="p-0">
-            <Transition
-              show={showSuccess}
-              enter="transition-all duration-500"
-              enterFrom="opacity-0 -translate-y-4"
-              enterTo="opacity-100 translate-y-0"
-              leave="transition-all duration-300"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
-            >
-              <div className="p-4">
-                <Alert className="border-none bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-2xl">
-                  <CheckCircle2Icon className="h-4 w-4" />
-                  <AlertTitle className="font-bold">{flash.message || 'Berhasil!'}</AlertTitle>
-                </Alert>
-              </div>
-            </Transition>
-
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader className="bg-slate-50/50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800">
@@ -210,6 +237,7 @@ export default function Index({ products, stores, filters }: any) {
                                 size="sm"
                                 title="Buat Daftar Belanja/Restok"
                                 className="h-9 w-auto border border-emerald-100 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200 dark:border-emerald-900/30 dark:hover:bg-emerald-900/20 gap-2 px-3 rounded-xl transition-all"
+                                onClick={restock}
                               >
                                 <PackagePlus className="w-4 h-4" />
                                 <span className="hidden md:inline font-bold">Restok</span>
@@ -239,22 +267,60 @@ export default function Index({ products, stores, filters }: any) {
                               </Button>
                             </Link>
 
-                            {/* Tombol Hapus */}
-                            <Form {...ProductController.destroy.form(product.id)}>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                title="Hapus Produk"
-                                className="h-9 w-9 text-slate-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
-                                onClick={(e) => {
-                                  if (!confirm('Hapus produk dari katalog?')) {
-                                    e.preventDefault();
-                                  }
-                                }}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </Form>
+                            {/* Tombol hapus */}
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title="Hapus Produk"
+                                  className="h-9 w-9 text-slate-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+
+                              <AlertDialogContent className="w-[90vw] max-w-[400px] rounded-[2rem] p-6 gap-6 sm:w-full">
+                                <AlertDialogHeader>
+                                  <div className="flex flex-col items-center gap-4 text-center">
+                                    {/* Icon Warning yang Cantik */}
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-900/30">
+                                      <AlertTriangle className="h-6 w-6 text-rose-600" />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                      <AlertDialogTitle className="text-xl font-bold tracking-tight">
+                                        Hapus Produk
+                                      </AlertDialogTitle>
+                                      <AlertDialogDescription className="text-sm text-slate-500 dark:text-slate-400">
+                                        Apakah kamu yakin ingin menghapus produk <span className="font-bold text-slate-900 dark:text-slate-200">"{product.name}"</span>?
+                                      </AlertDialogDescription>
+                                    </div>
+                                  </div>
+                                </AlertDialogHeader>
+
+                                <AlertDialogFooter className="flex-col sm:flex-row gap-2 pt-4">
+                                  <AlertDialogCancel className="w-full sm:w-auto rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-50 cursor-pointer">
+                                    Batal
+                                  </AlertDialogCancel>
+
+                                  <AlertDialogAction
+                                    asChild
+                                    className="w-full sm:w-auto bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-lg shadow-rose-200 dark:shadow-none border-none cursor-pointer"
+                                  >
+                                    <Link
+                                      href={ProductController.destroy(product.id)}
+                                      method="delete"
+                                      as="button"
+                                      preserveScroll={true}
+                                      onClick={deleteProduct}
+                                    >
+                                      Ya, Hapus
+                                    </Link>
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -342,18 +408,10 @@ export default function Index({ products, stores, filters }: any) {
             </Button>
             <Button
               className='flex-1 bg-orange-600 hover:bg-orange-700 text-white font-black rounded-xl h-14 shadow-lg shadow-orange-600/20 transition-all active:scale-95'
-              disabled={opnameForm.processing}
-              onClick={() => {
-                opnameForm.post(ProductController.adjustStock(selectedProduct?.id || 0).url, {
-                  preserveScroll: true,
-                  onSuccess: () => {
-                    setIsOpnameOpen(false);
-                    opnameForm.reset();
-                  },
-                });
-              }}
+              disabled={!opnameForm.isDirty}
+              onClick={updateOpname}
             >
-              {opnameForm.processing ? 'Menyimpan...' : 'Update Stok'}
+              Update Stok
             </Button>
           </DialogFooter>
         </DialogContent>

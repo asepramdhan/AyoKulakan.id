@@ -5,9 +5,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
 import shopping from '@/routes/shopping';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Clock, ChevronRight, ShoppingCart, Pencil, Wallet, Share2, Printer, Trash2, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Daftar Belanja Aktif', href: shopping.active().url }];
 const today = new Date().toISOString().split('T')[0];
@@ -57,6 +57,21 @@ const shareToWhatsApp = (list: any) => {
 
 export default function ActiveLists({ lists }: { lists: any[] }) {
   const grandTotal = lists.reduce((acc, curr) => acc + Number(curr.total_estimated_price || 0), 0);
+
+  const deleteList = () =>
+    toast.promise<{ name: string }>(
+      new Promise((resolve) => {
+        // Beri jeda sedikit agar user melihat status "loading" di toast
+        setTimeout(() => {
+          resolve({ name: "Berhasil dihapus!" });
+        }, 600);
+      }),
+      {
+        loading: 'Menghapus...',
+        success: (data: any) => { return `${data.name}`; },
+        error: 'Gagal menghapus daftar belanja.',
+      }
+    );
 
   return (
     <>
@@ -212,11 +227,14 @@ export default function ActiveLists({ lists }: { lists: any[] }) {
                           <Share2 className="w-4 h-4" />
                         </Button>
 
-                        <Link href={shopping.edit(list.id)}>
-                          <Button variant="outline" size="icon" className="rounded-full h-8 w-8 hover:bg-slate-100 hover:text-slate-600 dark:border-slate-700 cursor-pointer">
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                        </Link>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="rounded-full h-8 w-8 hover:bg-slate-100 hover:text-slate-600 dark:border-slate-700 cursor-pointer"
+                          onClick={() => router.visit(shopping.edit(list.id).url, { preserveScroll: true })}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
 
                         {/* Tombol hapus */}
                         <AlertDialog>
@@ -267,19 +285,7 @@ export default function ActiveLists({ lists }: { lists: any[] }) {
                                   method="delete"
                                   as="button"
                                   preserveScroll={true}
-                                  onClick={() => {
-                                    toast.promise<{ name: string }>(
-                                      () =>
-                                        new Promise((resolve) =>
-                                          setTimeout(() => resolve({ name: list.title }), 1000)
-                                        ),
-                                      {
-                                        loading: "Menghapus...",
-                                        success: (data) => `Daftar Belanja ${data.name} Berhasil Dihapus`,
-                                        error: "Terjadi Kesalahan",
-                                      }
-                                    )
-                                  }}
+                                  onClick={deleteList}
                                 >
                                   Ya, Hapus
                                 </Link>

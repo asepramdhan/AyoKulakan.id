@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import StoreController from '@/actions/App/Http/Controllers/StoreController';
 import InputError from '@/components/input-error';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
@@ -10,10 +11,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import AppLayout from '@/layouts/app-layout';
 import storesRoute from '@/routes/stores';
 import { type BreadcrumbItem } from '@/types';
-import { Form, Head, usePage } from '@inertiajs/react';
-import { Plus, Trash2, Globe, ShoppingBag, ExternalLink } from 'lucide-react';
-import { toast } from 'sonner';
+import { Form, Head, Link } from '@inertiajs/react';
+import { Plus, Trash2, Globe, ShoppingBag, ExternalLink, AlertTriangle } from 'lucide-react';
 import { useEffect } from 'react';
+import toast from 'react-hot-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -23,7 +24,46 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Index({ stores }: { stores: any[] }) {
-  const { flash } = usePage().props as any;
+
+  const saveSeller = () =>
+    setTimeout(() => {
+      toast.promise<{ name: string }>(
+        new Promise((resolve) => {
+          // Beri jeda sedikit agar user melihat status "loading" di toast
+          setTimeout(() => {
+            resolve({ name: "Berhasil disimpan!" });
+          }, 600);
+        }),
+        {
+          loading: 'Menyimpan...',
+          success: (data: any) => {
+            // reset inputan
+            (document.getElementById("seller_name") as HTMLInputElement).value = "";
+            // autofocus inputan
+            (document.getElementById("seller_name") as HTMLInputElement).focus();
+            return `${data.name}`;
+          },
+          error: 'Gagal menyimpan.',
+        }
+      );
+    }, 400);
+
+  const deleteSeller = () =>
+    setTimeout(() => {
+      toast.promise<{ name: string }>(
+        new Promise((resolve) => {
+          // Beri jeda sedikit agar user melihat status "loading" di toast
+          setTimeout(() => {
+            resolve({ name: "Berhasil dihapus!" });
+          }, 600);
+        }),
+        {
+          loading: 'Menghapus...',
+          success: (data: any) => { return `${data.name}`; },
+          error: 'Gagal menghapus.',
+        }
+      );
+    }, 400);
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
@@ -47,37 +87,14 @@ export default function Index({ stores }: { stores: any[] }) {
             </CardHeader>
             <CardContent>
               <Form {...StoreController.store()} className="space-y-4">
-                {({ processing, recentlySuccessful, errors, reset }) => {
-
-                  // Pola Toast Promise yang benar sesuai contoh Anda
-                  // eslint-disable-next-line react-hooks/rules-of-hooks
-                  useEffect(() => {
-                    if (recentlySuccessful) {
-                      toast.promise<{ message: string }>(
-                        () =>
-                          new Promise((resolve) =>
-                            // Simulasi delay sedikit agar user bisa melihat status "Menyimpan..."
-                            setTimeout(() => resolve({ message: flash.message || 'Seller berhasil disimpan!' }), 700)
-                          ),
-                        {
-                          loading: "Menyimpan seller...",
-                          success: (data) => {
-                            reset('name'); // Reset input nama setelah berhasil
-                            return `${data.message}`;
-                          },
-                          error: "Terjadi kesalahan sistem saat menyimpan data.",
-                        }
-                      );
-                    }
-                    // eslint-disable-next-line react-hooks/exhaustive-deps
-                  }, [recentlySuccessful]);
-
+                {({ processing, errors }) => {
                   return (
                     <>
                       <div className="space-y-2">
                         <div className="relative">
                           <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                           <Input
+                            id='seller_name'
                             name='name'
                             className="pl-9 bg-white dark:bg-slate-800 border-slate-200 focus-visible:ring-indigo-500"
                             placeholder="Contoh: Official Store Shopee"
@@ -91,15 +108,10 @@ export default function Index({ stores }: { stores: any[] }) {
                       <Button
                         disabled={processing}
                         className="w-full bg-indigo-600 hover:bg-indigo-700 cursor-pointer font-bold rounded-xl shadow-lg shadow-indigo-100 dark:shadow-none transition-all active:scale-95"
+                        onClick={saveSeller}
                       >
-                        {processing ? (
-                          <Spinner className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <>
-                            <Plus className="w-4 h-4 mr-2" />
-                            Simpan Seller
-                          </>
-                        )}
+                        <Plus className="w-4 h-4" />
+                        Simpan Seller
                       </Button>
                     </>
                   );
@@ -136,19 +148,59 @@ export default function Index({ stores }: { stores: any[] }) {
                         </div>
                       </TableCell>
                       <TableCell className="text-right pr-6">
-                        <Form {...StoreController.destroy.form(store.id)}>
-                          <Button
-                            type="submit"
-                            variant="ghost"
-                            size="icon"
-                            className="text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
-                            onClick={(e) => {
-                              if (!confirm('Hapus seller ini?')) { e.preventDefault(); }
-                            }}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </Form>
+                        {/* Tombol hapus */}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="rounded-full h-8 w-8 hover:text-rose-600 hover:bg-rose-50 dark:border-slate-700 cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+
+                          <AlertDialogContent className="w-[90vw] max-w-[400px] rounded-[2rem] p-6 gap-6 sm:w-full">
+                            <AlertDialogHeader>
+                              <div className="flex flex-col items-center gap-4 text-center">
+                                {/* Icon Warning yang Cantik */}
+                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-900/30">
+                                  <AlertTriangle className="h-6 w-6 text-rose-600" />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <AlertDialogTitle className="text-xl font-bold tracking-tight">
+                                    Hapus Toko
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription className="text-sm text-slate-500 dark:text-slate-400">
+                                    Apakah kamu yakin ingin menghapus toko <span className="font-bold text-slate-900 dark:text-slate-200">"{store.name}"</span> ?
+                                  </AlertDialogDescription>
+                                </div>
+                              </div>
+                            </AlertDialogHeader>
+
+                            <AlertDialogFooter className="flex-col sm:flex-row gap-2 pt-4">
+                              <AlertDialogCancel className="w-full sm:w-auto rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-50 cursor-pointer">
+                                Batal
+                              </AlertDialogCancel>
+
+                              <AlertDialogAction
+                                asChild
+                                className="w-full sm:w-auto bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-lg shadow-rose-200 dark:shadow-none border-none cursor-pointer"
+                              >
+                                <Link
+                                  href={StoreController.destroy(store.id)}
+                                  method="delete"
+                                  as="button"
+                                  preserveScroll={true}
+                                  onClick={deleteSeller}
+                                >
+                                  Ya, Hapus
+                                </Link>
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </TableCell>
                     </TableRow>
                   ))}

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import ShoppingListController from '@/actions/App/Http/Controllers/ShoppingListController';
+import StoreController from '@/actions/App/Http/Controllers/StoreController';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, } from '@/components/ui/card';
@@ -10,9 +11,9 @@ import AppLayout from '@/layouts/app-layout';
 import shopping from '@/routes/shopping'; // Wayfinder routes
 import { type BreadcrumbItem } from '@/types';
 import { Form, Head, router, useForm, } from '@inertiajs/react'; // Gunakan useForm untuk state management
-import { Calendar, Plus, Save, ShoppingCart, Store, Trash2 } from 'lucide-react';
+import { ArrowLeft, Calendar, Plus, RefreshCw, Save, ShoppingCart, Store, Trash2 } from 'lucide-react';
 import { useEffect } from 'react';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -40,6 +41,21 @@ const parseRupiah = (value: string): number => {
 };
 
 export default function Index({ stores, products }: { stores: any[], products: any[] }) {
+
+  const notify = () =>
+    toast.promise<{ name: string }>(
+      new Promise((resolve) => {
+        // Beri jeda sedikit agar user melihat status "loading" di toast
+        setTimeout(() => {
+          resolve({ name: "Berhasil disimpan!" });
+        }, 1000);
+      }),
+      {
+        loading: 'Menyimpan...',
+        success: (data: any) => { return `${data.name}`; },
+        error: 'Gagal menyimpan daftar belanja.',
+      }
+    );
 
   // Inisialisasi useForm agar sinkron dengan Controller store()
   const { data, setData } = useForm({
@@ -133,240 +149,234 @@ export default function Index({ stores, products }: { stores: any[], products: a
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Buat Daftar Belanja" />
       <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-black tracking-tight dark:text-white">Buat Daftar Belanja</h1>
           <p className="text-slate-500 text-sm">Input rencana belanja kamu untuk memantau pengeluaran.</p>
         </div>
         <Card className="border-none shadow-sm bg-white/50 dark:bg-slate-900/50 backdrop-blur">
-          {/* <CardHeader>
-            <CardTitle>Buat Daftar Belanja Baru</CardTitle>
-          </CardHeader> */}
           <CardContent className="p-6">
-            <Form {...ShoppingListController.store()} options={{
-              preserveScroll: true,
-            }} className="space-y-6">
-              {({ processing, recentlySuccessful, errors }) => {
+            <Form {...ShoppingListController.store()}
+              options={{ preserveScroll: true, }}
+              className="space-y-6"
+            >
+              {({ processing, errors }) => (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid gap-2">
+                      <Label
+                        htmlFor="store"
+                        className="flex items-center gap-2 font-bold text-slate-600 dark:text-slate-400">
+                        <Store className="w-4 h-4" />Pilih Toko
+                      </Label>
 
-                // eslint-disable-next-line react-hooks/rules-of-hooks
-                useEffect(() => {
-                  if (recentlySuccessful) {
-                    toast.promise<{ name: string }>(
-                      () =>
-                        new Promise((resolve) =>
-                          setTimeout(() => resolve({ name: 'Daftar belanja berhasil disimpan!' }), 700)
-                        ),
-                      {
-                        loading: "Menyimpan...",
-                        success: (data) => {
-                          setTimeout(() => {
-                            router.visit(shopping.active().url); // Ganti ke route tujuan Anda
-                          }, 5000);
-                          return `${data.name}`;
-                        },
-                        error: "Terjadi kesalahan sistem saat menyimpan data.",
-                      }
-                    )
-                  }
-                }, [recentlySuccessful]);
+                      {/* PERBAIKAN: Tambahkan value dan onValueChange */}
+                      <Select
+                        key={data.store_id}
+                        name='store_id'
+                        required
+                        value={data.store_id.toString()}
+                        onValueChange={(val) => setData('store_id', val)}
+                      >
+                        <SelectTrigger className="w-full bg-white dark:bg-slate-800 border-slate-200">
+                          <SelectValue placeholder="Pilih Toko" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            {/* Jika tidak ada daftar toko, tampilkan pesan */}
+                            <SelectLabel>Daftar Toko Kamu</SelectLabel>
+                            {!stores.length &&
+                              <SelectLabel className="py-4 text-center text-slate-400">
+                                Tidak ada daftar toko
+                                <p>
+                                  <Button
+                                    variant="link"
+                                    size="sm"
+                                    className="text-sky-500 hover:text-sky-600"
+                                    onClick={() => router.visit(StoreController.index().url)}
+                                  >
+                                    Tambah Toko
+                                  </Button>
+                                </p>
+                              </SelectLabel>
+                            }
+                            {stores.map((store: any) => (
+                              <SelectItem key={store.id} value={store.id.toString()}>
+                                <span className="capitalize">{store.name}</span>
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                      <InputError message={errors.store_id} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label
+                        htmlFor="title"
+                        className="flex items-center gap-2 font-bold text-slate-600 dark:text-slate-400">
+                        <ShoppingCart className="w-4 h-4" />Judul Belanja
+                      </Label>
+                      <Input
+                        id="title"
+                        name='title'
+                        value={data.title}
+                        onChange={(e) => setData('title', e.target.value)}
+                        className="bg-white dark:bg-slate-800 border-slate-200 w-full"
+                        placeholder='Contoh: Belanja Bulanan'
+                        required
+                      />
+                      <InputError message={errors.title} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label
+                        htmlFor="tanggal"
+                        className="flex items-center gap-2 font-bold text-slate-600 dark:text-slate-400">
+                        <Calendar className="w-4 h-4" />Tanggal
+                      </Label>
+                      <Input
+                        id="tanggal"
+                        type='datetime-local'
+                        name='shopping_date'
+                        defaultValue={(() => {
+                          const sekarang = new Date();
+                          const offset = sekarang.getTimezoneOffset() * 60000;
+                          const waktuLokal = new Date(sekarang.getTime() - offset);
+                          return waktuLokal.toISOString().slice(0, 16);
+                        })()}
+                        className="bg-white dark:bg-slate-800 border-slate-200 block w-full"
+                        required
+                      />
+                      <InputError message={errors.shopping_date} />
+                    </div>
+                  </div>
 
-                return (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="grid gap-2">
-                        <Label
-                          htmlFor="store"
-                          className="flex items-center gap-2 font-bold text-slate-600 dark:text-slate-400">
-                          <Store className="w-4 h-4" />Pilih Toko
-                        </Label>
-
-                        {/* PERBAIKAN: Tambahkan value dan onValueChange */}
-                        <Select
-                          key={data.store_id}
-                          name='store_id'
-                          required
-                          value={data.store_id.toString()}
-                          onValueChange={(val) => setData('store_id', val)}
-                        >
-                          <SelectTrigger className="w-full bg-white dark:bg-slate-800 border-slate-200">
-                            <SelectValue placeholder="Pilih Toko" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectGroup>
-                              <SelectLabel>Daftar Toko Kamu</SelectLabel>
-                              {stores.map((store: any) => (
-                                <SelectItem key={store.id} value={store.id.toString()}>
-                                  <span className="capitalize">{store.name}</span>
-                                </SelectItem>
-                              ))}
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                        <InputError message={errors.store_id} />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label
-                          htmlFor="title"
-                          className="flex items-center gap-2 font-bold text-slate-600 dark:text-slate-400">
-                          <ShoppingCart className="w-4 h-4" />Judul Belanja
-                        </Label>
-                        <Input
-                          id="title"
-                          name='title'
-                          value={data.title}
-                          onChange={(e) => setData('title', e.target.value)}
-                          className="bg-white dark:bg-slate-800 border-slate-200 w-full"
-                          placeholder='Contoh: Belanja Bulanan'
-                          required
-                        />
-                        <InputError message={errors.title} />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label
-                          htmlFor="tanggal"
-                          className="flex items-center gap-2 font-bold text-slate-600 dark:text-slate-400">
-                          <Calendar className="w-4 h-4" />Tanggal
-                        </Label>
-                        <Input
-                          id="tanggal"
-                          type='datetime-local'
-                          name='shopping_date'
-                          defaultValue={(() => {
-                            const sekarang = new Date();
-                            const offset = sekarang.getTimezoneOffset() * 60000;
-                            const waktuLokal = new Date(sekarang.getTime() - offset);
-                            return waktuLokal.toISOString().slice(0, 16);
-                          })()}
-                          className="bg-white dark:bg-slate-800 border-slate-200 block w-full"
-                          required
-                        />
-                        <InputError message={errors.shopping_date} />
-                      </div>
+                  {/* AREA DAFTAR BARANG */}
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-black text-lg text-slate-800 dark:text-slate-50 uppercase tracking-tight">Daftar Barang</h3>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addRow}
+                        className='cursor-pointer border-orange-500 text-orange-600 hover:bg-orange-50 rounded-full font-bold'
+                      >
+                        <Plus className="w-4 h-4" />Tambah Barang
+                      </Button>
                     </div>
 
-                    {/* AREA DAFTAR BARANG */}
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <h3 className="font-black text-lg text-slate-800 dark:text-slate-50 uppercase tracking-tight">Daftar Barang</h3>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={addRow}
-                          className='cursor-pointer border-orange-500 text-orange-600 hover:bg-orange-50 rounded-full font-bold'
-                        >
-                          <Plus className="w-4 h-4" />Tambah Barang
-                        </Button>
-                      </div>
+                    <div className="space-y-3">
+                      {data.items.map((item, index) => (
+                        <div key={index} className="group relative p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:border-orange-200">
+                          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
 
-                      <div className="space-y-3">
-                        {data.items.map((item, index) => (
-                          <div key={index} className="group relative p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:border-orange-200">
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                            {/* 1. Nama Produk (6 Kolom Desktop) */}
+                            <div className="md:col-span-6">
+                              <Label className="text-[10px] uppercase font-black text-slate-400 mb-1 block">Nama Barang</Label>
+                              <Input
+                                list="product-suggestions"
+                                className="bg-slate-50 dark:bg-slate-800 border-none focus-visible:ring-1 focus-visible:ring-orange-500 font-medium"
+                                name={`items.${index}.product_name`}
+                                value={item.product_name}
+                                onChange={(e) => updateItem(index, 'product_name', e.target.value)}
+                                placeholder="Ketik nama barang..."
+                                required
+                                autoComplete="off"
+                              />
+                            </div>
 
-                              {/* 1. Nama Produk (6 Kolom Desktop) */}
-                              <div className="md:col-span-6">
-                                <Label className="text-[10px] uppercase font-black text-slate-400 mb-1 block">Nama Barang</Label>
+                            {/* 2. Wrapper Qty, Harga, dan Tombol Hapus */}
+                            <div className="md:col-span-5 grid grid-cols-12 gap-3 items-center">
+                              <div className="col-span-4">
+                                <Label className="text-[10px] uppercase font-black text-slate-400 mb-1 block">Qty</Label>
                                 <Input
-                                  list="product-suggestions"
-                                  className="bg-slate-50 dark:bg-slate-800 border-none focus-visible:ring-1 focus-visible:ring-orange-500 font-medium"
-                                  name={`items.${index}.product_name`}
-                                  value={item.product_name}
-                                  onChange={(e) => updateItem(index, 'product_name', e.target.value)}
-                                  placeholder="Ketik nama barang..."
+                                  type="number"
+                                  className="bg-slate-50 dark:bg-slate-800 border-none text-center font-bold"
+                                  name={`items.${index}.quantity`}
+                                  value={item.quantity}
+                                  onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value))}
+                                  placeholder="Qty"
                                   required
-                                  autoComplete="off"
                                 />
                               </div>
 
-                              {/* 2. Wrapper Qty, Harga, dan Tombol Hapus */}
-                              <div className="md:col-span-5 grid grid-cols-12 gap-3 items-center">
-                                <div className="col-span-4">
-                                  <Label className="text-[10px] uppercase font-black text-slate-400 mb-1 block">Qty</Label>
+                              <div className="col-span-8">
+                                <Label className="text-[10px] uppercase font-black text-slate-400 mb-1 block">Harga Satuan</Label>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">Rp</span>
                                   <Input
-                                    type="number"
-                                    className="bg-slate-50 dark:bg-slate-800 border-none text-center font-bold"
-                                    name={`items.${index}.quantity`}
-                                    value={item.quantity}
-                                    onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value))}
-                                    placeholder="Qty"
+                                    type="text"
+                                    className="pl-8 bg-slate-50 dark:bg-slate-800 border-none font-black text-orange-600 dark:text-orange-400"
+                                    name={`items.${index}.price`}
+                                    value={formatRupiah(item.price)}
+                                    onChange={(e) => updateItem(index, 'price', e.target.value)}
+                                    placeholder="100.000"
                                     required
                                   />
                                 </div>
-
-                                <div className="col-span-8">
-                                  <Label className="text-[10px] uppercase font-black text-slate-400 mb-1 block">Harga Satuan</Label>
-                                  <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">Rp</span>
-                                    <Input
-                                      type="text"
-                                      className="pl-8 bg-slate-50 dark:bg-slate-800 border-none font-black text-orange-600 dark:text-orange-400"
-                                      name={`items.${index}.price`}
-                                      value={formatRupiah(item.price)}
-                                      onChange={(e) => updateItem(index, 'price', e.target.value)}
-                                      placeholder="100.000"
-                                      required
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                              {/* Tombol Hapus */}
-                              <div className="md:col-span-1 flex justify-end">
-                                {data.items.length > 1 && (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => removeRow(index)}
-                                    className="text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors cursor-pointer"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                )}
                               </div>
                             </div>
-
-                            {/* Error Handling */}
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-1">
-                              <div className="md:col-span-6">
-                                <InputError message={errors[`items.${index}.product_name` as keyof typeof errors]} />
-                              </div>
-                              <div className="md:col-span-6 text-right">
-                                <InputError message={errors[`items.${index}.price` as keyof typeof errors]} />
-                              </div>
+                            {/* Tombol Hapus */}
+                            <div className="md:col-span-1 flex justify-end">
+                              {data.items.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeRow(index)}
+                                  className="text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )}
                             </div>
                           </div>
-                        ))}
-                      </div>
 
-                      <datalist id="product-suggestions">
-                        {products.map((p: any) => (
-                          <option key={p.id} value={p.name} />
-                        ))}
-                      </datalist>
+                          {/* Error Handling */}
+                          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-1">
+                            <div className="md:col-span-6">
+                              <InputError message={errors[`items.${index}.product_name` as keyof typeof errors]} />
+                            </div>
+                            <div className="md:col-span-6 text-right">
+                              <InputError message={errors[`items.${index}.price` as keyof typeof errors]} />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
 
-                    {/* FOOTER TOTAL & SAVE */}
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-6 p-6 bg-orange-500 rounded-2xl text-white shadow-lg shadow-orange-200 dark:shadow-none">
-                      <div className="flex flex-col items-center md:items-start">
-                        <span className="text-orange-100 text-xs font-bold uppercase tracking-wider">Total Estimasi Belanja</span>
-                        <span className="text-3xl font-black italic">
-                          Rp {totalEstimasi ? formatRupiah(totalEstimasi) : '0'}
-                        </span>
-                      </div>
+                    <datalist id="product-suggestions">
+                      {products.map((p: any) => (
+                        <option key={p.id} value={p.name} />
+                      ))}
+                    </datalist>
+                  </div>
 
-                      <Button
-                        type="submit"
-                        disabled={processing || recentlySuccessful}
-                        className="bg-white text-orange-600 hover:bg-slate-100 cursor-pointer w-full md:w-auto px-10 py-6 rounded-xl font-black text-lg shadow-xl transition-transform hover:scale-105 active:scale-95"
-                      >
-                        <Save className="w-5 h-5" />
-                        SIMPAN DAFTAR
-                      </Button>
+                  {/* FOOTER TOTAL & SAVE */}
+                  <div className="flex flex-col md:flex-row justify-between items-center gap-6 p-6 bg-orange-500 rounded-2xl text-white shadow-lg shadow-orange-200 dark:shadow-none">
+                    <div className="flex flex-col items-center md:items-start">
+                      <span className="text-orange-100 text-xs font-bold uppercase tracking-wider">Total Estimasi Belanja</span>
+                      <span className="text-3xl font-black italic">
+                        Rp {totalEstimasi ? formatRupiah(totalEstimasi) : '0'}
+                      </span>
                     </div>
-                  </>
-                )
-              }}
+                    <Button
+                      type="submit"
+                      disabled={
+                        processing ||
+                        !data.store_id || !data.title.trim() || data.items.length === 0 ||
+                        data.items.some((item: any) => !item.product_name.trim() || item.quantity <= 0 || !item.price || item.price <= 0
+                        )
+                      }
+                      className="bg-white text-orange-600 hover:bg-slate-100 cursor-pointer w-full md:w-auto px-10 py-6 rounded-xl font-black text-lg shadow-xl transition-transform hover:scale-105 active:scale-95"
+                      onClick={notify}
+                    >
+                      <Save className="w-5 h-5" />
+                      SIMPAN DAFTAR
+                    </Button>
+                  </div>
+                </>
+              )
+              }
             </Form>
           </CardContent>
         </Card>

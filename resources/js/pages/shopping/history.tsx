@@ -9,6 +9,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { ChevronRight, HistoryIcon, Store, Calendar, Package, Copy, Loader2 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
+import toast from 'react-hot-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
   { title: 'Riwayat Belanja', href: shopping.history().url },
@@ -23,6 +24,24 @@ const formatSingkat = (dateString: string) => {
 };
 
 export default function History({ lists }: { lists: any }) {
+
+  const duplicate = () =>
+    setTimeout(() => {
+      toast.promise<{ name: string }>(
+        new Promise((resolve) => {
+          // Beri jeda sedikit agar user melihat status "loading" di toast
+          setTimeout(() => {
+            resolve({ name: "Berhasil diduplicate!" });
+          }, 600);
+        }),
+        {
+          loading: 'Menduplicate...',
+          success: (data: any) => { return `${data.name}`; },
+          error: 'Gagal menduplicate daftar belanja.',
+        }
+      );
+    }, 400);
+
   const [allItems, setAllItems] = useState(lists.data);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -118,8 +137,16 @@ export default function History({ lists }: { lists: any }) {
               return (
                 <Link key={list.id} href={shopping.check(list.id)} className="relative block">
                   <div className="absolute top-3 right-3 z-20">
-                    <Link href={shopping.duplicate(list.id)}>
-                      <Button variant="outline" size="icon" className="h-8 w-8 rounded-full bg-white dark:bg-slate-900 shadow-sm">
+                    <Link
+                      href={shopping.duplicate(list.id)}
+                      onClick={duplicate}
+                      className='cursor-pointer'
+                    >
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 rounded-full bg-white dark:bg-slate-900 shadow-sm cursor-pointer"
+                      >
                         <Copy className="h-3.5 w-3.5" />
                       </Button>
                     </Link>
