@@ -16,7 +16,21 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $query = Product::with('store')
-            ->where('user_id', Auth::id());
+            ->where('user_id', Auth::id())
+            // --- TAMBAHKAN LOGIC INI ---
+            ->withCount(['shopping_list_items as active_shopping_items_count' => function ($query) {
+                $query->whereHas('shoppingList', function ($q) {
+                    // Pastikan status 'active' sesuai dengan enum/string status di tabel shopping_lists Anda
+                    // GANTI 'active' MENJADI 'draft' sesuai migrasi Anda
+                    $q->where('status', 'draft');
+                });
+            }])
+            ->withSum(['shopping_list_items as active_shopping_items_sum_quantity' => function ($query) {
+                $query->whereHas('shoppingList', function ($q) {
+                    $q->where('status', 'draft');
+                });
+            }], 'quantity');
+        // ---------------------------
 
         // Filter jika ada store_id di request
         if ($request->has('store_id') && $request->store_id != '') {
@@ -29,7 +43,7 @@ class ProductController extends Controller
         return Inertia::render('products/index', [
             'products' => $products,
             'stores' => $stores,
-            'filters' => $request->only(['store_id']) // Kirim balik status filter ke UI
+            'filters' => $request->only(['store_id'])
         ]);
     }
 

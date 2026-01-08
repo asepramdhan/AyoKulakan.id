@@ -12,7 +12,7 @@ import products from '@/routes/products';
 import shopping from '@/routes/shopping';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Info, Package2, PackageSearch, Pencil, PlusCircle, Search, Store, Trash2, X, AlertTriangle, PackagePlus } from 'lucide-react';
+import { Info, Package2, PackageSearch, Pencil, PlusCircle, Search, Store, Trash2, X, AlertTriangle, PackagePlus, ShoppingCart } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -185,6 +185,7 @@ export default function Index({ products, stores, filters }: any) {
                 </TableHeader>
                 <TableBody>
                   {filteredProducts.map((product: any) => {
+
                     const isCritical = product.stock <= (product.stock_warning || 0);
                     const isEmpty = product.stock <= 0;
 
@@ -192,18 +193,23 @@ export default function Index({ products, stores, filters }: any) {
                       <TableRow key={product.id} className="group border-slate-50 dark:border-slate-800 transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
                         <TableCell className="py-5 px-6">
                           <div className="flex flex-col gap-0.5">
-                            <span className="font-bold text-slate-800 dark:text-slate-100 text-[15px] capitalize tracking-tight group-hover:text-orange-600 transition-colors">
-                              {product.name}
-                            </span>
-                            {isEmpty ? (
-                              <span className="flex items-center text-[9px] font-black text-red-600 dark:text-red-400 uppercase">
-                                <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5 animate-pulse" /> Stok Habis
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-800 dark:text-slate-100 text-[15px] capitalize tracking-tight group-hover:text-orange-600 transition-colors">
+                                {product.name}
                               </span>
-                            ) : isCritical && (
-                              <span className="flex items-center text-[9px] font-black text-orange-600 dark:text-orange-400 uppercase">
-                                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mr-1.5 animate-bounce" /> Menipis
-                              </span>
-                            )}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {isEmpty ? (
+                                <span className="flex items-center text-[9px] font-black text-red-600 dark:text-red-400 uppercase">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5 animate-pulse" /> Stok Habis
+                                </span>
+                              ) : isCritical && (
+                                <span className="flex items-center text-[9px] font-black text-orange-600 dark:text-orange-400 uppercase">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mr-1.5 animate-bounce" /> Menipis
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -217,15 +223,36 @@ export default function Index({ products, stores, filters }: any) {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1.5">
-                            <div className={`text-base font-black flex items-baseline gap-1 ${isEmpty ? 'text-red-600' : isCritical ? 'text-orange-600' : 'text-slate-900 dark:text-slate-100'}`}>
-                              {product.stock} <span className="text-[9px] font-bold text-slate-400 uppercase">pcs</span>
+                            <div className="flex items-center gap-3">
+                              {/* Angka Stok Utama */}
+                              <div className={`text-base font-black flex items-baseline gap-1 ${isEmpty ? 'text-red-600' : isCritical ? 'text-orange-600' : 'text-slate-900 dark:text-slate-100'}`}>
+                                {product.stock} <span className="text-[9px] font-bold text-slate-400 uppercase">pcs</span>
+                              </div>
+
+                              {/* INDIKATOR AKAN DATANG (Taruh di samping angka stok) */}
+                              {product.active_shopping_items_count > 0 && (
+                                <Badge className="bg-sky-50 text-sky-600 border-sky-100 dark:bg-sky-900/20 dark:text-sky-400 dark:border-sky-800 text-[8px] font-bold px-1.5 py-0 rounded-full animate-pulse flex items-center gap-1">
+                                  <div className="w-1 h-1 rounded-full bg-sky-500" />
+                                  +{product.active_shopping_items_sum_quantity} pcs
+                                </Badge>
+                              )}
                             </div>
+
+                            {/* Progress Bar Stok */}
                             <div className="w-24 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-200/50 dark:border-none">
                               <div
                                 className={`h-full rounded-full transition-all duration-1000 ${isEmpty ? 'bg-red-500' : isCritical ? 'bg-orange-500' : 'bg-emerald-500'}`}
                                 style={{ width: `${Math.min((product.stock / 50) * 100, 100)}%` }}
                               />
                             </div>
+
+                            {/* Label Status Restok di bawah progress bar agar tidak merusak layout */}
+                            {product.active_count > 0 && (
+                              <div className="flex items-center gap-1 text-[8px] font-black text-sky-500 uppercase tracking-tighter">
+                                <ShoppingCart className="w-2 h-2" />
+                                Proses Restok
+                              </div>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="text-right px-6">
