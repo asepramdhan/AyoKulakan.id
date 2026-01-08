@@ -1,24 +1,21 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import SalesRecordController from '@/actions/App/Http/Controllers/SalesRecordController';
 import InputError from '@/components/input-error';
-import { Alert, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Spinner } from '@/components/ui/spinner';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import salesRecord from '@/routes/sales-record';
 import { type BreadcrumbItem } from '@/types';
-import { Transition } from '@headlessui/react';
 import { Form, Head, Link, router, usePage } from '@inertiajs/react';
-import { AlertTriangle, ArrowUpRight, CheckCircle2Icon, DollarSign, Loader2, Package2, Pencil, Percent, Plus, Save, Search, Store, TrendingDown, TrendingUp, X } from 'lucide-react';
+import { AlertTriangle, DollarSign, Package2, Pencil, Percent, Plus, Save, Search, Store, TrendingDown, TrendingUp, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -57,57 +54,6 @@ const formatDate = (dateString: string) => {
 
 export default function Index({ products, stores, ...props }: any) {
 
-  const createSalesRecord = () =>
-    setTimeout(() => {
-      toast.promise<{ name: string }>(
-        new Promise((resolve) => {
-          // Beri jeda sedikit agar user melihat status "loading" di toast
-          setTimeout(() => {
-            resolve({ name: "Berhasil ditambahkan!" });
-          }, 600);
-        }),
-        {
-          loading: 'Memproses...',
-          success: (data: any) => { return `${data.name}`; },
-          error: 'Gagal menambahkan.',
-        }
-      );
-    }, 600);
-
-  const updateSalesRecord = () =>
-    setTimeout(() => {
-      toast.promise<{ name: string }>(
-        new Promise((resolve) => {
-          // Beri jeda sedikit agar user melihat status "loading" di toast
-          setTimeout(() => {
-            resolve({ name: "Berhasil diperbarui!" });
-          }, 600);
-        }),
-        {
-          loading: 'Memperbarui...',
-          success: (data: any) => { return `${data.name}`; },
-          error: 'Gagal memperbarui.',
-        }
-      );
-    }, 600);
-
-  const deleteSalesRecord = () =>
-    setTimeout(() => {
-      toast.promise<{ name: string }>(
-        new Promise((resolve) => {
-          // Beri jeda sedikit agar user melihat status "loading" di toast
-          setTimeout(() => {
-            resolve({ name: "Berhasil dihapus!" });
-          }, 600);
-        }),
-        {
-          loading: 'Menghapus...',
-          success: (data: any) => { return `${data.name}`; },
-          error: 'Gagal menghapus.',
-        }
-      );
-    }, 600);
-
   const { todayAdCost } = usePage().props as any;
 
   const [dailyAdCost, setDailyAdCost] = useState(todayAdCost?.amount || 0);
@@ -116,34 +62,34 @@ export default function Index({ products, stores, ...props }: any) {
   useEffect(() => {
     // Jika database punya data iklan hari ini, update state lokalnya
     if (todayAdCost) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDailyAdCost(Number(todayAdCost.amount));
     }
   }, [todayAdCost]); // Efek ini jalan setiap kali props 'todayAdCost' berubah
 
   const saveAdCost = () => {
     setIsSavingAd(true);
+
+    // Logika Ambil Tanggal Lokal (YYYY-MM-DD)
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const localDate = `${year}-${month}-${day}`;
+
     router.post(salesRecord.updateAdCost().url, {
-      date: new Date().toISOString().split('T')[0],
+      date: localDate, // Gunakan tanggal lokal
       amount: dailyAdCost,
       note: 'Biaya Iklan Harian'
     }, {
+      onStart: () => { toast.loading('Memperbarui biaya iklan...', { id: 'ad-cost' }); },
       onSuccess: () => {
+        toast.success('Biaya iklan berhasil diperbarui!', { id: 'ad-cost' });
         setIsSavingAd(false);
-        setTimeout(() => {
-          toast.promise<{ name: string }>(
-            new Promise((resolve) => {
-              // Beri jeda sedikit agar user melihat status "loading" di toast
-              setTimeout(() => {
-                resolve({ name: "Berhasil disimpan!" });
-              }, 600);
-            }),
-            {
-              loading: 'Menyimpan...',
-              success: (data: any) => { return `${data.name}`; },
-              error: 'Gagal menyimpan.',
-            }
-          );
-        }, 400);
+      },
+      onError: () => {
+        toast.error('Gagal memperbarui biaya iklan!', { id: 'ad-cost' });
+        setIsSavingAd(false);
       },
       preserveScroll: true
     });
@@ -355,6 +301,7 @@ export default function Index({ products, stores, ...props }: any) {
     // 3. Profit Bersih
     const totalProfit = (totalSell - (data.buy_price * quantity)) - totalPotongan;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCalc({
       feeAmount: totalPotongan,
       netProfit: totalProfit
@@ -574,8 +521,10 @@ export default function Index({ products, stores, ...props }: any) {
                       ? SalesRecordController.update.form(editId)
                       : SalesRecordController.store.form()
                     )}
-                    options={{ preserveScroll: true }}
+                    onStart={() => isEditing ? toast.loading('Memperbarui penjualan...', { id: 'edit-sales' }) : toast.loading('Menambah penjualan...', { id: 'add-sales' })}
                     onSuccess={() => {
+                      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                      isEditing ? toast.success('Penjualan berhasil diperbarui.', { id: 'edit-sales' }) : toast.success('Penjualan berhasil ditambahkan.', { id: 'add-sales' });
                       setOpen(false);
                       setIsEditing(false);
                       setEditId(null); // Reset ID edit
@@ -594,6 +543,8 @@ export default function Index({ products, stores, ...props }: any) {
                         extra_costs: 0,
                       });
                     }}
+                    onError={() => isEditing ? toast.error('Gagal memperbarui penjualan.', { id: 'edit-sales' }) : toast.error('Gagal menambahkan penjualan.', { id: 'add-sales' })}
+                    options={{ preserveScroll: true }}
                   >
                     {({ processing, errors }) => (
                       <>
@@ -835,13 +786,6 @@ export default function Index({ products, stores, ...props }: any) {
                             type='submit'
                             disabled={processing || !data.store_id}
                             className={`${isEditing ? 'bg-blue-600 hover:bg-blue-700' : 'bg-orange-600 hover:bg-orange-700'} cursor-pointer text-white`}
-                            onClick={() => {
-                              if (isEditing) {
-                                updateSalesRecord();
-                              } else {
-                                createSalesRecord();
-                              }
-                            }}
                           >
                             <Save className="w-4 h-4" />
                             {isEditing ? 'Perbarui' : 'Simpan'}
@@ -990,10 +934,12 @@ export default function Index({ products, stores, ...props }: any) {
                                   >
                                     <Link
                                       href={salesRecord.destroy(item.id)}
+                                      onStart={() => toast.loading('Menghapus...', { id: 'delete' })}
+                                      onSuccess={() => toast.success('Transaksi berhasil dihapus!', { id: 'delete' })}
+                                      onError={() => toast.error('Gagal menghapus transaksi!', { id: 'delete' })}
                                       method="delete"
                                       as="button"
                                       preserveScroll={true}
-                                      onClick={deleteSalesRecord}
                                     >
                                       Ya, Hapus
                                     </Link>

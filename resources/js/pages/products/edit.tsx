@@ -32,23 +32,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function Edit({ product }: any) {
 
-  const updateData = () =>
-    setTimeout(() => {
-      toast.promise<{ name: string }>(
-        new Promise((resolve) => {
-          // Beri jeda sedikit agar user melihat status "loading" di toast
-          setTimeout(() => {
-            resolve({ name: "Berhasil diperbarui!" });
-          }, 600);
-        }),
-        {
-          loading: 'Memperbarui...',
-          success: (data: any) => { return `${data.name}`; },
-          error: 'Gagal memperbarui produk.',
-        }
-      );
-    }, 1000);
-
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value;
     const numericValue = parseRupiah(rawValue);
@@ -87,6 +70,9 @@ export default function Edit({ product }: any) {
           <CardContent className="pt-8">
             <Form
               {...ProductController.update.form(product.id)}
+              onStart={() => toast.loading('Memperbarui produk...', { id: 'update' })}
+              onSuccess={() => toast.success('Produk berhasil diperbarui!', { id: 'update' })}
+              onError={() => toast.error('Gagal memperbarui produk!', { id: 'update' })}
               options={{ preserveScroll: true }}
               className="space-y-8"
             >
@@ -138,7 +124,6 @@ export default function Edit({ product }: any) {
                       type="submit"
                       disabled={processing}
                       className="min-w-[160px] h-11 cursor-pointer bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow-lg shadow-orange-600/20"
-                      onClick={updateData}
                     >
                       Simpan Perubahan
                     </Button>

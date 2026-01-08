@@ -25,23 +25,6 @@ const formatSingkat = (dateString: string) => {
 
 export default function History({ lists }: { lists: any }) {
 
-  const duplicate = () =>
-    setTimeout(() => {
-      toast.promise<{ name: string }>(
-        new Promise((resolve) => {
-          // Beri jeda sedikit agar user melihat status "loading" di toast
-          setTimeout(() => {
-            resolve({ name: "Berhasil diduplicate!" });
-          }, 600);
-        }),
-        {
-          loading: 'Menduplicate...',
-          success: (data: any) => { return `${data.name}`; },
-          error: 'Gagal menduplicate daftar belanja.',
-        }
-      );
-    }, 1000);
-
   const [allItems, setAllItems] = useState(lists.data);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -139,7 +122,9 @@ export default function History({ lists }: { lists: any }) {
                   <div className="absolute top-3 right-3 z-20">
                     <Link
                       href={shopping.duplicate(list.id)}
-                      onClick={duplicate}
+                      onStart={() => toast.loading('Duplikasi belanja...', { id: 'duplicate' })}
+                      onSuccess={() => toast.success('Duplikasi belanja berhasil!', { id: 'duplicate' })}
+                      onError={() => toast.error('Duplikasi belanja gagal!', { id: 'duplicate' })}
                       className='cursor-pointer'
                     >
                       <Button

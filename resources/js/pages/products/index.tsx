@@ -11,18 +11,46 @@ import AppLayout from '@/layouts/app-layout';
 import products from '@/routes/products';
 import shopping from '@/routes/shopping';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { Info, Package2, PackageSearch, Pencil, PlusCircle, Search, Store, Trash2, X, AlertTriangle, PackagePlus, ShoppingCart } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Master Produk', href: products.index().url }];
 
 export default function Index({ products, stores, filters }: any) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => {
+    return localStorage.getItem('product_search_query') || '';
+  });
+
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [isOpnameOpen, setIsOpnameOpen] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('product_search_query', searchQuery);
+
+    // Jika ada store_id di URL, simpan ke storage
+    if (filters.store_id) {
+      localStorage.setItem('preferred_store_filter', filters.store_id);
+    } else if (filters.store_id === null) {
+      // Jika klik "Semua", hapus storage agar tidak redirect balik lagi
+      localStorage.removeItem('preferred_store_filter');
+    }
+  }, [searchQuery, filters.store_id]);
+
+  useEffect(() => {
+    const savedStoreId = localStorage.getItem('preferred_store_filter');
+
+    // Jika user masuk ke /products tanpa query, tapi punya pilihan toko sebelumnya
+    if (!filters.store_id && savedStoreId) {
+      router.get(ProductController.index().url, { store_id: savedStoreId }, {
+        preserveScroll: true,
+        replace: true // Supaya kalau user klik "Back", tidak terjebak loop
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filteredProducts = useMemo(() => {
     return (products || []).filter((product: any) =>
@@ -38,60 +66,17 @@ export default function Index({ products, stores, filters }: any) {
     setIsOpnameOpen(true);
   };
 
-  const updateOpname = () =>
-    setTimeout(() => {
-      toast.promise<{ name: string }>(
-        new Promise((resolve) => {
-          opnameForm.post(ProductController.adjustStock(selectedProduct?.id || 0).url,
-            { preserveScroll: true, }
-          );
-          setIsOpnameOpen(false);
-          // Beri jeda sedikit agar user melihat status "loading" di toast
-          setTimeout(() => {
-            resolve({ name: "Berhasil diperbarui stok!" });
-          }, 600);
-        }),
-        {
-          loading: 'Memperbarui stok...',
-          success: (data: any) => { return `${data.name}`; },
-          error: 'Gagal memperbarui stok.',
-        }
-      );
-    }, 400);
-
-  const restock = () =>
-    setTimeout(() => {
-      toast.promise<{ name: string }>(
-        new Promise((resolve) => {
-          // Beri jeda sedikit agar user melihat status "loading" di toast
-          setTimeout(() => {
-            resolve({ name: "Daftar restock berhasil diinput!" });
-          }, 1000);
-        }),
-        {
-          loading: 'Memproses daftar restock...',
-          success: (data: any) => { return `${data.name}`; },
-          error: 'Gagal memproses daftar restock.',
-        }
-      );
-    }, 1000);
-
-  const deleteProduct = () =>
-    setTimeout(() => {
-      toast.promise<{ name: string }>(
-        new Promise((resolve) => {
-          // Beri jeda sedikit agar user melihat status "loading" di toast
-          setTimeout(() => {
-            resolve({ name: "Berhasil dihapus!" });
-          }, 600);
-        }),
-        {
-          loading: 'Menghapus...',
-          success: (data: any) => { return `${data.name}`; },
-          error: 'Gagal menghapus.',
-        }
-      );
-    }, 400);
+  const updateOpname = () => {
+    opnameForm.post(ProductController.adjustStock(selectedProduct?.id || 0).url,
+      {
+        preserveScroll: true,
+        onStart: () => toast.loading('Memperbarui stok...', { id: 'opname' }),
+        onSuccess: () => toast.success('Stok berhasil diperbarui!', { id: 'opname' }),
+        onError: () => toast.error('Gagal memperbarui stok!', { id: 'opname' }),
+      }
+    );
+    setIsOpnameOpen(false);
+  }
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
@@ -150,7 +135,12 @@ export default function Index({ products, stores, filters }: any) {
               className={`rounded-full px-5 font-bold text-xs uppercase tracking-wider ${!filters.store_id ? 'bg-slate-900 dark:bg-slate-50 dark:text-slate-900 text-white' : 'bg-white dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}
               asChild
             >
-              <Link href={ProductController.index().url}>Semua</Link>
+              <Link
+                href={ProductController.index().url}
+                onClick={() => localStorage.removeItem('preferred_store_filter')}
+              >
+                Semua
+              </Link>
             </Button>
             {stores.map((s: any) => (
               <Button
@@ -258,18 +248,22 @@ export default function Index({ products, stores, filters }: any) {
                         <TableCell className="text-right px-6">
                           <div className="flex items-center gap-1 justify-end">
                             {/* Tombol Restok - Dibuat sedikit lebih menonjol dengan teks */}
-                            <Link href={shopping.index().url + `?product_id=${product.id}`}>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                title="Buat Daftar Belanja/Restok"
-                                className="h-9 w-auto border border-emerald-100 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200 dark:border-emerald-900/30 dark:hover:bg-emerald-900/20 gap-2 px-3 rounded-xl transition-all"
-                                onClick={restock}
+                            <Button asChild
+                              variant="ghost"
+                              size="sm"
+                              title="Buat Daftar Belanja/Restok"
+                              className="h-9 w-auto border border-emerald-100 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200 dark:border-emerald-900/30 dark:hover:bg-emerald-900/20 gap-2 px-3 rounded-xl transition-all"
+                            >
+                              <Link
+                                href={shopping.index().url + `?product_id=${product.id}`}
+                                onStart={() => toast.loading('Membuat restok/daftar belanja...', { id: 'restock' })}
+                                onSuccess={() => toast.success('Restok/daftar belanja berhasil dibuat!', { id: 'restock' })}
+                                onError={() => toast.error('Restok/daftar belanja gagal dibuat!', { id: 'restock' })}
                               >
                                 <PackagePlus className="w-4 h-4" />
                                 <span className="hidden md:inline font-bold">Restok</span>
-                              </Button>
-                            </Link>
+                              </Link>
+                            </Button>
 
                             {/* Tombol Opname */}
                             <Button
@@ -337,10 +331,12 @@ export default function Index({ products, stores, filters }: any) {
                                   >
                                     <Link
                                       href={ProductController.destroy(product.id)}
+                                      onStart={() => toast.loading("Menghapus...", { id: "delete" })}
+                                      onSuccess={() => toast.success("Berhasil dihapus!", { id: "delete" })}
+                                      onError={() => toast.error("Gagal dihapus!", { id: "delete" })}
                                       method="delete"
                                       as="button"
                                       preserveScroll={true}
-                                      onClick={deleteProduct}
                                     >
                                       Ya, Hapus
                                     </Link>

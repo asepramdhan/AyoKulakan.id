@@ -6,14 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
-import { Spinner } from '@/components/ui/spinner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import storesRoute from '@/routes/stores';
 import { type BreadcrumbItem } from '@/types';
 import { Form, Head, Link } from '@inertiajs/react';
 import { Plus, Trash2, Globe, ShoppingBag, ExternalLink, AlertTriangle } from 'lucide-react';
-import { useEffect } from 'react';
 import toast from 'react-hot-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -24,46 +22,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Index({ stores }: { stores: any[] }) {
-
-  const saveSeller = () =>
-    setTimeout(() => {
-      toast.promise<{ name: string }>(
-        new Promise((resolve) => {
-          // Beri jeda sedikit agar user melihat status "loading" di toast
-          setTimeout(() => {
-            resolve({ name: "Berhasil disimpan!" });
-          }, 600);
-        }),
-        {
-          loading: 'Menyimpan...',
-          success: (data: any) => {
-            // reset inputan
-            (document.getElementById("seller_name") as HTMLInputElement).value = "";
-            // autofocus inputan
-            (document.getElementById("seller_name") as HTMLInputElement).focus();
-            return `${data.name}`;
-          },
-          error: 'Gagal menyimpan.',
-        }
-      );
-    }, 400);
-
-  const deleteSeller = () =>
-    setTimeout(() => {
-      toast.promise<{ name: string }>(
-        new Promise((resolve) => {
-          // Beri jeda sedikit agar user melihat status "loading" di toast
-          setTimeout(() => {
-            resolve({ name: "Berhasil dihapus!" });
-          }, 600);
-        }),
-        {
-          loading: 'Menghapus...',
-          success: (data: any) => { return `${data.name}`; },
-          error: 'Gagal menghapus.',
-        }
-      );
-    }, 400);
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
@@ -86,7 +44,15 @@ export default function Index({ stores }: { stores: any[] }) {
               <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-400">Input Seller Baru</CardTitle>
             </CardHeader>
             <CardContent>
-              <Form {...StoreController.store()} className="space-y-4">
+              <Form
+                {...StoreController.store()}
+                onStart={() => toast.loading('Menyimpan seller...', { id: 'store' })}
+                onSuccess={() => toast.success('Seller berhasil disimpan!', { id: 'store' })}
+                onError={() => toast.error('Gagal menyimpan seller!', { id: 'store' })}
+                resetOnSuccess={['name']}
+                options={{ preserveScroll: true }}
+                className="space-y-4"
+              >
                 {({ processing, errors }) => {
                   return (
                     <>
@@ -108,7 +74,6 @@ export default function Index({ stores }: { stores: any[] }) {
                       <Button
                         disabled={processing}
                         className="w-full bg-indigo-600 hover:bg-indigo-700 cursor-pointer font-bold rounded-xl shadow-lg shadow-indigo-100 dark:shadow-none transition-all active:scale-95"
-                        onClick={saveSeller}
                       >
                         <Plus className="w-4 h-4" />
                         Simpan Seller
@@ -193,7 +158,9 @@ export default function Index({ stores }: { stores: any[] }) {
                                   method="delete"
                                   as="button"
                                   preserveScroll={true}
-                                  onClick={deleteSeller}
+                                  onStart={() => toast.loading('Menghapus toko...', { id: 'delete-store' })}
+                                  onSuccess={() => toast.success('Toko berhasil dihapus!', { id: 'delete-store' })}
+                                  onError={() => toast.error('Gagal menghapus toko!', { id: 'delete-store' })}
                                 >
                                   Ya, Hapus
                                 </Link>

@@ -8,9 +8,11 @@ import { Label } from '@/components/ui/label'; // Pastikan ada component Label
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-import { BarChart3, TrendingDown, TrendingUp, ArrowRight } from 'lucide-react';
+import { BarChart3, TrendingDown, TrendingUp, ArrowRight, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import analysis from '@/routes/analysis';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import toast from 'react-hot-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
   { title: 'Analisa Margin', href: '/analysis/margin' },
@@ -120,6 +122,16 @@ export default function MarginAnalysis({ analysisData }: { analysisData: any[] }
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Simulator Analisa Margin" />
       <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-2">
+          <div>
+            <h2 className="text-xl md:text-2xl font-bold tracking-tight flex items-center gap-2">
+              <span>Simulator Analisa Margin</span>
+            </h2>
+            <p className="text-xs md:text-sm text-muted-foreground">
+              <span className="font-bold">AyoKulakan.id</span> - Analisa Margin
+            </p>
+          </div>
+        </div>
 
         {/* Bagian Input Simulator */}
         <Card className="border-none bg-gradient-to-br from-slate-50 to-blue-50 shadow-sm dark:from-slate-900/50 dark:to-blue-950/20">
@@ -322,24 +334,68 @@ export default function MarginAnalysis({ analysisData }: { analysisData: any[] }
                           </div>
 
                           {/* Tombol Terapkan */}
-                          <Button
-                            type="submit"
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-2"
-                            onClick={() => {
-                              if (confirm(`Terapkan harga baru Rp ${item.recommended_price.toLocaleString('id-ID')}?`)) {
-                                router.patch(analysis.margin.updatePrice(item.id), {
-                                  sell_price: item.recommended_price
-                                }, {
-                                  preserveScroll: true,
-                                  onSuccess: () => alert('Harga berhasil diperbarui!')
-                                });
-                              }
-                            }}
-                          >
-                            Terapkan <ArrowRight className="w-3 h-3" />
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                type="submit"
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center gap-2"
+                              >
+                                Terapkan <ArrowRight className="w-3 h-3" />
+                              </Button>
+                            </AlertDialogTrigger>
+
+                            <AlertDialogContent className="w-[90vw] max-w-[400px] rounded-[2rem] p-6 gap-6 sm:w-full">
+                              <AlertDialogHeader>
+                                <div className="flex flex-col items-center gap-4 text-center">
+                                  {/* Icon Info yang Cantik */}
+                                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
+                                    <Info className="h-6 w-6 text-blue-600" />
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <AlertDialogTitle className="text-xl font-bold tracking-tight">
+                                      Info Rekomendasi Harga
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription className="text-sm text-slate-500 dark:text-slate-400">
+                                      Harga rekomendasi <span className="font-bold text-slate-900 dark:text-slate-200">Rp {item.recommended_price.toLocaleString('id-ID')}</span> akan diterapkan untuk produk <span className="font-bold text-slate-900 dark:text-slate-200 capitalize">{item.name}</span>.
+                                    </AlertDialogDescription>
+                                  </div>
+                                </div>
+                              </AlertDialogHeader>
+
+                              <AlertDialogFooter className="flex-col sm:flex-row gap-2 pt-4">
+                                <AlertDialogCancel className="w-full sm:w-auto rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-50 cursor-pointer">
+                                  Batal
+                                </AlertDialogCancel>
+
+                                <AlertDialogAction
+                                  asChild
+                                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-200 dark:shadow-none border-none cursor-pointer"
+                                >
+                                  <Button
+                                    type="button"
+                                    variant="default"
+                                    size="sm"
+                                    className="flex items-center gap-2"
+                                    onClick={() => {
+                                      router.patch(analysis.margin.updatePrice(item.id), {
+                                        sell_price: item.recommended_price
+                                      }, {
+                                        onStart: () => toast.loading('Memperbarui harga...', { id: 'margin' }),
+                                        onSuccess: () => toast.success('Harga berhasil diperbarui!', { id: 'margin' }),
+                                        onError: () => toast.error('Gagal memperbarui harga!', { id: 'margin' }),
+                                        preserveScroll: true,
+                                      });
+                                    }}
+                                  >
+                                    Terapkan
+                                  </Button>
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>

@@ -56,22 +56,8 @@ const shareToWhatsApp = (list: any) => {
 };
 
 export default function ActiveLists({ lists }: { lists: any[] }) {
-  const grandTotal = lists.reduce((acc, curr) => acc + Number(curr.total_estimated_price || 0), 0);
 
-  const deleteList = () =>
-    toast.promise<{ name: string }>(
-      new Promise((resolve) => {
-        // Beri jeda sedikit agar user melihat status "loading" di toast
-        setTimeout(() => {
-          resolve({ name: "Berhasil dihapus!" });
-        }, 600);
-      }),
-      {
-        loading: 'Menghapus...',
-        success: (data: any) => { return `${data.name}`; },
-        error: 'Gagal menghapus daftar belanja.',
-      }
-    );
+  const grandTotal = lists.reduce((acc, curr) => acc + Number(curr.total_estimated_price || 0), 0);
 
   return (
     <>
@@ -285,7 +271,9 @@ export default function ActiveLists({ lists }: { lists: any[] }) {
                                   method="delete"
                                   as="button"
                                   preserveScroll={true}
-                                  onClick={deleteList}
+                                  onStart={() => toast.loading('Menghapus...', { id: 'delete' })}
+                                  onSuccess={() => toast.success('Daftar Belanja Berhasil Dihapus', { id: 'delete' })}
+                                  onError={() => toast.error('Daftar Belanja Gagal Dihapus', { id: 'delete' })}
                                 >
                                   Ya, Hapus
                                 </Link>

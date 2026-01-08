@@ -42,21 +42,6 @@ const parseRupiah = (value: string): number => {
 
 export default function Index({ stores, products }: { stores: any[], products: any[] }) {
 
-  const notify = () =>
-    toast.promise<{ name: string }>(
-      new Promise((resolve) => {
-        // Beri jeda sedikit agar user melihat status "loading" di toast
-        setTimeout(() => {
-          resolve({ name: "Berhasil disimpan!" });
-        }, 1000);
-      }),
-      {
-        loading: 'Menyimpan...',
-        success: (data: any) => { return `${data.name}`; },
-        error: 'Gagal menyimpan daftar belanja.',
-      }
-    );
-
   // Inisialisasi useForm agar sinkron dengan Controller store()
   const { data, setData } = useForm({
     store_id: stores?.[0]?.id || '', // Default ke toko pertama
@@ -156,6 +141,9 @@ export default function Index({ stores, products }: { stores: any[], products: a
         <Card className="border-none shadow-sm bg-white/50 dark:bg-slate-900/50 backdrop-blur">
           <CardContent className="p-6">
             <Form {...ShoppingListController.store()}
+              onStart={() => toast.loading('Memproses...', { id: 'create-shopping-list' })}
+              onSuccess={() => toast.success('Daftar belanja berhasil dibuat!', { id: 'create-shopping-list' })}
+              onError={() => toast.error('Gagal membuat daftar belanja.', { id: 'create-shopping-list' })}
               options={{ preserveScroll: true, }}
               className="space-y-6"
             >
@@ -368,7 +356,7 @@ export default function Index({ stores, products }: { stores: any[], products: a
                         )
                       }
                       className="bg-white text-orange-600 hover:bg-slate-100 cursor-pointer w-full md:w-auto px-10 py-6 rounded-xl font-black text-lg shadow-xl transition-transform hover:scale-105 active:scale-95"
-                      onClick={notify}
+                    // onClick={notify}
                     >
                       <Save className="w-5 h-5" />
                       SIMPAN DAFTAR

@@ -41,24 +41,8 @@ const parseRupiah = (value: string): number => {
 };
 
 export default function Edit() {
-  const { list, store, stores, products }: any = usePage<SharedData>().props;
 
-  const updateData = () =>
-    setTimeout(() => {
-      toast.promise<{ name: string }>(
-        new Promise((resolve) => {
-          // Beri jeda sedikit agar user melihat status "loading" di toast
-          setTimeout(() => {
-            resolve({ name: "Berhasil diperbarui!" });
-          }, 600);
-        }),
-        {
-          loading: 'Memperbarui...',
-          success: (data: any) => { return `${data.name}`; },
-          error: 'Gagal memperbarui produk.',
-        }
-      );
-    }, 1000);
+  const { list, store, stores, products }: any = usePage<SharedData>().props;
 
   // Inisialisasi useForm (Data items diambil dari list.items)
   const { data, setData } = useForm({
@@ -129,6 +113,9 @@ export default function Edit() {
         <Card className="border-none shadow-sm bg-white/50 dark:bg-slate-900/50 backdrop-blur">
           <CardContent className="p-6">
             <Form {...ShoppingListController.update.form(list.id)}
+              onStart={() => toast.loading('Memperbarui daftar belanja...', { id: 'update-shopping-list' })}
+              onSuccess={() => toast.success('Daftar belanja berhasil diperbarui!', { id: 'update-shopping-list' })}
+              onError={() => toast.error('Daftar belanja gagal diperbarui!', { id: 'update-shopping-list' })}
               options={{ preserveScroll: true, }}
               className="space-y-6"
             >
@@ -386,7 +373,6 @@ export default function Edit() {
                       type="submit"
                       disabled={processing}
                       className="bg-white text-orange-600 hover:bg-slate-100 cursor-pointer w-full md:w-auto px-10 py-6 rounded-xl font-black text-lg shadow-xl transition-transform hover:scale-105 active:scale-95"
-                      onClick={updateData}
                     >
                       <FolderSync className="w-5 h-5" />
                       PERBARUI
