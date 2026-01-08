@@ -40,7 +40,7 @@ export default function History({ lists }: { lists: any }) {
           error: 'Gagal menduplicate daftar belanja.',
         }
       );
-    }, 400);
+    }, 1000);
 
   const [allItems, setAllItems] = useState(lists.data);
   const [searchQuery, setSearchQuery] = useState('');

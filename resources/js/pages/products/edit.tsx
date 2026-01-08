@@ -47,7 +47,7 @@ export default function Edit({ product }: any) {
           error: 'Gagal memperbarui produk.',
         }
       );
-    }, 400);
+    }, 1000);
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value;

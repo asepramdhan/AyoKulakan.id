@@ -58,7 +58,7 @@ export default function Edit() {
           error: 'Gagal memperbarui produk.',
         }
       );
-    }, 500);
+    }, 1000);
 
   // Inisialisasi useForm (Data items diambil dari list.items)
   const { data, setData } = useForm({

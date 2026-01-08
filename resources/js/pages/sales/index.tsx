@@ -2,6 +2,7 @@
 import SalesRecordController from '@/actions/App/Http/Controllers/SalesRecordController';
 import InputError from '@/components/input-error';
 import { Alert, AlertTitle } from '@/components/ui/alert';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -16,9 +17,10 @@ import AppLayout from '@/layouts/app-layout';
 import salesRecord from '@/routes/sales-record';
 import { type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
-import { Form, Head, router, usePage } from '@inertiajs/react';
-import { ArrowUpRight, CheckCircle2Icon, DollarSign, Loader2, Package2, Pencil, Percent, Plus, Save, Search, Store, TrendingUp, X } from 'lucide-react';
+import { Form, Head, Link, router, usePage } from '@inertiajs/react';
+import { AlertTriangle, ArrowUpRight, CheckCircle2Icon, DollarSign, Loader2, Package2, Pencil, Percent, Plus, Save, Search, Store, TrendingDown, TrendingUp, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -55,7 +57,57 @@ const formatDate = (dateString: string) => {
 
 export default function Index({ products, stores, ...props }: any) {
 
-  const { flash } = usePage().props as any;
+  const createSalesRecord = () =>
+    setTimeout(() => {
+      toast.promise<{ name: string }>(
+        new Promise((resolve) => {
+          // Beri jeda sedikit agar user melihat status "loading" di toast
+          setTimeout(() => {
+            resolve({ name: "Berhasil ditambahkan!" });
+          }, 600);
+        }),
+        {
+          loading: 'Memproses...',
+          success: (data: any) => { return `${data.name}`; },
+          error: 'Gagal menambahkan.',
+        }
+      );
+    }, 600);
+
+  const updateSalesRecord = () =>
+    setTimeout(() => {
+      toast.promise<{ name: string }>(
+        new Promise((resolve) => {
+          // Beri jeda sedikit agar user melihat status "loading" di toast
+          setTimeout(() => {
+            resolve({ name: "Berhasil diperbarui!" });
+          }, 600);
+        }),
+        {
+          loading: 'Memperbarui...',
+          success: (data: any) => { return `${data.name}`; },
+          error: 'Gagal memperbarui.',
+        }
+      );
+    }, 600);
+
+  const deleteSalesRecord = () =>
+    setTimeout(() => {
+      toast.promise<{ name: string }>(
+        new Promise((resolve) => {
+          // Beri jeda sedikit agar user melihat status "loading" di toast
+          setTimeout(() => {
+            resolve({ name: "Berhasil dihapus!" });
+          }, 600);
+        }),
+        {
+          loading: 'Menghapus...',
+          success: (data: any) => { return `${data.name}`; },
+          error: 'Gagal menghapus.',
+        }
+      );
+    }, 600);
+
   const { todayAdCost } = usePage().props as any;
 
   const [dailyAdCost, setDailyAdCost] = useState(todayAdCost?.amount || 0);
@@ -75,27 +127,29 @@ export default function Index({ products, stores, ...props }: any) {
       amount: dailyAdCost,
       note: 'Biaya Iklan Harian'
     }, {
-      onSuccess: () => setIsSavingAd(false),
+      onSuccess: () => {
+        setIsSavingAd(false);
+        setTimeout(() => {
+          toast.promise<{ name: string }>(
+            new Promise((resolve) => {
+              // Beri jeda sedikit agar user melihat status "loading" di toast
+              setTimeout(() => {
+                resolve({ name: "Berhasil disimpan!" });
+              }, 600);
+            }),
+            {
+              loading: 'Menyimpan...',
+              success: (data: any) => { return `${data.name}`; },
+              error: 'Gagal menyimpan.',
+            }
+          );
+        }, 400);
+      },
       preserveScroll: true
     });
   };
 
-  // State lokal untuk mengontrol visibilitas alert
-  const [showSuccess, setShowSuccess] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
-  useEffect(() => {
-    if (flash.message) {
-      setShowSuccess(true);
-
-      // Hilangkan alert setelah 3 detik
-      const timer = setTimeout(() => {
-        setShowSuccess(false);
-      }, 3000);
-
-      return () => clearTimeout(timer); // Cleanup timer jika komponen unmount
-    }
-  }, [flash.message]);
 
   // State untuk filter toko (default 'all')
   const [filterStore, setFilterStore] = useState<string>('all');
@@ -108,20 +162,26 @@ export default function Index({ products, stores, ...props }: any) {
 
   // Contoh data (Nanti data ini datang dari props Laravel)
   const filteredSales = useMemo(() => {
-    if (!salesRecords) return [];
+
+    // Pastikan data ada dan berbentuk array, jika tidak kembalikan array kosong
+    if (!salesRecords || !Array.isArray(salesRecords)) return [];
 
     const now = new Date();
     const startOfDay = new Date(now);
     startOfDay.setHours(0, 0, 0, 0);
 
     const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Penyesuaian ke hari Senin
+    startOfWeek.setDate(diff);
+    startOfWeek.setHours(0, 0, 0, 0);
 
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfYear = new Date(now.getFullYear(), 0, 1);
 
     return salesRecords
       .filter((item: any) => {
+        if (!item.created_at) return false; // Hindari error jika tanggal kosong
         const itemDate = new Date(item.created_at);
 
         // 1. Logika Filter Waktu
@@ -315,318 +375,69 @@ export default function Index({ products, stores, ...props }: any) {
             </p>
           </div>
 
-          {/* TOMBOL UNTUK MEMBUKA MODAL */}
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button
-                onClick={() => {
-                  setIsEditing(false);
-                  setEditId(null);
-                  setData({
-                    date: new Date().toISOString().split('T')[0],
-                    store_id: '',
-                    product_name: '',
-                    qty: 1,
-                    buy_price: 0,
-                    sell_price: 0,
-                    marketplace_fee_percent: 9.5,
-                    marketplace_name: 'Shopee',
-                    promo_extra_percent: 4.5,
-                    shipping_cost: 0,
-                    order_process_fee: 1250,
-                    extra_costs: 0,
-                  });
-                }}
-                className="w-full md:w-auto bg-blue-500 hover:bg-blue-600 text-white cursor-pointer shadow-sm"
-              >
-                <Plus className="w-4 h-4" />
-                Tambah Penjualan
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <Form
-                {...(isEditing
-                  ? SalesRecordController.update.form(editId)
-                  : SalesRecordController.store.form()
-                )}
-                onSuccess={() => {
-                  setOpen(false);
-                  setIsEditing(false);
-                  setEditId(null); // Reset ID edit
-                  setData({ // Reset ke default
-                    date: new Date().toISOString().split('T')[0],
-                    store_id: '',
-                    product_name: '',
-                    qty: 1,
-                    buy_price: 0,
-                    sell_price: 0,
-                    marketplace_fee_percent: 9.5,
-                    marketplace_name: 'Shopee',
-                    promo_extra_percent: 4.5,
-                    shipping_cost: 0,
-                    order_process_fee: 1250,
-                    extra_costs: 0,
-                  });
-                }}
-              >
-                {({ processing, errors }) => (
-                  <>
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2">
-                        {isEditing ? (
-                          <>
-                            <Pencil className="w-5 h-5 text-blue-500" />
-                            Edit Penjualan
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="w-5 h-5 text-blue-500" />
-                            Tambah Penjualan
-                          </>
-                        )}
-                      </DialogTitle>
-                    </DialogHeader>
-                    <ScrollArea className="h-[400px]">
-                      <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="grid gap-2">
-                            <Label>Tanggal Transaksi</Label>
-                            <Input
-                              type="datetime-local"
-                              name="created_at"
-                              defaultValue={(() => {
-                                const sekarang = new Date();
-                                const offset = sekarang.getTimezoneOffset() * 60000;
-                                const waktuLokal = new Date(sekarang.getTime() - offset);
-                                return waktuLokal.toISOString().slice(0, 16);
-                              })()}
-                              className='block w-full'
-                              required
-                            />
-                            <InputError message={errors.created_at} />
-                          </div>
-
-                          <div className='grid grid-cols-4 md:col-span-2 gap-4'>
-                            {/* NAMA PRODUK */}
-                            <div className="grid col-span-3 gap-2">
-                              <Label>Nama Produk</Label>
-                              <Input
-                                list="product-suggestions"
-                                name='product_name'
-                                value={data.product_name}
-                                onChange={(e) => handleProductNameChange(e.target.value)}
-                                autoComplete="off"
-                                placeholder="Contoh: Pakan Kucing"
-                                required
-                              />
-                              <InputError message={errors.product_name} />
-                            </div>
-
-                            <div className="grid gap-2">
-                              <Label className="truncate">Qty</Label>
-                              <Input
-                                ref={qtyInputRef}
-                                type="number"
-                                min="1"
-                                name='qty'
-                                value={data.qty}
-                                onChange={(e) => setData({ ...data, qty: Number(e.target.value) })}
-                                required
-                              />
-                              <InputError message={errors.qty} />
-                            </div>
-                          </div>
-
-                          <datalist id="product-suggestions">
-                            {products.map((p: any) => (
-                              <option key={p.id} value={p.name} />
-                            ))}
-                          </datalist>
-                        </div>
-
-                        {/* QTY, HARGA BELI, HARGA JUAL */}
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="grid gap-2">
-                            <Label className="truncate">Harga Beli (Modal)</Label>
-                            <Input
-                              type="text"
-                              name='buy_price'
-                              value={formatRupiah(data.buy_price)}
-                              onChange={(e) => setData({ ...data, buy_price: parseRupiah(e.target.value) })}
-                              required
-                            />
-                            <InputError message={errors.buy_price} />
-                          </div>
-                          <div className="grid gap-2">
-                            <Label className="truncate">Harga Jual</Label>
-                            <Input
-                              type="text"
-                              name='sell_price'
-                              value={formatRupiah(data.sell_price)}
-                              onChange={(e) => setData({ ...data, sell_price: parseRupiah(e.target.value) })}
-                              required
-                            />
-                            <InputError message={errors.sell_price} />
-                          </div>
-                        </div>
-
-                        {/* MARKETPLACE & FEE ADMIN */}
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="grid gap-2">
-                            <Label>Pilih Toko Anda</Label>
-                            <Select
-                              name='store_id'
-                              value={data.store_id}
-                              onValueChange={(val) => setData({ ...data, store_id: val })}
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Pilih Toko" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectGroup>
-                                  <SelectLabel>Daftar Toko Kamu</SelectLabel>
-                                  {/* 3. Looping data stores dari database */}
-                                  {stores && stores.length > 0 ? (
-                                    stores.map((store: any) => (
-                                      <SelectItem key={store.id} value={store.id.toString()}>
-                                        <span className="capitalize">{store.name}</span>
-                                      </SelectItem>
-                                    ))
-                                  ) : (
-                                    <SelectItem value="none" disabled>Belum ada toko</SelectItem>
-                                  )}
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
-                            <InputError message={errors.store_id} />
-                          </div>
-                          <div className="grid gap-2">
-                            <Label className="truncate">Marketplace</Label>
-                            <Select
-                              name='marketplace_name'
-                              value={data.marketplace_name}
-                              onValueChange={(val) => setData({ ...data, marketplace_name: val })}
-                              required
-                            >
-                              <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Shopee">Shopee</SelectItem>
-                                <SelectItem value="Lazada">Lazada</SelectItem>
-                                <SelectItem value="Tokopedia">Tokopedia</SelectItem>
-                                <SelectItem value="TikTok Shop">TikTok Shop</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <InputError message={errors.marketplace_name} />
-                          </div>
-                        </div>
-
-                        {/* BIAYA PROSES, PROMO, EXTRA */}
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="grid gap-2">
-                            <Label className="truncate">Admin Fee (%)</Label>
-                            <Input
-                              type="number"
-                              name='marketplace_fee_percent'
-                              value={data.marketplace_fee_percent}
-                              onChange={(e) => setData({ ...data, marketplace_fee_percent: Number(e.target.value) })}
-                              required
-                            />
-                            <InputError message={errors.marketplace_fee_percent} />
-                          </div>
-                          <div className="grid gap-2">
-                            <Label className="truncate">Biaya Proses</Label>
-                            <Input
-                              type="text"
-                              name='flat_fees'
-                              value={formatRupiah(data.order_process_fee)}
-                              onChange={(e) => setData({ ...data, order_process_fee: parseRupiah(e.target.value) })}
-                              required
-                            />
-                            <InputError message={errors.flat_fees} />
-                          </div>
-                          <div className="grid gap-2">
-                            <Label className="truncate">Promo Extra (%)</Label>
-                            <Input
-                              type="number"
-                              name='promo_extra_percent'
-                              step="0.1"
-                              value={data.promo_extra_percent}
-                              onChange={(e) => setData({ ...data, promo_extra_percent: Number(e.target.value) })}
-                              required
-                            />
-                          </div>
-                          <div className="grid gap-2">
-                            <Label className="truncate">Lainnya (iklan, dll)</Label>
-                            <Input
-                              type="text"
-                              name='extra_costs'
-                              placeholder="Rp 0"
-                              value={formatRupiah(data.extra_costs)}
-                              onChange={(e) => setData({ ...data, extra_costs: parseRupiah(e.target.value) })}
-                              required
-                            />
-                            <InputError message={errors.extra_costs} />
-                          </div>
-                        </div>
-
-                        {/* RINGKASAN KALKULASI */}
-                        <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-dashed text-xs space-y-1">
-                          <div className="flex justify-between">
-                            <span>Potongan Persen ({(Number(data.marketplace_fee_percent) + Number(data.promo_extra_percent)).toFixed(2)}%):</span>
-                            <span className="text-red-500">
-                              - Rp {formatRupiah((data.sell_price * data.qty * (Number(data.marketplace_fee_percent) + Number(data.promo_extra_percent))) / 100)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span>Biaya Proses & Lainnya:
-                              <p className="text-xs text-slate-400 italic">(iklan, affiliate, dll)</p>
-                            </span>
-                            <span className="text-red-500">
-                              - Rp {formatRupiah(Number(data.order_process_fee) + Number(data.extra_costs))}
-                            </span>
-                          </div>
-                          <div className="flex justify-between font-bold text-sm pt-2 border-t">
-                            <span>Estimasi Profit Bersih:</span>
-                            <span className={(calc.netProfit || 0) >= 0 ? "text-green-600" : "text-red-600"}>
-                              Rp {formatRupiah(calc.netProfit)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </ScrollArea>
-                    <DialogFooter>
-                      <Button
-                        type='button'
-                        variant="ghost"
-                        onClick={() => {
-                          setOpen(false);
-                          setIsEditing(false);
-                        }}
-                      >
-                        Batal
-                      </Button>
-                      <Button
-                        type='submit'
-                        disabled={processing || !data.store_id}
-                        className={`${isEditing ? 'bg-blue-600 hover:bg-blue-700' : 'bg-orange-600 hover:bg-orange-700'} cursor-pointer text-white`}
-                      >
-                        {processing ? (
-                          <><Spinner className="h-4 w-4 animate-spin" /> Menyimpan...</>
-                        ) : (
-                          <><Save className="w-4 h-4" /> {isEditing ? 'Perbarui' : 'Simpan'}</>
-                        )}
-                      </Button>
-                    </DialogFooter>
-                  </>
-                )}
-              </Form>
-            </DialogContent>
-          </Dialog>
         </div>
 
-        <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
+        {/* Dashboard Ringkasan */}
+        <div className="grid gap-4 md:grid-cols-3 mb-4">
+          {/* Total Penjualan */}
+          <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium">Total Penjualan</CardTitle>
+              <DollarSign className="w-4 h-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              {/* Gunakan stats.totalJual agar konsisten dengan hitungan stats */}
+              <div className="text-2xl font-bold">Rp {formatRupiah(stats.totalJual)}</div>
+            </CardContent>
+          </Card>
+
+          {/* Profit Bersih */}
+          <Card className={`${stats.netProfit < 0
+            ? "bg-red-50 dark:bg-red-900/20 border-red-200" // Warna merah jika minus
+            : "bg-green-50 dark:bg-green-900/20 border-green-200" // Warna hijau jika plus
+            }`}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium">Profit Bersih (Real)</CardTitle>
+              {/* Icon berubah jadi TrendingDown jika minus */}
+              {stats.netProfit < 0 ? (
+                <TrendingDown className="w-4 h-4 text-red-600" />
+              ) : (
+                <TrendingUp className="w-4 h-4 text-green-600" />
+              )}
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${stats.netProfit < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                Rp {formatRupiah(stats.netProfit)}
+              </div>
+              <div className="flex justify-between items-center mt-1">
+                <p className="text-[10px] text-muted-foreground">
+                  Bruto: Rp {formatRupiah(stats.grossProfit)}
+                </p>
+                <p className={`text-xs font-semibold ${stats.netProfit < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  {isFinite(stats.margin) ? stats.margin.toFixed(1) : 0}% Margin
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Potongan Admin */}
+          <Card className="bg-orange-50 dark:bg-orange-900/20 border-orange-200">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium">Potongan Admin</CardTitle>
+              <Percent className="w-4 h-4 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              {/* PERBAIKAN: Gunakan stats.totalFee, jangan reduce lagi di sini */}
+              <div className="text-2xl font-bold text-orange-600">
+                Rp {formatRupiah(stats.totalFee)}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="flex flex-col md:flex-row justify-between gap-4">
           {/* Bagian Kiri: Filter Waktu */}
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="flex gap-2 items-center overflow-x-auto pb-2 no-scrollbar scroll-smooth mb-2">
             {['today', 'week', 'month', 'year', 'all'].map((range) => (
               <Button
                 key={range}
@@ -694,106 +505,353 @@ export default function Index({ products, stores, ...props }: any) {
               disabled={isSavingAd}
               className="bg-orange-600 hover:bg-orange-700 text-white shadow-md active:scale-95 transition-transform cursor-pointer"
             >
-              {isSavingAd ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              <Save className="w-4 h-4" />
               Simpan
             </Button>
           </div>
         </div>
 
-        {/* Dashboard Ringkasan */}
-        <div className="grid gap-4 md:grid-cols-3">
-          {/* Total Penjualan */}
-          <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium">Total Penjualan</CardTitle>
-              <DollarSign className="w-4 h-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              {/* Gunakan stats.totalJual agar konsisten dengan hitungan stats */}
-              <div className="text-2xl font-bold">Rp {formatRupiah(stats.totalJual)}</div>
-            </CardContent>
-          </Card>
-
-          {/* Profit Bersih */}
-          <Card className="bg-green-50 dark:bg-green-900/20 border-green-200">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium">Profit Bersih (Real)</CardTitle>
-              <TrendingUp className="w-4 h-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">Rp {formatRupiah(stats.netProfit)}</div>
-              <div className="flex justify-between items-center mt-1">
-                <p className="text-[10px] text-muted-foreground">
-                  Bruto: Rp {formatRupiah(stats.grossProfit)}
-                </p>
-                <p className="text-xs text-green-600 font-semibold">
-                  {isFinite(stats.margin) ? stats.margin.toFixed(1) : 0}% Margin
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Potongan Admin */}
-          <Card className="bg-orange-50 dark:bg-orange-900/20 border-orange-200">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium">Potongan Admin</CardTitle>
-              <Percent className="w-4 h-4 text-orange-600" />
-            </CardHeader>
-            <CardContent>
-              {/* PERBAIKAN: Gunakan stats.totalFee, jangan reduce lagi di sini */}
-              <div className="text-2xl font-bold text-orange-600">
-                Rp {formatRupiah(stats.totalFee)}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Transition
-          show={showSuccess}
-          // Animasi masuk: slide down + fade in
-          enter="transition-all duration-500 ease-out"
-          enterFrom="opacity-0 -translate-y-2 max-h-0"
-          enterTo="opacity-100 translate-y-0 max-h-20"
-          // Animasi keluar: slide up + fade out
-          leave="transition-all duration-300 ease-in"
-          leaveFrom="opacity-100 max-h-20"
-          leaveTo="opacity-0 -translate-y-2 max-h-0"
-        >
-          <Alert className="mb-2 text-green-600 bg-green-50 dark:bg-green-800 dark:text-green-200">
-            <CheckCircle2Icon />
-            <AlertTitle>
-              {flash.message || 'Tersimpan'}
-            </AlertTitle>
-          </Alert>
-        </Transition>
-
         {/* Tabel Data Penjualan */}
         <Card>
-          <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 space-y-0">
+          <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 space-y-0 pb-6">
             <div>
-              <CardTitle className="text-lg">Detail Margin per Produk</CardTitle>
-              <p className="text-xs text-muted-foreground">Menampilkan {filteredSales.length} transaksi</p>
+              <CardTitle className="text-xl font-bold tracking-tight">Detail Margin per Produk</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Menampilkan <span className="font-medium text-foreground">{filteredSales.length}</span> transaksi
+              </p>
             </div>
 
-            {/* INPUT PENCARIAN DI DALAM CARD HEADER */}
-            <div className="relative w-full md:w-72">
-              <Input
-                placeholder="Cari produk..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-9" // h-9 agar tingginya pas dengan desain Shadcn
-              />
-              <span className="absolute left-3 top-2.5 text-muted-foreground">
-                <Search className="w-4 h-4" />
-              </span>
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+              {/* INPUT PENCARIAN */}
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Cari produk..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 pr-9 h-10 bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              {/* TOMBOL UNTUK MEMBUKA MODAL */}
+              <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    onClick={() => {
+                      setIsEditing(false);
+                      setEditId(null);
+                      setData({
+                        date: new Date().toISOString().split('T')[0],
+                        store_id: '',
+                        product_name: '',
+                        qty: 1,
+                        buy_price: 0,
+                        sell_price: 0,
+                        marketplace_fee_percent: 9.5,
+                        marketplace_name: 'Shopee',
+                        promo_extra_percent: 4.5,
+                        shipping_cost: 0,
+                        order_process_fee: 1250,
+                        extra_costs: 0,
+                      });
+                    }}
+                    className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all active:scale-95 gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Tambah Penjualan
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <Form
+                    {...(isEditing
+                      ? SalesRecordController.update.form(editId)
+                      : SalesRecordController.store.form()
+                    )}
+                    options={{ preserveScroll: true }}
+                    onSuccess={() => {
+                      setOpen(false);
+                      setIsEditing(false);
+                      setEditId(null); // Reset ID edit
+                      setData({ // Reset ke default
+                        date: new Date().toISOString().split('T')[0],
+                        store_id: '',
+                        product_name: '',
+                        qty: 1,
+                        buy_price: 0,
+                        sell_price: 0,
+                        marketplace_fee_percent: 9.5,
+                        marketplace_name: 'Shopee',
+                        promo_extra_percent: 4.5,
+                        shipping_cost: 0,
+                        order_process_fee: 1250,
+                        extra_costs: 0,
+                      });
+                    }}
+                  >
+                    {({ processing, errors }) => (
+                      <>
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2">
+                            {isEditing ? (
+                              <>
+                                <Pencil className="w-5 h-5 text-blue-500" />
+                                Edit Penjualan
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="w-5 h-5 text-blue-500" />
+                                Tambah Penjualan
+                              </>
+                            )}
+                          </DialogTitle>
+                        </DialogHeader>
+                        <ScrollArea className="h-[400px]">
+                          <div className="grid gap-4 py-4 mr-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div className="grid gap-2">
+                                <Label>Tanggal Transaksi</Label>
+                                <Input
+                                  type="datetime-local"
+                                  name="created_at"
+                                  defaultValue={(() => {
+                                    const sekarang = new Date();
+                                    const offset = sekarang.getTimezoneOffset() * 60000;
+                                    const waktuLokal = new Date(sekarang.getTime() - offset);
+                                    return waktuLokal.toISOString().slice(0, 16);
+                                  })()}
+                                  className='block w-full'
+                                  required
+                                />
+                                <InputError message={errors.created_at} />
+                              </div>
+
+                              <div className='grid grid-cols-4 md:col-span-2 gap-4'>
+                                {/* NAMA PRODUK */}
+                                <div className="grid col-span-3 gap-2">
+                                  <Label>Nama Produk</Label>
+                                  <Input
+                                    list="product-suggestions"
+                                    name='product_name'
+                                    value={data.product_name}
+                                    onChange={(e) => handleProductNameChange(e.target.value)}
+                                    autoComplete="off"
+                                    placeholder="Contoh: Pakan Kucing"
+                                    required
+                                  />
+                                  <InputError message={errors.product_name} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                  <Label className="truncate">Qty</Label>
+                                  <Input
+                                    ref={qtyInputRef}
+                                    type="number"
+                                    min="1"
+                                    name='qty'
+                                    value={data.qty}
+                                    onChange={(e) => setData({ ...data, qty: Number(e.target.value) })}
+                                    required
+                                  />
+                                  <InputError message={errors.qty} />
+                                </div>
+                              </div>
+
+                              <datalist id="product-suggestions">
+                                {products.map((p: any) => (
+                                  <option key={p.id} value={p.name} />
+                                ))}
+                              </datalist>
+                            </div>
+
+                            {/* QTY, HARGA BELI, HARGA JUAL */}
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="grid gap-2">
+                                <Label className="truncate">Harga Beli (Modal)</Label>
+                                <Input
+                                  type="text"
+                                  name='buy_price'
+                                  value={formatRupiah(data.buy_price)}
+                                  onChange={(e) => setData({ ...data, buy_price: parseRupiah(e.target.value) })}
+                                  required
+                                />
+                                <InputError message={errors.buy_price} />
+                              </div>
+                              <div className="grid gap-2">
+                                <Label className="truncate">Harga Jual</Label>
+                                <Input
+                                  type="text"
+                                  name='sell_price'
+                                  value={formatRupiah(data.sell_price)}
+                                  onChange={(e) => setData({ ...data, sell_price: parseRupiah(e.target.value) })}
+                                  required
+                                />
+                                <InputError message={errors.sell_price} />
+                              </div>
+                            </div>
+
+                            {/* MARKETPLACE & FEE ADMIN */}
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="grid gap-2">
+                                <Label>Pilih Toko Anda</Label>
+                                <Select
+                                  name='store_id'
+                                  value={data.store_id}
+                                  onValueChange={(val) => setData({ ...data, store_id: val })}
+                                >
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Pilih Toko" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectGroup>
+                                      <SelectLabel>Daftar Toko Kamu</SelectLabel>
+                                      {/* 3. Looping data stores dari database */}
+                                      {stores && stores.length > 0 ? (
+                                        stores.map((store: any) => (
+                                          <SelectItem key={store.id} value={store.id.toString()}>
+                                            <span className="capitalize">{store.name}</span>
+                                          </SelectItem>
+                                        ))
+                                      ) : (
+                                        <SelectItem value="none" disabled>Belum ada toko</SelectItem>
+                                      )}
+                                    </SelectGroup>
+                                  </SelectContent>
+                                </Select>
+                                <InputError message={errors.store_id} />
+                              </div>
+                              <div className="grid gap-2">
+                                <Label className="truncate">Marketplace</Label>
+                                <Select
+                                  name='marketplace_name'
+                                  value={data.marketplace_name}
+                                  onValueChange={(val) => setData({ ...data, marketplace_name: val })}
+                                  required
+                                >
+                                  <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Shopee">Shopee</SelectItem>
+                                    <SelectItem value="Lazada">Lazada</SelectItem>
+                                    <SelectItem value="Tokopedia">Tokopedia</SelectItem>
+                                    <SelectItem value="TikTok Shop">TikTok Shop</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <InputError message={errors.marketplace_name} />
+                              </div>
+                            </div>
+
+                            {/* BIAYA PROSES, PROMO, EXTRA */}
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="grid gap-2">
+                                <Label className="truncate">Admin Fee (%)</Label>
+                                <Input
+                                  type="number"
+                                  name='marketplace_fee_percent'
+                                  value={data.marketplace_fee_percent}
+                                  onChange={(e) => setData({ ...data, marketplace_fee_percent: Number(e.target.value) })}
+                                  required
+                                />
+                                <InputError message={errors.marketplace_fee_percent} />
+                              </div>
+                              <div className="grid gap-2">
+                                <Label className="truncate">Biaya Proses</Label>
+                                <Input
+                                  type="text"
+                                  name='flat_fees'
+                                  value={formatRupiah(data.order_process_fee)}
+                                  onChange={(e) => setData({ ...data, order_process_fee: parseRupiah(e.target.value) })}
+                                  required
+                                />
+                                <InputError message={errors.flat_fees} />
+                              </div>
+                              <div className="grid gap-2">
+                                <Label className="truncate">Promo Extra (%)</Label>
+                                <Input
+                                  type="number"
+                                  name='promo_extra_percent'
+                                  step="0.1"
+                                  value={data.promo_extra_percent}
+                                  onChange={(e) => setData({ ...data, promo_extra_percent: Number(e.target.value) })}
+                                  required
+                                />
+                              </div>
+                              <div className="grid gap-2">
+                                <Label className="truncate">Lainnya (iklan, dll)</Label>
+                                <Input
+                                  type="text"
+                                  name='extra_costs'
+                                  placeholder="Rp 0"
+                                  value={formatRupiah(data.extra_costs)}
+                                  onChange={(e) => setData({ ...data, extra_costs: parseRupiah(e.target.value) })}
+                                  required
+                                />
+                                <InputError message={errors.extra_costs} />
+                              </div>
+                            </div>
+
+                            {/* RINGKASAN KALKULASI */}
+                            <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-dashed text-xs space-y-1">
+                              <div className="flex justify-between">
+                                <span>Potongan Persen ({(Number(data.marketplace_fee_percent) + Number(data.promo_extra_percent)).toFixed(2)}%):</span>
+                                <span className="text-red-500">
+                                  - Rp {formatRupiah((data.sell_price * data.qty * (Number(data.marketplace_fee_percent) + Number(data.promo_extra_percent))) / 100)}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span>Biaya Proses & Lainnya:
+                                  <p className="text-xs text-slate-400 italic">(iklan, affiliate, dll)</p>
+                                </span>
+                                <span className="text-red-500">
+                                  - Rp {formatRupiah(Number(data.order_process_fee) + Number(data.extra_costs))}
+                                </span>
+                              </div>
+                              <div className="flex justify-between font-bold text-sm pt-2 border-t">
+                                <span>Estimasi Profit Bersih:</span>
+                                <span className={(calc.netProfit || 0) >= 0 ? "text-green-600" : "text-red-600"}>
+                                  Rp {formatRupiah(calc.netProfit)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </ScrollArea>
+                        <DialogFooter>
+                          <Button
+                            type='button'
+                            variant="ghost"
+                            onClick={() => {
+                              setOpen(false);
+                              setIsEditing(false);
+                            }}
+                          >
+                            Batal
+                          </Button>
+                          <Button
+                            type='submit'
+                            disabled={processing || !data.store_id}
+                            className={`${isEditing ? 'bg-blue-600 hover:bg-blue-700' : 'bg-orange-600 hover:bg-orange-700'} cursor-pointer text-white`}
+                            onClick={() => {
+                              if (isEditing) {
+                                updateSalesRecord();
+                              } else {
+                                createSalesRecord();
+                              }
+                            }}
+                          >
+                            <Save className="w-4 h-4" />
+                            {isEditing ? 'Perbarui' : 'Simpan'}
+                          </Button>
+                        </DialogFooter>
+                      </>
+                    )}
+                  </Form>
+                </DialogContent>
+              </Dialog>
             </div>
           </CardHeader>
           <CardContent>
@@ -890,17 +948,59 @@ export default function Index({ products, stores, ...props }: any) {
                             >
                               <Pencil className="w-4 h-4" />
                             </Button>
-                            <Form {...SalesRecordController.destroy.form(item.id)}>
-                              <Button
-                                type="submit"
-                                variant="ghost"
-                                size="sm"
-                                className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer"
-                                onClick={(e) => { if (!confirm('Apakah Anda yakin ingin menghapus data ini?')) { e.preventDefault(); } }}
-                              >
-                                <Plus className="w-4 h-4 rotate-45" />
-                              </Button>
-                            </Form>
+                            {/* Tombol hapus */}
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer"
+                                >
+                                  <Plus className="w-4 h-4 rotate-45" />
+                                </Button>
+                              </AlertDialogTrigger>
+
+                              <AlertDialogContent className="w-[90vw] max-w-[400px] rounded-[2rem] p-6 gap-6 sm:w-full">
+                                <AlertDialogHeader>
+                                  <div className="flex flex-col items-center gap-4 text-center">
+                                    {/* Icon Warning yang Cantik */}
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-900/30">
+                                      <AlertTriangle className="h-6 w-6 text-rose-600" />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                      <AlertDialogTitle className="text-xl font-bold tracking-tight">
+                                        Hapus Daftar Transaksi Penjualan
+                                      </AlertDialogTitle>
+                                      <AlertDialogDescription className="text-sm text-slate-500 dark:text-slate-400">
+                                        Apakah kamu yakin ingin menghapus transaksi <span className="font-bold text-slate-900 dark:text-slate-200">"{item.product_name}"</span>?
+                                      </AlertDialogDescription>
+                                    </div>
+                                  </div>
+                                </AlertDialogHeader>
+
+                                <AlertDialogFooter className="flex-col sm:flex-row gap-2 pt-4">
+                                  <AlertDialogCancel className="w-full sm:w-auto rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-50 cursor-pointer">
+                                    Batal
+                                  </AlertDialogCancel>
+
+                                  <AlertDialogAction
+                                    asChild
+                                    className="w-full sm:w-auto bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-lg shadow-rose-200 dark:shadow-none border-none cursor-pointer"
+                                  >
+                                    <Link
+                                      href={salesRecord.destroy(item.id)}
+                                      method="delete"
+                                      as="button"
+                                      preserveScroll={true}
+                                      onClick={deleteSalesRecord}
+                                    >
+                                      Ya, Hapus
+                                    </Link>
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -908,7 +1008,10 @@ export default function Index({ products, stores, ...props }: any) {
                   })}
                 </TableBody>
                 <TableFooter>
-                  <TableRow className="bg-slate-50/50 dark:bg-slate-900/50">
+                  <TableRow className={`${stats.netProfit < 0
+                    ? "bg-red-50/50 dark:bg-red-900/20" // Background agak kemerahan jika minus
+                    : "bg-slate-50/50 dark:bg-slate-900/50" // Background standar jika plus
+                    }`}>
                     {/* Menggunakan colSpan=2 karena sekarang ada kolom Tanggal + Produk & Toko */}
                     <TableHead colSpan={2} className="font-bold uppercase text-[12px] py-4">
                       Total Keseluruhan
@@ -929,9 +1032,10 @@ export default function Index({ products, stores, ...props }: any) {
                       - Rp {formatRupiah(stats.totalFee)}
                     </TableHead>
 
-                    {/* Margin/Profit */}
-                    <TableHead className="text-right font-bold text-green-600 text-lg">
-                      Rp {formatRupiah(stats.netProfit)}
+                    {/* Margin/Profit - Dinamis */}
+                    <TableHead className={`text-right font-bold text-lg ${stats.netProfit < 0 ? "text-red-600" : "text-green-600"
+                      }`}>
+                      {stats.netProfit < 0 ? `- Rp ${formatRupiah(Math.abs(stats.netProfit))}` : `Rp ${formatRupiah(stats.netProfit)}`}
                     </TableHead>
 
                     {/* Kolom Aksi (Kosong) */}

@@ -74,7 +74,7 @@ export default function Index({ products, stores, filters }: any) {
           error: 'Gagal memproses daftar restock.',
         }
       );
-    }, 400);
+    }, 1000);
 
   const deleteProduct = () =>
     setTimeout(() => {
@@ -213,7 +213,7 @@ export default function Index({ products, stores, filters }: any) {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="font-bold text-[10px] bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-lg px-2 py-0.5">
+                          <Badge variant="outline" className="font-bold text-[10px] bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-lg px-2 py-0.5 capitalize">
                             {product.store?.name}
                           </Badge>
                         </TableCell>
