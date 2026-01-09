@@ -24,6 +24,7 @@ export default function Login({
     canResetPassword,
     canRegister,
 }: LoginProps) {
+
     return (
         <AuthLayout
             title="Selamat Datang Kembali"
@@ -42,7 +43,7 @@ export default function Login({
             <Form
                 {...store.form()}
                 resetOnSuccess={['password']}
-                onStart={() => toast.loading('Memuat...', { id: 'account-login' })}
+                onStart={() => toast.loading('Memvalidasi akun...', { id: 'account-login' })}
                 onSuccess={() => toast.success('Selamat datang kembali!', { id: 'account-login' })}
                 onError={() => toast.error('Email atau kata sandi salah.', { id: 'account-login' })}
                 className="flex flex-col gap-6"

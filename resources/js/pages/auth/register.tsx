@@ -7,9 +7,10 @@ import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
+// import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
 import AppLogoIcon from '@/components/app-logo-icon';
+import toast from 'react-hot-toast';
 
 export default function Register() {
     return (
@@ -28,6 +29,9 @@ export default function Register() {
 
             <Form
                 {...store.form()}
+                onStart={() => toast.loading('Memvalidasi akun...', { id: 'account-register' })}
+                onSuccess={() => toast.success('Akun berhasil dibuat!', { id: 'account-register' })}
+                onError={() => toast.error('Akun gagal dibuat.', { id: 'account-register' })}
                 resetOnSuccess={['password', 'password_confirmation']}
                 disableWhileProcessing
                 className="flex flex-col gap-5"
@@ -100,9 +104,10 @@ export default function Register() {
                                 type="submit"
                                 className="mt-2 w-full h-12 bg-orange-600 hover:bg-orange-700 text-white font-bold text-lg rounded-xl transition-all active:scale-95 shadow-lg shadow-orange-100 dark:shadow-none"
                                 tabIndex={5}
+                                disabled={processing}
                                 data-test="register-user-button"
                             >
-                                {processing ? <Spinner className="mr-2" /> : null}
+                                {/* {processing ? <Spinner className="mr-2" /> : null} */}
                                 Daftar Sekarang
                             </Button>
                         </div>

@@ -251,6 +251,19 @@ export default function Index({ products, stores, ...props }: any) {
 
   const qtyInputRef = useRef<HTMLInputElement>(null);
 
+  const applyStoreDefaults = (storeId: string) => {
+    const selectedStore = stores.find((s: any) => s.id.toString() === storeId);
+    if (selectedStore) {
+      setData(prev => ({
+        ...prev,
+        store_id: storeId,
+        marketplace_fee_percent: selectedStore.default_admin_fee || 0,
+        promo_extra_percent: selectedStore.default_promo_fee || 0,
+        order_process_fee: selectedStore.default_process_fee || 0,
+      }));
+    }
+  };
+
   // Fungsi Handler khusus untuk Nama Produk
   const handleProductNameChange = (value: string) => {
     // 1. Update nama produk di state
@@ -267,8 +280,16 @@ export default function Index({ products, stores, ...props }: any) {
         ...prev,
         product_name: value,
         buy_price: foundProduct.last_price || 0,
-        sell_price: foundProduct.last_sell_price || 0
+        sell_price: foundProduct.last_sell_price || 0,
+        // tambah field select store otomatis
+        store_id: foundProduct.store_id || '',
       }));
+
+      // --- OTOMATIS PILIH TOKO ---
+      // Jika produk ketemu dan punya store_id (asumsi di tabel produk ada store_id terakhir)
+      if (foundProduct.store_id) {
+        applyStoreDefaults(foundProduct.store_id.toString());
+      }
     }
 
     if (foundProduct) {
@@ -654,7 +675,7 @@ export default function Index({ products, stores, ...props }: any) {
                                 <Select
                                   name='store_id'
                                   value={data.store_id}
-                                  onValueChange={(val) => setData({ ...data, store_id: val })}
+                                  onValueChange={(val) => applyStoreDefaults(val)}
                                 >
                                   <SelectTrigger className="w-full">
                                     <SelectValue placeholder="Pilih Toko" />

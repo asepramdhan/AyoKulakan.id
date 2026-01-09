@@ -2,7 +2,7 @@
 import { login } from '@/routes';
 import { email } from '@/routes/password';
 import { Form, Head } from '@inertiajs/react';
-import { LoaderCircle, Mail } from 'lucide-react'; // Tambah icon Mail
+import { Mail } from 'lucide-react'; // Tambah icon Mail
 
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
 import AppLogoIcon from '@/components/app-logo-icon';
+import toast from 'react-hot-toast';
 
 export default function ForgotPassword({ status }: { status?: string }) {
     return (
@@ -22,21 +23,28 @@ export default function ForgotPassword({ status }: { status?: string }) {
 
             {/* Logo Section */}
             <div className="flex flex-col items-center mb-8">
-                <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl mb-2">
-                    <AppLogoIcon className="w-8 h-8 text-orange-600" />
-                </div>
+                <TextLink href={login.url()}>
+                    <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl mb-2">
+                        <AppLogoIcon className="w-8 h-8 text-orange-600" />
+                    </div>
+                </TextLink>
             </div>
 
             {status ? (
-                <div className="mb-6 p-4 rounded-xl bg-green-50 border border-green-100 text-center">
-                    <p className="text-sm font-bold text-green-600">
+                <div className="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-100 dark:bg-gray-800 dark:border-gray-700 text-center">
+                    <p className="text-sm font-bold text-blue-700 dark:text-blue-400">
                         {status}
                     </p>
-                    <p className="text-xs text-green-500 mt-1">Silakan periksa folder inbox atau spam Anda.</p>
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">Link reset kata sandi telah dikirim, Silakan periksa folder inbox atau spam Anda.</p>
                 </div>
             ) : (
                 <div className="space-y-6">
-                    <Form {...email.form()}>
+                    <Form
+                        {...email.form()}
+                        onStart={() => toast.loading('Memvalidasi akun...', { id: 'account-login' })}
+                        onSuccess={() => toast.success('Tautan pemulihan berhasil dikirim!', { id: 'account-login' })}
+                        onError={() => toast.error('Email tidak terdaftar.', { id: 'account-login' })}
+                    >
                         {({ processing, errors }) => (
                             <>
                                 <div className="grid gap-2">
@@ -62,9 +70,9 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                         disabled={processing}
                                         data-test="email-password-reset-link-button"
                                     >
-                                        {processing ? (
+                                        {/* {processing ? (
                                             <LoaderCircle className="mr-2 h-5 w-5 animate-spin" />
-                                        ) : null}
+                                        ) : null} */}
                                         Kirim Link Reset
                                     </Button>
                                 </div>

@@ -98,7 +98,7 @@ export default function Index({ products, stores, filters }: any) {
             </p>
           </div>
           <Link href={shopping.index().url}>
-            <Button className="bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-600/20 border-none font-bold rounded-xl h-11 px-6 active:scale-95 transition-all">
+            <Button className="bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-600/20 border-none font-bold rounded-xl h-11 w-full md:w-auto px-6 active:scale-95 transition-all">
               <PlusCircle className="w-4 h-4" />
               Tambah / Restok
             </Button>

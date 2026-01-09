@@ -33,16 +33,27 @@ class StoreController extends Controller
      */
     public function store(Request $request)
     {
+        // bersihkan dulu untuk data input default_process_fee agar angkanya murni
+        $request->merge([
+            'default_process_fee' => (float) str_replace(['.', ','], '', (string)$request->default_process_fee ?? 0),
+        ]);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'default_admin_fee' => 'nullable|numeric',
+            'default_promo_fee' => 'nullable|numeric',
+            'default_process_fee' => 'nullable|numeric',
         ]);
 
         Auth::user()->stores()->create([
             'name' => $validated['name'],
             'slug' => Str::slug($validated['name']),
+            'default_admin_fee' => $request->default_admin_fee ?? 0,
+            'default_promo_fee' => $request->default_promo_fee ?? 0,
+            'default_process_fee' => $request->default_process_fee ?? 0,
         ]);
 
-        return back()->with('message', 'Toko berhasil ditambahkan!');
+        return back();
     }
 
     /**
