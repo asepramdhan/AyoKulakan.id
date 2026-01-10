@@ -16,6 +16,8 @@ export interface NavGroup {
 }
 
 export interface NavItem {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    badge?: any;
     title: string;
     href: NonNullable<InertiaLinkProps['href']>;
     icon?: LucideIcon | null;

@@ -6,6 +6,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SalesRecordController;
 use App\Http\Controllers\ShoppingListController;
 use App\Http\Controllers\StoreController;
+use App\Http\Controllers\SupplyController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -39,6 +40,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('analysis.margin.update-price');
 
     Route::resource('shopping', ShoppingListController::class);
+    Route::resource('supplies', SupplyController::class);
     Route::resource('products', ProductController::class);
     Route::resource('stores', StoreController::class);
     Route::resource('sales-record', SalesRecordController::class);

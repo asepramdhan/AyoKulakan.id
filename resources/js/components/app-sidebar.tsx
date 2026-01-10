@@ -14,13 +14,14 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
-import { BadgeDollarSign, History, LayoutGrid, Package2Icon, PieChart, ShoppingBag, ShoppingCart, Store } from 'lucide-react';
+import { BadgeDollarSign, Box, History, LayoutGrid, Package2Icon, PieChart, ShoppingBag, ShoppingCart, Store } from 'lucide-react';
 import shopping from '@/routes/shopping';
 import products from '@/routes/products';
 import stores from '@/routes/stores';
 import analysis from '@/routes/analysis';
 import salesRecord from '@/routes/sales-record';
 import AppLogoIcon from './app-logo-icon';
+import supplies from '@/routes/supplies';
 
 const mainNavItems: NavItem[] = [
     {
@@ -46,6 +47,12 @@ const mainNavItems: NavItem[] = [
 ];
 
 const managementNavItems: NavItem[] = [
+    {
+        title: 'Operasional',
+        href: supplies.index(),
+        icon: Box,
+        badge: 'Beta',
+    },
     {
         title: 'Master Produk',
         href: products.index(),
@@ -122,7 +129,9 @@ export function AppSidebar() {
                         <NavMain items={managementNavItems} />
                     </SidebarMenu>
                     <SidebarGroupLabel>Fitur Premium
-                        <span className="text-xs text-muted-foreground ml-1 italic">(Beta)</span>
+                        <span className="ml-auto flex h-4 items-center justify-center rounded bg-indigo-100 px-1 text-[9px] font-black uppercase tracking-widest text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30">
+                            Beta
+                        </span>
                     </SidebarGroupLabel>
                     <SidebarMenu>
                         <NavMain items={premiumNavItems} />

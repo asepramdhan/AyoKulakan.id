@@ -6,6 +6,7 @@ use App\Models\DailyCost;
 use App\Models\Product;
 use App\Models\SalesRecord;
 use App\Models\Store;
+use App\Models\Supply;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +45,7 @@ class SalesRecordController extends Controller
      */
     public function store(Request $request)
     {
-        // 1. Bersihkan format harga (Cegah error jika input mengandung titik/koma)
+        // 1. Bersihkan format harga
         $request->merge([
             'buy_price' => (float) str_replace(['.', ','], '', (string)$request->buy_price),
             'sell_price' => (float) str_replace(['.', ','], '', (string)$request->sell_price),
@@ -96,8 +97,9 @@ class SalesRecordController extends Controller
         $profit = $totalSellPrice - ($validated['buy_price'] * $quantity) - $totalPotongan - ($validated['shipping_cost'] ?? 0);
 
         try {
+            // SEMUA PROSES PERUBAHAN DATA HARUS DI DALAM TRANSACTION
             DB::transaction(function () use ($validated, $profit, $quantity) {
-                // Cari Produk & Update Harga & POTONG STOK
+                // A. Update/Create Produk Master & Potong Stok Produk
                 $product = Product::where('user_id', Auth::id())
                     ->where('name', $validated['product_name'])
                     ->first();
@@ -120,7 +122,7 @@ class SalesRecordController extends Controller
                     ]);
                 }
 
-                // Simpan data transaksi
+                // B. Simpan data transaksi
                 SalesRecord::create([
                     'user_id'                 => Auth::id(),
                     'created_at'              => $validated['created_at'] ?? now(),
@@ -137,11 +139,24 @@ class SalesRecordController extends Controller
                     'extra_costs'             => $validated['extra_costs'] ?? 0,
                     'profit'                  => $profit,
                 ]);
+
+                // C. LOGIKA OTOMATIS POTONG STOK BAHAN PACKING (Pindahkan ke sini)
+                $supplies = Supply::where('user_id', Auth::id())->get();
+
+                foreach ($supplies as $supply) {
+                    if ($supply->reduction_type === 'per_transaction') {
+                        // Kertas Thermal / Lakban (Apapun QTY-nya, potong 1 resi)
+                        $supply->decrement('current_stock', 1);
+                    } elseif ($supply->reduction_type === 'per_item') {
+                        // Plastik Packing (Potong sesuai jumlah barang yang dibeli)
+                        $supply->decrement('current_stock', $quantity);
+                    }
+                }
             });
 
-            return back()->with('message', 'Data penjualan berhasil disimpan!');
+            return back();
         } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Gagal: ' . $e->getMessage()]);
+            return back();
         }
     }
 
