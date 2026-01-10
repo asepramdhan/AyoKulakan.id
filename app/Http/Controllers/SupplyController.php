@@ -14,10 +14,10 @@ class SupplyController extends Controller
      */
     public function index()
     {
-        $supplies = Supply::all();
+        $supplies = Supply::where('user_id', Auth::id())->get();
 
         return Inertia::render('supplies/index', [
-            'supplies' => $supplies
+            'supplyData' => $supplies
         ]);
     }
 
@@ -78,16 +78,56 @@ class SupplyController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Supply $supply)
+    public function update(Request $request, $id)
     {
-        //
+        // 1. Validasi Input
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'initial_stock' => 'required|integer|min:0',
+            'unit' => 'required|string|max:50',
+            'reduction_type' => 'required|in:per_transaction,per_item',
+            'min_stock_alert' => 'nullable|integer|min:0',
+        ]);
+
+        // 2. Simpan ke Database
+        Supply::where('id', $id)->where('user_id', Auth::id())->update([
+            'name' => $validated['name'],
+            'initial_stock' => $validated['initial_stock'],
+            'unit' => $validated['unit'],
+            'reduction_type' => $validated['reduction_type'],
+            'min_stock_alert' => $request->min_stock_alert ?? 10,
+        ]);
+
+        // 3. Kembali
+        return back();
     }
 
+    // Metode untuk menambah stok
+    public function restock(Request $request, Supply $supply)
+    {
+        dd($request->all());
+        if ($supply->user_id !== Auth::id()) abort(403);
+
+        $validated = $request->validate([
+            'amount' => 'required|integer|min:1',
+        ]);
+
+        $newStock = $supply->current_stock + $validated['amount'];
+
+        $supply->update([
+            'current_stock' => $newStock,
+            // Kita update initial_stock juga agar persentase sisa stok kembali akurat
+            'initial_stock' => $newStock,
+        ]);
+
+        return back();
+    }
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Supply $supply)
+    public function destroy($id)
     {
-        //
+        Supply::where('id', $id)->where('user_id', Auth::id())->delete();
+        return back();
     }
 }
