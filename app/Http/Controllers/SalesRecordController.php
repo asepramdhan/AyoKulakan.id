@@ -234,13 +234,19 @@ class SalesRecordController extends Controller
                     $product->save();
                 }
 
-                // Product::updateOrCreate(
-                //     ['user_id' => Auth::id(), 'name' => $validated['product_name']],
-                //     [
-                //         'last_price' => $validated['buy_price'],
-                //         'last_sell_price' => $validated['sell_price']
-                //     ]
-                // );
+                // --- START: TAMBAHAN LOGIKA UPDATE STOK SUPPLY (Bahan Packing) ---
+                $supplies = Supply::where('user_id', Auth::id())->get();
+
+                foreach ($supplies as $supply) {
+                    if ($supply->reduction_type === 'per_item') {
+                        // Plastik Packing: Balikkan Qty lama, kurangi Qty baru
+                        $supply->current_stock = ($supply->current_stock + $oldQty) - $newQty;
+                        $supply->save();
+                    }
+                    // Catatan: untuk 'per_transaction' (Kertas Thermal), 
+                    // kita tidak edit stoknya karena update Qty barang tidak mengubah jumlah resi.
+                }
+                // --- END: TAMBAHAN LOGIKA UPDATE STOK SUPPLY ---
 
                 // 3. Update data
                 $record->update(array_merge($validated, [
@@ -250,9 +256,9 @@ class SalesRecordController extends Controller
                 ]));
             });
 
-            return back()->with('message', 'Data berhasil diperbarui!');
+            return back();
         } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Gagal update: ' . $e->getMessage()]);
+            return back();
         }
     }
 
@@ -296,10 +302,21 @@ class SalesRecordController extends Controller
                 $product->increment('stock', $sales->qty);
             }
 
+            $supplies = Supply::where('user_id', Auth::id())->get();
+
+            foreach ($supplies as $supply) {
+                if ($supply->reduction_type === 'per_transaction') {
+                    // Kembalikan 1 unit (karena 1 transaksi = 1 resi/kertas)
+                    $supply->increment('current_stock', 1);
+                } elseif ($supply->reduction_type === 'per_item') {
+                    // PERBAIKAN: Gunakan $sales->qty (bukan $record)
+                    $supply->increment('current_stock', $sales->qty);
+                }
+            }
             // 2. Hapus datanya
             $sales->delete();
         });
 
-        return back()->with('message', 'Data penjualan berhasil dihapus!');
+        return back();
     }
 }
