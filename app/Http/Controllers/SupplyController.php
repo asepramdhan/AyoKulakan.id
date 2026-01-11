@@ -101,7 +101,6 @@ class SupplyController extends Controller
         // 3. Kembali
         return back();
     }
-
     // Metode untuk menambah stok
     public function restock(Request $request, Supply $supply)
     {

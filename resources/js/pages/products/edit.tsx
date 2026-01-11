@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import products from '@/routes/products';
 import { type BreadcrumbItem } from '@/types';
-import { Form, Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Package2 } from 'lucide-react';
+import { Form, Head, Link, useForm } from '@inertiajs/react';
+import { ArrowLeft, Package2, Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const formatRupiah = (value: any) => {
@@ -30,7 +31,30 @@ const breadcrumbs: BreadcrumbItem[] = [
   },
 ];
 
-export default function Edit({ product }: any) {
+export default function Edit({ product, supplies }: any) {
+  // 1. Inisialisasi useForm secara manual
+  const { data, setData } = useForm({
+    // Kita kirim array of objects ke controller
+    packagings: product.packagings?.length > 0
+      ? product.packagings
+      : [{ supply_id: "", min_qty: 1, max_qty: "" }],
+  });
+
+  const addRow = () => {
+    setData('packagings', [...data.packagings, { supply_id: "", min_qty: 1, max_qty: "" }]);
+  };
+
+  const removeRow = (index: number) => {
+    const newPackagings = [...data.packagings];
+    newPackagings.splice(index, 1);
+    setData('packagings', newPackagings);
+  };
+
+  const updateRow = (index: number, field: string, value: any) => {
+    const newPackagings = [...data.packagings];
+    newPackagings[index] = { ...newPackagings[index], [field]: value };
+    setData('packagings', newPackagings);
+  };
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value;
@@ -114,6 +138,77 @@ export default function Edit({ product }: any) {
                       </div>
                       <InputError message={errors.last_price || errors.price} />
                     </div>
+                  </div>
+
+                  {/* BAGIAN DINAMIS: ATURAN PACKING */}
+                  <div className="space-y-4 border-t dark:border-zinc-800 pt-6">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-sm font-bold uppercase text-orange-500">Aturan Penggunaan Plastik</Label>
+                      <Button type="button" onClick={addRow} variant="outline" size="sm" className="h-8">
+                        <Plus className="w-4 h-4 mr-1" /> Tambah Aturan
+                      </Button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {data.packagings.map((row: any, index: number) => (
+                        <div key={index} className="flex flex-wrap md:flex-nowrap items-end gap-3 p-3 rounded-lg border dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/30">
+                          <div className="flex-1 min-w-[200px] space-y-1">
+                            <Label className="text-[10px] text-zinc-500">PILIH PLASTIK</Label>
+                            <Select
+                              name={`packagings.${index}.supply_id`}
+                              value={row.supply_id?.toString()}
+                              onValueChange={(val) => updateRow(index, 'supply_id', val)}
+                            >
+                              <SelectTrigger className="dark:bg-zinc-900"><SelectValue placeholder="Pilih Plastik..." /></SelectTrigger>
+                              <SelectContent>
+                                {supplies.map((s: any) => (
+                                  <SelectItem key={s.id} value={s.id.toString()}>
+                                    <span className="capitalize">{s.name}</span>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <InputError message={errors[`packagings.${index}.supply_id`]} />
+                          </div>
+
+                          <div className="w-24 space-y-1">
+                            <Label className="text-[10px] text-zinc-500">MIN QTY</Label>
+                            <Input
+                              type="number"
+                              name={`packagings.${index}.min_qty`}
+                              value={row.min_qty}
+                              onChange={e => updateRow(index, 'min_qty', e.target.value)}
+                              className="dark:bg-zinc-900"
+                            />
+                            <InputError message={errors[`packagings.${index}.min_qty`]} />
+                          </div>
+
+                          <div className="w-24 space-y-1">
+                            <Label className="text-[10px] text-zinc-500">MAX QTY</Label>
+                            <Input
+                              name={`packagings.${index}.max_qty`}
+                              type="number"
+                              placeholder="∞"
+                              value={row.max_qty || ''}
+                              onChange={e => updateRow(index, 'max_qty', e.target.value)}
+                              className="dark:bg-zinc-900"
+                            />
+                            <InputError message={errors[`packagings.${index}.max_qty`]} />
+                          </div>
+
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => removeRow(index)}
+                            disabled={data.packagings.length === 1}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-zinc-500 italic">* Max Qty dikosongkan jika ingin "Qty ke atas" (contoh: Min 5, Max kosong berarti untuk semua pembelian 5 ke atas).</p>
                   </div>
 
                   <div className="flex items-center justify-end gap-4 pt-4 border-t dark:border-zinc-800">

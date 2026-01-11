@@ -24,4 +24,9 @@ class Product extends Model
         // Dan pastikan di tabel shopping_list_items ada kolom 'product_id'
         return $this->hasMany(ShoppingItem::class);
     }
+    // Relasi ke model ProductPackaging
+    public function packagings(): HasMany
+    {
+        return $this->hasMany(ProductPackaging::class);
+    }
 }

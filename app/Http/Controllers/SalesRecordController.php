@@ -141,15 +141,19 @@ class SalesRecordController extends Controller
                 ]);
 
                 // C. LOGIKA OTOMATIS POTONG STOK BAHAN PACKING (Pindahkan ke sini)
-                $supplies = Supply::where('user_id', Auth::id())->get();
+                // 1. Potong bahan yang selalu keluar per transaksi (Kertas Thermal/Resi)
+                Supply::where('user_id', Auth::id())
+                    ->where('reduction_type', 'per_transaction')
+                    ->decrement('current_stock', 1);
+                // 2. POTONG PLASTIK (DENGAN LOGIKA SKALA BESAR)
+                if ($product) {
+                    // Panggil fungsi pembantu untuk cari plastik yang cocok di tabel product_packagings
+                    $supplyId = $this->getAppropriateSupplyId($product->id, $quantity);
 
-                foreach ($supplies as $supply) {
-                    if ($supply->reduction_type === 'per_transaction') {
-                        // Kertas Thermal / Lakban (Apapun QTY-nya, potong 1 resi)
-                        $supply->decrement('current_stock', 1);
-                    } elseif ($supply->reduction_type === 'per_item') {
-                        // Plastik Packing (Potong sesuai jumlah barang yang dibeli)
-                        $supply->decrement('current_stock', $quantity);
+                    if ($supplyId) {
+                        Supply::where('id', $supplyId)
+                            ->where('user_id', Auth::id())
+                            ->decrement('current_stock', 1);
                     }
                 }
             });
@@ -181,7 +185,7 @@ class SalesRecordController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        // 1. Pembersihan format harga (sama seperti store)
+        // 1. Pembersihan format harga
         $request->merge([
             'buy_price' => (float) str_replace(['.', ','], '', (string)$request->buy_price),
             'sell_price' => (float) str_replace(['.', ','], '', (string)$request->sell_price),
@@ -189,7 +193,6 @@ class SalesRecordController extends Controller
             'flat_fees' => (float) str_replace(['.', ','], '', (string)$request->flat_fees),
             'extra_costs' => (float) str_replace(['.', ','], '', (string)$request->extra_costs),
         ]);
-
         // 2. Validasi Lengkap
         $validated = $request->validate([
             'created_at'              => 'nullable|date',
@@ -235,16 +238,22 @@ class SalesRecordController extends Controller
                 }
 
                 // --- START: TAMBAHAN LOGIKA UPDATE STOK SUPPLY (Bahan Packing) ---
-                $supplies = Supply::where('user_id', Auth::id())->get();
+                if ($product) {
+                    // --- START: LOGIKA UPDATE STOK SUPPLY (SKALA BESAR) ---
 
-                foreach ($supplies as $supply) {
-                    if ($supply->reduction_type === 'per_item') {
-                        // Plastik Packing: Balikkan Qty lama, kurangi Qty baru
-                        $supply->current_stock = ($supply->current_stock + $oldQty) - $newQty;
-                        $supply->save();
+                    // 1. Cari & Kembalikan Plastik Lama (Rollback)
+                    $oldSupplyId = $this->getAppropriateSupplyId($product->id, $oldQty);
+                    if ($oldSupplyId) {
+                        Supply::where('id', $oldSupplyId)->increment('current_stock', 1);
                     }
-                    // Catatan: untuk 'per_transaction' (Kertas Thermal), 
-                    // kita tidak edit stoknya karena update Qty barang tidak mengubah jumlah resi.
+
+                    // 2. Cari & Potong Plastik Baru (Re-apply)
+                    $newSupplyId = $this->getAppropriateSupplyId($product->id, $newQty);
+                    if ($newSupplyId) {
+                        Supply::where('id', $newSupplyId)->decrement('current_stock', 1);
+                    }
+
+                    // --- END: LOGIKA UPDATE STOK SUPPLY ---
                 }
                 // --- END: TAMBAHAN LOGIKA UPDATE STOK SUPPLY ---
 
@@ -261,7 +270,17 @@ class SalesRecordController extends Controller
             return back();
         }
     }
-
+    private function getAppropriateSupplyId($productId, $qty)
+    {
+        return DB::table('product_packagings')
+            ->where('product_id', $productId)
+            ->where('min_qty', '<=', $qty)
+            ->where(function ($query) use ($qty) {
+                $query->where('max_qty', '>=', $qty)
+                    ->orWhereNull('max_qty');
+            })
+            ->value('supply_id');
+    }
     // Tambahkan fungsi untuk simpan/update biaya iklan
     public function updateAdCost(Request $request)
     {
@@ -293,26 +312,24 @@ class SalesRecordController extends Controller
         $sales = SalesRecord::findOrFail($id);
 
         DB::transaction(function () use ($sales) {
-            // Kembalikan stok ke master produk
+            // 1. Kembalikan stok produk
             $product = Product::where('user_id', Auth::id())
                 ->where('name', $sales->product_name)
                 ->first();
 
             if ($product) {
+                // --- A. KEMBALIKAN STOK PRODUK (Ini yang tadi kurang) ---
                 $product->increment('stock', $sales->qty);
-            }
-
-            $supplies = Supply::where('user_id', Auth::id())->get();
-
-            foreach ($supplies as $supply) {
-                if ($supply->reduction_type === 'per_transaction') {
-                    // Kembalikan 1 unit (karena 1 transaksi = 1 resi/kertas)
-                    $supply->increment('current_stock', 1);
-                } elseif ($supply->reduction_type === 'per_item') {
-                    // PERBAIKAN: Gunakan $sales->qty (bukan $record)
-                    $supply->increment('current_stock', $sales->qty);
+                // --- B. KEMBALIKAN STOK PLASTIK ---
+                $supplyId = $this->getAppropriateSupplyId($product->id, $sales->qty);
+                if ($supplyId) {
+                    Supply::where('id', $supplyId)->increment('current_stock', 1);
                 }
             }
+            // --- C. KEMBALIKAN KERTAS RESI ---
+            Supply::where('user_id', Auth::id())
+                ->where('reduction_type', 'per_transaction')
+                ->increment('current_stock', 1);
             // 2. Hapus datanya
             $sales->delete();
         });

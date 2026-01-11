@@ -617,6 +617,7 @@ export default function Index({ products, stores, ...props }: any) {
                                     autoComplete="off"
                                     placeholder="Contoh: Pakan Kucing"
                                     required
+                                    autoFocus
                                   />
                                   <InputError message={errors.product_name} />
                                 </div>

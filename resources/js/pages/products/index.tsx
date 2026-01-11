@@ -12,7 +12,7 @@ import products from '@/routes/products';
 import shopping from '@/routes/shopping';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Info, Package2, PackageSearch, Pencil, PlusCircle, Search, Store, Trash2, X, AlertTriangle, PackagePlus, ShoppingCart } from 'lucide-react';
+import { Info, Package2, PackageSearch, Pencil, PlusCircle, Search, Store, Trash2, X, AlertTriangle, PackagePlus, ShoppingCart, Layers, Box } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -188,7 +188,30 @@ export default function Index({ products, stores, filters }: any) {
                                 {product.name}
                               </span>
                             </div>
-
+                            {/* --- INFO PACKING (DINAMIS) --- */}
+                            <div className="flex flex-wrap gap-x-3 gap-y-1 my-1">
+                              {product.packagings && product.packagings.length > 0 ? (
+                                product.packagings.map((pkg: any, index: number) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/50 dark:border-slate-700"
+                                  >
+                                    <Box className="w-3 h-3 text-blue-500" />
+                                    <span>
+                                      {/* Logika Label Qty */}
+                                      {pkg.max_qty
+                                        ? `${pkg.min_qty}-${pkg.max_qty} Pcs: `
+                                        : `>= ${pkg.min_qty} Pcs: `
+                                      }
+                                      <b className="dark:text-white capitalize">{pkg.supply?.name || 'Plastik'}</b>
+                                    </span>
+                                  </div>
+                                ))
+                              ) : (
+                                <span className="text-[10px] text-slate-400 italic px-2">Belum ada aturan packing</span>
+                              )}
+                            </div>
+                            {/* --- END INFO PACKING --- */}
                             <div className="flex items-center gap-2">
                               {isEmpty ? (
                                 <span className="flex items-center text-[9px] font-black text-red-600 dark:text-red-400 uppercase">

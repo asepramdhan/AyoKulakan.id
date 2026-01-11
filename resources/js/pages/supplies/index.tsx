@@ -129,7 +129,6 @@ export default function Index({ supplyData }: { supplyData: any[] }) {
                   reset();
                 }}
                 onError={() => toast.error(`Gagal ${selectedId ? 'memperbarui' : 'menambahkan'} bahan!`, { id: `${selectedId ? 'update-supply' : 'add-supply'}` })}
-                options={{ preserveScroll: true }}
               >
                 {({ processing, errors }: any) => {
                   return (
