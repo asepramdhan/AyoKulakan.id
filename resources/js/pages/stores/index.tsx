@@ -12,7 +12,8 @@ import AppLayout from '@/layouts/app-layout';
 import storesRoute from '@/routes/stores';
 import { type BreadcrumbItem } from '@/types';
 import { Form, Head, Link, useForm } from '@inertiajs/react';
-import { Plus, Trash2, Globe, ShoppingBag, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Globe, ShoppingBag, AlertTriangle, X, Pencil } from 'lucide-react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -23,9 +24,11 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Index({ stores }: { stores: any[] }) {
-
+  // State untuk form
+  const [isEditing, setIsEditing] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
   // 1. Inisialisasi Form dengan useForm agar state bisa diketik
-  const { data, setData } = useForm({
+  const { data, setData, reset } = useForm({
     name: '',
     default_admin_fee: 0,
     default_promo_fee: 0,
@@ -48,6 +51,24 @@ export default function Index({ stores }: { stores: any[] }) {
     const cleanNumber = value.replace(/\D/g, '');
     return cleanNumber ? parseInt(cleanNumber, 10) : 0;
   };
+  // Fungsi untuk memicu mode Edit
+  const handleEdit = (store: any) => {
+    setIsEditing(true);
+    setEditId(store.id);
+    setData({
+      name: store.name,
+      // Menggunakan Number() untuk membuang .00 di belakang angka
+      default_admin_fee: Number(store.default_admin_fee),
+      default_promo_fee: Number(store.default_promo_fee),
+      default_process_fee: Number(store.default_process_fee),
+    });
+  };
+  // Fungsi reset form kembali ke mode Tambah
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setEditId(null);
+    reset();
+  };
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
@@ -69,11 +90,15 @@ export default function Index({ stores }: { stores: any[] }) {
           {/* Form Tambah Seller (Kiri/Atas) - Mengambil 4 kolom di desktop */}
           <Card className="md:col-span-4 border-none shadow-sm bg-white/50 dark:bg-slate-900/50 backdrop-blur">
             <CardHeader>
-              <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-400">Input Seller & Biaya Default</CardTitle>
+              <CardTitle
+                className="text-xs font-black uppercase tracking-widest text-slate-400"
+              >
+                {isEditing ? 'Update Seller' : 'Input Seller & Biaya Default'}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <Form
-                {...StoreController.store()}
+                {...isEditing ? StoreController.update.form(editId) : StoreController.store.form()}
                 onStart={() => toast.loading('Menyimpan seller...', { id: 'store' })}
                 onSuccess={() => toast.success('Seller berhasil disimpan!', { id: 'store' })}
                 onError={() => toast.error('Gagal menyimpan seller!', { id: 'store' })}
@@ -140,8 +165,18 @@ export default function Index({ stores }: { stores: any[] }) {
                       </div>
 
                       <Button disabled={processing} className="w-full bg-indigo-600 cursor-pointer">
-                        <Plus className="w-4 h-4" /> Simpan Seller
+                        {isEditing ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                        {isEditing ? 'Update Seller' : 'Simpan Seller'}
                       </Button>
+                      {isEditing && (
+                        <Button
+                          variant="ghost"
+                          className="w-full mt-1"
+                          onClick={cancelEdit}
+                        >
+                          <X className="w-4 h-4" /> Batal
+                        </Button>
+                      )}
                     </>
                   );
                 }}
@@ -175,14 +210,25 @@ export default function Index({ stores }: { stores: any[] }) {
                         </TableCell>
                         <TableCell>
                           <div className="text-xs">
-                            <span className="text-orange-600 font-bold">{store.default_admin_fee || 0}%</span> +
-                            <span className="text-blue-600 font-bold"> {store.default_promo_fee || 0}%</span>
+                            {/* Menggunakan Number() agar tampilan 9.50 menjadi 9.5 */}
+                            <span className="text-orange-600 font-bold">{Number(store.default_admin_fee) || 0}%</span> +
+                            <span className="text-blue-600 font-bold"> {Number(store.default_promo_fee) || 0}%</span>
                           </div>
                         </TableCell>
                         <TableCell>
                           <span className="text-xs font-medium">Rp {formatRupiah(store.default_process_fee)}</span>
                         </TableCell>
-                        <TableCell className="text-right pr-6">
+                        <TableCell className="text-right pr-6 flex justify-end gap-2">
+                          {/* Tombol Edit Baru */}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                            onClick={() => handleEdit(store)}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          {/* Tombol Hapus */}
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button

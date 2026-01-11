@@ -75,9 +75,39 @@ class StoreController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Store $store)
+    public function update(Request $request, $id)
     {
-        //
+        // bersihkan dulu untuk data input default_process_fee agar angkanya murni
+        $request->merge([
+            'default_process_fee' => (float) str_replace(['.', ','], '', (string)$request->default_process_fee ?? 0),
+        ]);
+
+        // 1. Validasi data
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'default_admin_fee' => 'required|numeric|min:0',
+            'default_promo_fee' => 'required|numeric|min:0',
+            'default_process_fee' => 'required|numeric|min:0',
+        ]);
+
+        try {
+            // 2. Cari toko berdasarkan ID dan pastikan milik user yang login
+            $store = Store::where('user_id', Auth::id())->findOrFail($id);
+
+            // 3. Update data
+            $store->update([
+                'name' => $validated['name'],
+                'default_admin_fee' => $validated['default_admin_fee'],
+                'default_promo_fee' => $validated['default_promo_fee'],
+                'default_process_fee' => $validated['default_process_fee'],
+            ]);
+
+            // 4. Kembali dengan pesan sukses
+            return back();
+        } catch (\Exception $e) {
+            // Jika terjadi error (misal ID tidak ditemukan)
+            return back();
+        }
     }
 
     /**

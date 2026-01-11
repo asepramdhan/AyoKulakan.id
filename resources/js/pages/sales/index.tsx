@@ -257,9 +257,10 @@ export default function Index({ products, stores, ...props }: any) {
       setData(prev => ({
         ...prev,
         store_id: storeId,
-        marketplace_fee_percent: selectedStore.default_admin_fee || 0,
-        promo_extra_percent: selectedStore.default_promo_fee || 0,
-        order_process_fee: selectedStore.default_process_fee || 0,
+        // Gunakan Number() untuk menghilangkan nol mubazir (misal 9.50 jadi 9.5)
+        marketplace_fee_percent: Number(selectedStore.default_admin_fee) || 0,
+        promo_extra_percent: Number(selectedStore.default_promo_fee) || 0,
+        order_process_fee: Number(selectedStore.default_process_fee) || 0,
       }));
     }
   };
