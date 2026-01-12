@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // import SupplyController from '@/actions/App/Http/Controllers/SupplyController';
+import SupplyController from '@/actions/App/Http/Controllers/SupplyController';
 import InputError from '@/components/input-error';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -90,6 +91,27 @@ export default function Index({ supplyData }: { supplyData: any[] }) {
     setSelectedRestockItem(item);
     resetRestock();
     setRestockOpen(true);
+  };
+  // Fungsi untuk memicu dialog history
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [histories, setHistories] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  // Fungsi untuk menghandle dialog history
+  const handleShowHistory = async (item: any) => {
+    setSelectedRestockItem(item); // Gunakan state yang ada untuk simpan data bahan yang dipilih
+    setHistoryOpen(true);
+    setLoadingHistory(true);
+
+    try {
+      const response = await fetch(`/supplies/${item.id}/history`);
+      const data = await response.json();
+      setHistories(data);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      toast.error("Gagal mengambil riwayat");
+    } finally {
+      setLoadingHistory(false);
+    }
   };
 
   return (
@@ -214,7 +236,15 @@ export default function Index({ supplyData }: { supplyData: any[] }) {
               </DialogHeader>
               {/* Form Restok */}
               <Form
-              // {...SupplyController.restock.form(selectedRestockItem.id)}
+                {...SupplyController.restock.form(selectedRestockItem?.id || 0)}
+                onStart={() => toast.loading('Memperbarui stok...', { id: 'restock' })}
+                onSuccess={() => {
+                  toast.success('Stok berhasil diperbarui!', { id: 'restock' });
+                  setRestockOpen(false);
+                  reset();
+                }}
+                onError={() => toast.error('Gagal memperbarui stok!', { id: 'restock' })}
+                options={{ preserveScroll: true }}
               >
                 {({ processing, errors }: any) => {
                   return (
@@ -224,6 +254,7 @@ export default function Index({ supplyData }: { supplyData: any[] }) {
                           <Label>Jumlah Tambahan ({selectedRestockItem?.unit})</Label>
                           <Input
                             type="number"
+                            name='amount'
                             placeholder="Misal: 100"
                             value={restockData.amount}
                             onChange={e => setRestockData('amount', e.target.value)}
@@ -250,6 +281,42 @@ export default function Index({ supplyData }: { supplyData: any[] }) {
                   );
                 }}
               </Form>
+            </DialogContent>
+          </Dialog>
+          {/* Dialog History */}
+          <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+            <DialogContent className="sm:max-w-[450px]">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <History className="w-5 h-5 text-indigo-500" />
+                  Riwayat <span className='capitalize'>{selectedRestockItem?.name}</span>
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="py-4 max-h-[400px] overflow-y-auto">
+                {loadingHistory ? (
+                  <p className="text-center text-sm text-slate-500">Memuat riwayat...</p>
+                ) : histories.length === 0 ? (
+                  <p className="text-center text-sm text-slate-500">Belum ada aktivitas stok.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {histories.map((h) => (
+                      <div key={h.id} className="flex justify-between items-center border-b pb-2 last:border-0">
+                        <div>
+                          <p className="text-sm font-bold text-slate-700 dark:text-slate-200 capitalize">{h.note}</p>
+                          <p className="text-[10px] text-slate-400">{new Date(h.created_at).toLocaleString('id-ID')}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-sm font-black ${h.amount > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                            {h.amount > 0 ? '+' : ''}{h.amount} <span className='capitalize'>{selectedRestockItem?.unit}</span>
+                          </p>
+                          <p className="text-[10px] text-slate-400">Sisa: {h.stock_after}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </DialogContent>
           </Dialog>
         </div>
@@ -352,7 +419,10 @@ export default function Index({ supplyData }: { supplyData: any[] }) {
                         >
                           <Edit2 className="w-4 h-4 mr-2" /> Edit Bahan
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer text-indigo-600">
+                        <DropdownMenuItem
+                          onClick={() => handleShowHistory(item)}
+                          className="cursor-pointer text-indigo-600"
+                        >
                           <History className="w-4 h-4 mr-2" /> Riwayat
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />

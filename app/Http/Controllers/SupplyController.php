@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Supply;
+use App\Models\SupplyHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class SupplyController extends Controller
@@ -101,23 +103,39 @@ class SupplyController extends Controller
         // 3. Kembali
         return back();
     }
-    // Metode untuk menambah stok
-    public function restock(Request $request, Supply $supply)
+    public function getHistory($id)
     {
-        dd($request->all());
-        if ($supply->user_id !== Auth::id()) abort(403);
+        $history = SupplyHistory::where('supply_id', $id)
+            ->latest()
+            ->take(20)
+            ->get();
 
+        return response()->json($history);
+    }
+    // Metode untuk menambah stok
+    public function restock(Request $request, $id)
+    {
         $validated = $request->validate([
             'amount' => 'required|integer|min:1',
         ]);
-
+        // Tambahkan fail-safe dengan findOrFail atau cek null
+        $supply = Supply::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
         $newStock = $supply->current_stock + $validated['amount'];
+        DB::transaction(function () use ($supply, $validated, $newStock) {
+            // 1. Update Stok
+            $supply->update([
+                'current_stock' => $newStock,
+                'initial_stock' => $newStock,
+            ]);
 
-        $supply->update([
-            'current_stock' => $newStock,
-            // Kita update initial_stock juga agar persentase sisa stok kembali akurat
-            'initial_stock' => $newStock,
-        ]);
+            // 2. Catat History
+            SupplyHistory::create([
+                'supply_id' => $supply->id,
+                'amount' => $validated['amount'],
+                'stock_after' => $newStock,
+                'note' => 'Restok mandiri',
+            ]);
+        });
 
         return back();
     }

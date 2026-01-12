@@ -79,7 +79,10 @@ class ProductController extends Controller
     {
         return Inertia::render('products/edit', [
             'product' => $product->load('packagings'),
-            'supplies' => Supply::where('user_id', Auth::id())->get()
+            // Filter di sini: Hanya ambil yang BUKAN per_transaction
+            'supplies' => Supply::where('user_id', Auth::id())
+                ->where('reduction_type', 'per_item') // Hanya tampilkan plastik
+                ->get(),
         ]);
     }
 

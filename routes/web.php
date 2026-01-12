@@ -30,6 +30,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/shopping/{shoppingList}/duplicate', [ShoppingListController::class, 'duplicate'])
         ->name('shopping.duplicate');
 
+    Route::get('/supplies/{id}/history', [SupplyController::class, 'getHistory']);
     Route::post('/supplies/{supply}/restock', [SupplyController::class, 'restock'])->name('supplies.restock');
 
     Route::post('/products/{product}/adjust-stock', [ProductController::class, 'adjustStock'])
