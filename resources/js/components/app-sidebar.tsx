@@ -51,7 +51,7 @@ const managementNavItems: NavItem[] = [
         title: 'Operasional',
         href: supplies.index(),
         icon: Box,
-        badge: 'Beta',
+        // badge: 'Beta',
     },
     {
         title: 'Master Produk',
