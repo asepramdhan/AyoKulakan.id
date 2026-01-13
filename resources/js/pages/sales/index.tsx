@@ -547,8 +547,8 @@ export default function Index({ products, stores, ...props }: any) {
                     onSuccess={() => {
                       // eslint-disable-next-line @typescript-eslint/no-unused-expressions
                       isEditing ? toast.success('Penjualan berhasil diperbarui.', { id: 'edit-sales' }) : toast.success('Penjualan berhasil ditambahkan.', { id: 'add-sales' });
-                      setOpen(false);
-                      setIsEditing(false);
+                      // setOpen(false);
+                      // setIsEditing(false);
                       setEditId(null); // Reset ID edit
                       setData({ // Reset ke default
                         date: new Date().toISOString().split('T')[0],
@@ -564,6 +564,13 @@ export default function Index({ products, stores, ...props }: any) {
                         order_process_fee: 1250,
                         extra_costs: 0,
                       });
+                      setTimeout(() => {
+                        // buat focus untuk nama produk
+                        const productNameInput = document.getElementById('product_name') as HTMLInputElement;
+                        if (productNameInput) {
+                          productNameInput.focus();
+                        }
+                      }, 50);
                     }}
                     onError={() => isEditing ? toast.error('Gagal memperbarui penjualan.', { id: 'edit-sales' }) : toast.error('Gagal menambahkan penjualan.', { id: 'add-sales' })}
                     options={{ preserveScroll: true }}
@@ -610,6 +617,7 @@ export default function Index({ products, stores, ...props }: any) {
                                 <div className="grid col-span-3 gap-2">
                                   <Label>Nama Produk</Label>
                                   <Input
+                                    id='product_name'
                                     list="product-suggestions"
                                     name='product_name'
                                     value={data.product_name}
@@ -805,10 +813,26 @@ export default function Index({ products, stores, ...props }: any) {
                           >
                             Batal
                           </Button>
+                          {!isEditing &&
+                            <Button
+                              type='submit'
+                              disabled={processing || !data.store_id}
+                              className='bg-green-600 hover:bg-green-700 cursor-pointer text-white'
+                            >
+                              <Plus className="w-4 h-4" />
+                              Simpan & Tambah
+                            </Button>
+                          }
                           <Button
                             type='submit'
                             disabled={processing || !data.store_id}
                             className={`${isEditing ? 'bg-blue-600 hover:bg-blue-700' : 'bg-orange-600 hover:bg-orange-700'} cursor-pointer text-white`}
+                            onClick={() => {
+                              setTimeout(() => {
+                                setOpen(false);
+                                setIsEditing(false);
+                              }, 200);
+                            }}
                           >
                             <Save className="w-4 h-4" />
                             {isEditing ? 'Perbarui' : 'Simpan'}
