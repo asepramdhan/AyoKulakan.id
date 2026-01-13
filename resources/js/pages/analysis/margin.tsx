@@ -148,6 +148,7 @@ export default function MarginAnalysis({ analysisData }: { analysisData: any[] }
                   type="number"
                   value={adminPercent}
                   onChange={(e) => setAdminPercent(Number(e.target.value))}
+                  onFocus={(e) => e.target.select()}
                   className="bg-white dark:bg-slate-950"
                 />
               </div>
@@ -160,6 +161,7 @@ export default function MarginAnalysis({ analysisData }: { analysisData: any[] }
                     type="number"
                     value={extraPercent}
                     onChange={(e) => setExtraPercent(Number(e.target.value))}
+                    onFocus={(e) => e.target.select()}
                     className="bg-white dark:bg-slate-950"
                   />
                   <Button size="sm" variant="outline" onClick={() => setExtraPercent(9)}>9%</Button>
@@ -173,6 +175,7 @@ export default function MarginAnalysis({ analysisData }: { analysisData: any[] }
                   type="number"
                   value={fixFee}
                   onChange={(e) => setFixFee(Number(e.target.value))}
+                  onFocus={(e) => e.target.select()}
                   className="bg-white dark:bg-slate-950"
                 />
               </div>
@@ -184,6 +187,7 @@ export default function MarginAnalysis({ analysisData }: { analysisData: any[] }
                   type="number"
                   value={marketingFee}
                   onChange={(e) => setMarketingFee(Number(e.target.value))}
+                  onFocus={(e) => e.target.select()}
                   className="bg-white dark:bg-slate-950"
                 />
               </div>

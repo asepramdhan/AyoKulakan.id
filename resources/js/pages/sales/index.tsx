@@ -250,6 +250,7 @@ export default function Index({ products, stores, ...props }: any) {
   });
 
   const qtyInputRef = useRef<HTMLInputElement>(null);
+  const productNameInputRef = useRef<HTMLInputElement>(null);
 
   const applyStoreDefaults = (storeId: string) => {
     const selectedStore = stores.find((s: any) => s.id.toString() === storeId);
@@ -564,13 +565,6 @@ export default function Index({ products, stores, ...props }: any) {
                         order_process_fee: 1250,
                         extra_costs: 0,
                       });
-                      setTimeout(() => {
-                        // buat focus untuk nama produk
-                        const productNameInput = document.getElementById('product_name') as HTMLInputElement;
-                        if (productNameInput) {
-                          productNameInput.focus();
-                        }
-                      }, 50);
                     }}
                     onError={() => isEditing ? toast.error('Gagal memperbarui penjualan.', { id: 'edit-sales' }) : toast.error('Gagal menambahkan penjualan.', { id: 'add-sales' })}
                     options={{ preserveScroll: true }}
@@ -617,11 +611,13 @@ export default function Index({ products, stores, ...props }: any) {
                                 <div className="grid col-span-3 gap-2">
                                   <Label>Nama Produk</Label>
                                   <Input
+                                    ref={productNameInputRef}
                                     id='product_name'
                                     list="product-suggestions"
                                     name='product_name'
                                     value={data.product_name}
                                     onChange={(e) => handleProductNameChange(e.target.value)}
+                                    onFocus={(e) => e.target.select()}
                                     autoComplete="off"
                                     placeholder="Contoh: Pakan Kucing"
                                     required
@@ -639,6 +635,7 @@ export default function Index({ products, stores, ...props }: any) {
                                     name='qty'
                                     value={data.qty}
                                     onChange={(e) => setData({ ...data, qty: Number(e.target.value) })}
+                                    onFocus={(e) => e.target.select()}
                                     required
                                   />
                                   <InputError message={errors.qty} />
@@ -652,7 +649,7 @@ export default function Index({ products, stores, ...props }: any) {
                               </datalist>
                             </div>
 
-                            {/* QTY, HARGA BELI, HARGA JUAL */}
+                            {/* HARGA BELI, HARGA JUAL */}
                             <div className="grid grid-cols-2 gap-4">
                               <div className="grid gap-2">
                                 <Label className="truncate">Harga Beli (Modal)</Label>
@@ -661,6 +658,7 @@ export default function Index({ products, stores, ...props }: any) {
                                   name='buy_price'
                                   value={formatRupiah(data.buy_price)}
                                   onChange={(e) => setData({ ...data, buy_price: parseRupiah(e.target.value) })}
+                                  onFocus={(e) => e.target.select()}
                                   required
                                 />
                                 <InputError message={errors.buy_price} />
@@ -672,6 +670,7 @@ export default function Index({ products, stores, ...props }: any) {
                                   name='sell_price'
                                   value={formatRupiah(data.sell_price)}
                                   onChange={(e) => setData({ ...data, sell_price: parseRupiah(e.target.value) })}
+                                  onFocus={(e) => e.target.select()}
                                   required
                                 />
                                 <InputError message={errors.sell_price} />
@@ -737,6 +736,7 @@ export default function Index({ products, stores, ...props }: any) {
                                   name='marketplace_fee_percent'
                                   value={data.marketplace_fee_percent}
                                   onChange={(e) => setData({ ...data, marketplace_fee_percent: Number(e.target.value) })}
+                                  onFocus={(e) => e.target.select()}
                                   required
                                 />
                                 <InputError message={errors.marketplace_fee_percent} />
@@ -748,6 +748,7 @@ export default function Index({ products, stores, ...props }: any) {
                                   name='flat_fees'
                                   value={formatRupiah(data.order_process_fee)}
                                   onChange={(e) => setData({ ...data, order_process_fee: parseRupiah(e.target.value) })}
+                                  onFocus={(e) => e.target.select()}
                                   required
                                 />
                                 <InputError message={errors.flat_fees} />
@@ -760,6 +761,7 @@ export default function Index({ products, stores, ...props }: any) {
                                   step="0.1"
                                   value={data.promo_extra_percent}
                                   onChange={(e) => setData({ ...data, promo_extra_percent: Number(e.target.value) })}
+                                  onFocus={(e) => e.target.select()}
                                   required
                                 />
                               </div>
@@ -771,6 +773,7 @@ export default function Index({ products, stores, ...props }: any) {
                                   placeholder="Rp 0"
                                   value={formatRupiah(data.extra_costs)}
                                   onChange={(e) => setData({ ...data, extra_costs: parseRupiah(e.target.value) })}
+                                  onFocus={(e) => e.target.select()}
                                   required
                                 />
                                 <InputError message={errors.extra_costs} />
@@ -818,6 +821,7 @@ export default function Index({ products, stores, ...props }: any) {
                               type='submit'
                               disabled={processing || !data.store_id}
                               className='bg-green-600 hover:bg-green-700 cursor-pointer text-white'
+                              onClick={() => setTimeout(() => productNameInputRef.current?.focus(), 500)}
                             >
                               <Plus className="w-4 h-4" />
                               Simpan & Tambah

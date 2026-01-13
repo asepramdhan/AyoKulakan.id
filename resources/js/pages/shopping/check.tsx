@@ -47,16 +47,23 @@ export default function CheckShopping({ shoppingList, otherLists = [] }: { shopp
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title={`Belanja: ${shoppingList.title}`} />
       <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-        <div className="flex justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="group cursor-pointer flex items-center gap-2 text-slate-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-all rounded-lg"
-            onClick={() => router.visit(shopping.active().url)} // Gunakan router.visit ke index
+        <div className="flex justify-end gap-2">
+          <Link
+            preserveScroll
+            href={shopping.active()}
+            className="group cursor-pointer flex items-center gap-2 text-sm text-slate-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-all rounded-lg"
           >
             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
             <span className="font-medium">Kembali ke Daftar Belanja</span>
-          </Button>
+          </Link>
+          <Link
+            preserveScroll
+            href={shopping.history()}
+            className="group cursor-pointer flex items-center gap-2 text-sm text-slate-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-all rounded-lg"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            <span className="font-medium">History Daftar Belanja</span>
+          </Link>
         </div>
 
         <Card className="border-2">

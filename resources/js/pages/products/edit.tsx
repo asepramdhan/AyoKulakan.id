@@ -112,6 +112,7 @@ export default function Edit({ product, supplies }: any) {
                         type="text"
                         name="name"
                         defaultValue={product.name}
+                        onFocus={(e) => e.target.select()}
                         placeholder="Masukkan nama produk..."
                         required
                         className="h-11 capitalize dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 focus:ring-orange-500 font-medium"
@@ -132,6 +133,7 @@ export default function Edit({ product, supplies }: any) {
                           className="pl-12 h-11 font-black text-zinc-900 dark:text-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 focus:ring-orange-500"
                           defaultValue={formatRupiah(product.last_price)}
                           onChange={handlePriceChange}
+                          onFocus={(e) => e.target.select()}
                           placeholder="0"
                           required
                         />
@@ -178,6 +180,7 @@ export default function Edit({ product, supplies }: any) {
                               name={`packagings.${index}.min_qty`}
                               value={row.min_qty}
                               onChange={e => updateRow(index, 'min_qty', e.target.value)}
+                              onFocus={(e) => e.target.select()}
                               className="dark:bg-zinc-900"
                             />
                             <InputError message={errors[`packagings.${index}.min_qty`]} />
@@ -191,6 +194,7 @@ export default function Edit({ product, supplies }: any) {
                               placeholder="∞"
                               value={row.max_qty || ''}
                               onChange={e => updateRow(index, 'max_qty', e.target.value)}
+                              onFocus={(e) => e.target.select()}
                               className="dark:bg-zinc-900"
                             />
                             <InputError message={errors[`packagings.${index}.max_qty`]} />

@@ -142,7 +142,7 @@ export default function Index({ stores, products }: { stores: any[], products: a
           <CardContent className="p-6">
             <Form {...ShoppingListController.store()}
               onStart={() => toast.loading('Memproses...', { id: 'create-shopping-list' })}
-              onSuccess={() => toast.success('Daftar belanja berhasil dibuat!', { id: 'create-shopping-list' })}
+              onSuccess={() => toast.success('Disimpan..., Cek daftar belanja aktif.', { id: 'create-shopping-list' })}
               onError={() => toast.error('Gagal membuat daftar belanja.', { id: 'create-shopping-list' })}
               options={{ preserveScroll: true, }}
               className="space-y-6"
@@ -208,6 +208,7 @@ export default function Index({ stores, products }: { stores: any[], products: a
                         name='title'
                         value={data.title}
                         onChange={(e) => setData('title', e.target.value)}
+                        onFocus={(e) => e.target.select()}
                         className="bg-white dark:bg-slate-800 border-slate-200 w-full"
                         placeholder='Contoh: Belanja Bulanan'
                         required
@@ -266,6 +267,7 @@ export default function Index({ stores, products }: { stores: any[], products: a
                                 name={`items.${index}.product_name`}
                                 value={item.product_name}
                                 onChange={(e) => updateItem(index, 'product_name', e.target.value)}
+                                onFocus={(e) => e.target.select()}
                                 placeholder="Ketik nama barang..."
                                 required
                                 autoComplete="off"
@@ -282,6 +284,7 @@ export default function Index({ stores, products }: { stores: any[], products: a
                                   name={`items.${index}.quantity`}
                                   value={item.quantity}
                                   onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value))}
+                                  onFocus={(e) => e.target.select()}
                                   placeholder="Qty"
                                   required
                                 />
@@ -297,6 +300,7 @@ export default function Index({ stores, products }: { stores: any[], products: a
                                     name={`items.${index}.price`}
                                     value={formatRupiah(item.price)}
                                     onChange={(e) => updateItem(index, 'price', e.target.value)}
+                                    onFocus={(e) => e.target.select()}
                                     placeholder="100.000"
                                     required
                                   />

@@ -163,6 +163,7 @@ export default function Index({ supplyData }: { supplyData: any[] }) {
                             name='name'
                             value={data.name}
                             onChange={e => setData('name', e.target.value)}
+                            onFocus={(e) => e.target.select()}
                             required
                           />
                           <InputError message={errors.name} />
@@ -175,6 +176,7 @@ export default function Index({ supplyData }: { supplyData: any[] }) {
                               name='initial_stock'
                               value={data.initial_stock}
                               onChange={e => setData('initial_stock', e.target.value)}
+                              onFocus={(e) => e.target.select()}
                               required
                             />
                             <InputError message={errors.initial_stock} />
@@ -186,6 +188,7 @@ export default function Index({ supplyData }: { supplyData: any[] }) {
                               placeholder="Pcs/Lembar/Roll"
                               value={data.unit}
                               onChange={e => setData('unit', e.target.value)}
+                              onFocus={(e) => e.target.select()}
                               required
                             />
                             <InputError message={errors.unit} />
@@ -258,6 +261,7 @@ export default function Index({ supplyData }: { supplyData: any[] }) {
                             placeholder="Misal: 100"
                             value={restockData.amount}
                             onChange={e => setRestockData('amount', e.target.value)}
+                            onFocus={(e) => e.target.select()}
                             required
                             autoFocus
                           />

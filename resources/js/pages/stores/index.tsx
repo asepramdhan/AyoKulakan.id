@@ -99,10 +99,18 @@ export default function Index({ stores }: { stores: any[] }) {
             <CardContent>
               <Form
                 {...isEditing ? StoreController.update.form(editId) : StoreController.store.form()}
-                onStart={() => toast.loading('Menyimpan seller...', { id: 'store' })}
-                onSuccess={() => toast.success('Seller berhasil disimpan!', { id: 'store' })}
-                onError={() => toast.error('Gagal menyimpan seller!', { id: 'store' })}
-                resetOnSuccess={['name', 'default_admin_fee', 'default_promo_fee', 'default_process_fee']}
+                onStart={() => toast.loading(`${isEditing ? 'Memperbarui' : 'Menyimpan'} seller...`, { id: 'store' })}
+                onSuccess={() => {
+                  toast.success(`Seller berhasil ${isEditing ? 'diperbarui' : 'disimpan'}!`, { id: 'store' });
+                  cancelEdit();
+                  setData({
+                    name: '',
+                    default_admin_fee: 0,
+                    default_promo_fee: 0,
+                    default_process_fee: 0,
+                  });
+                }}
+                onError={() => toast.error(`Gagal ${isEditing ? 'memperbarui' : 'menyimpan'} seller!`, { id: 'store' })}
                 options={{ preserveScroll: true }}
                 className="space-y-4"
               >
@@ -118,6 +126,7 @@ export default function Index({ stores }: { stores: any[] }) {
                             name='name'
                             value={data.name}
                             onChange={e => setData('name', e.target.value)}
+                            onFocus={(e) => e.target.select()}
                             className="pl-9 bg-white dark:bg-slate-800"
                             placeholder="Contoh: Shopee Official"
                             required
@@ -136,6 +145,7 @@ export default function Index({ stores }: { stores: any[] }) {
                             name="default_admin_fee"
                             value={data.default_admin_fee}
                             onChange={e => setData('default_admin_fee', e.target.value as any)}
+                            onFocus={(e) => e.target.select()}
                             placeholder="0"
                           />
                         </div>
@@ -147,6 +157,7 @@ export default function Index({ stores }: { stores: any[] }) {
                             name="default_promo_fee"
                             value={data.default_promo_fee}
                             onChange={e => setData('default_promo_fee', e.target.value as any)}
+                            onFocus={(e) => e.target.select()}
                             placeholder="0"
                           />
                         </div>
@@ -160,6 +171,7 @@ export default function Index({ stores }: { stores: any[] }) {
                           type="text"
                           value={formatRupiah(data.default_process_fee)}
                           onChange={e => setData('default_process_fee', parseRupiah(e.target.value))}
+                          onFocus={(e) => e.target.select()}
                           placeholder="Contoh: 1.250"
                         />
                       </div>
