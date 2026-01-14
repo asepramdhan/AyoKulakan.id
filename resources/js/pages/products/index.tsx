@@ -82,7 +82,7 @@ export default function Index({ products, stores, filters }: any) {
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Master Produk" />
 
-      <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+      <div className="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
 
         {/* --- HEADER SECTION --- */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -106,56 +106,58 @@ export default function Index({ products, stores, filters }: any) {
         </div>
 
         {/* --- SEARCH & FILTER SECTION --- */}
-        <div className="grid grid-cols-1 gap-4">
-          <div className="flex flex-col md:flex-row gap-2 items-center bg-white dark:bg-slate-900/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm focus-within:ring-2 focus-within:ring-orange-500/20 transition-all">
-            <div className="relative flex-1 w-full">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Cari nama produk di katalog..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-11 border-none bg-transparent focus-visible:ring-0 text-base h-11 text-slate-700 dark:text-slate-200"
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                  <X className="h-4 w-4" />
-                </button>
-              )}
+        <div className="sticky top-15 z-30 -mx-4 px-4 py-4 backdrop-blur-md border-b border-transparent transition-all">
+          <div className="grid grid-cols-1 gap-4">
+            <div className="flex flex-col md:flex-row gap-2 items-center bg-white dark:bg-slate-900/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm focus-within:ring-2 focus-within:ring-orange-500/20 transition-all">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Cari nama produk di katalog..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-11 border-none bg-transparent focus-visible:ring-0 text-base h-11 text-slate-700 dark:text-slate-200"
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <div className="hidden md:block px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Total: {filteredProducts.length}</span>
+              </div>
             </div>
-            <div className="hidden md:block px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl">
-              <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Total: {filteredProducts.length}</span>
-            </div>
-          </div>
 
-          {/* Toko Filters */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar scroll-smooth">
-            <Button
-              variant={!filters.store_id ? "default" : "secondary"}
-              size="sm"
-              className={`rounded-full px-5 font-bold text-xs uppercase tracking-wider ${!filters.store_id ? 'bg-slate-900 dark:bg-slate-50 dark:text-slate-900 text-white' : 'bg-white dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}
-              asChild
-            >
-              <Link
-                href={ProductController.index().url}
-                onClick={() => localStorage.removeItem('preferred_store_filter')}
-              >
-                Semua
-              </Link>
-            </Button>
-            {stores.map((s: any) => (
+            {/* Toko Filters */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar scroll-smooth">
               <Button
-                key={s.id}
-                variant={filters.store_id == s.id ? "default" : "secondary"}
+                variant={!filters.store_id ? "default" : "secondary"}
                 size="sm"
-                className={`rounded-full px-5 font-bold text-xs uppercase tracking-wider transition-all ${filters.store_id == s.id ? 'bg-orange-600 text-white hover:bg-orange-700' : 'bg-white dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}
+                className={`rounded-full px-5 font-bold text-xs uppercase tracking-wider ${!filters.store_id ? 'bg-slate-900 dark:bg-slate-50 dark:text-slate-900 text-white' : 'bg-white dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}
                 asChild
               >
-                <Link href={ProductController.index().url + `?store_id=${s.id}`}>
-                  <Store className="w-3 h-3 opacity-70" />
-                  {s.name}
+                <Link
+                  href={ProductController.index().url}
+                  onClick={() => localStorage.removeItem('preferred_store_filter')}
+                >
+                  Semua
                 </Link>
               </Button>
-            ))}
+              {stores.map((s: any) => (
+                <Button
+                  key={s.id}
+                  variant={filters.store_id == s.id ? "default" : "secondary"}
+                  size="sm"
+                  className={`rounded-full px-5 font-bold text-xs uppercase tracking-wider transition-all ${filters.store_id == s.id ? 'bg-orange-600 text-white hover:bg-orange-700' : 'bg-white dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}
+                  asChild
+                >
+                  <Link href={ProductController.index().url + `?store_id=${s.id}`}>
+                    <Store className="w-3 h-3 opacity-70" />
+                    {s.name}
+                  </Link>
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
 

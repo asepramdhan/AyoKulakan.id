@@ -85,7 +85,7 @@ export default function History({ lists }: { lists: any }) {
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title='Riwayat Belanja' />
-      <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+      <div className="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <HistoryIcon className="w-6 h-6 text-slate-500" />
@@ -94,7 +94,7 @@ export default function History({ lists }: { lists: any }) {
           <p className="text-sm text-muted-foreground">Daftar belanja yang telah diselesaikan.</p>
         </div>
 
-        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur py-2">
+        <div className="sticky top-15 z-30 -mx-4 px-4 py-4 backdrop-blur-md border-b border-transparent transition-all">
           <Input
             placeholder="Cari judul, toko, atau hari (ex: Senin)..."
             className="w-full border-slate-300 dark:border-slate-700"
@@ -134,6 +134,7 @@ export default function History({ lists }: { lists: any }) {
                       onSuccess={() => toast.success('Duplikasi belanja berhasil!', { id: 'duplicate' })}
                       onError={() => toast.error('Duplikasi belanja gagal!', { id: 'duplicate' })}
                       className='cursor-pointer'
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <Button
                         variant="outline"

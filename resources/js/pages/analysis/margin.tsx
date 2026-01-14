@@ -121,7 +121,7 @@ export default function MarginAnalysis({ analysisData }: { analysisData: any[] }
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Simulator Analisa Margin" />
-      <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+      <div className="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-2">
           <div>
             <h2 className="text-xl md:text-2xl font-bold tracking-tight flex items-center gap-2">
@@ -238,7 +238,7 @@ export default function MarginAnalysis({ analysisData }: { analysisData: any[] }
         </div>
 
         <Card>
-          <CardHeader className="space-y-4">
+          <CardHeader className="space-y-4 sticky top-15 z-30 py-4 backdrop-blur-md border-b border-transparent transition-all">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <CardTitle className="text-xl flex items-center gap-2">
                 <BarChart3 className="w-5 h-5" /> Hasil Simulasi Profit

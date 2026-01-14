@@ -334,7 +334,7 @@ export default function Index({ products, stores, ...props }: any) {
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Analisa Penghasilan" />
-      <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+      <div className="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-2">
           <div>
             <h2 className="text-xl md:text-2xl font-bold tracking-tight flex items-center gap-2">
@@ -405,39 +405,41 @@ export default function Index({ products, stores, ...props }: any) {
           </Card>
         </div>
 
-        <div className="flex flex-col md:flex-row justify-between gap-4">
-          {/* Bagian Kiri: Filter Waktu */}
-          <div className="flex gap-2 items-center overflow-x-auto pb-2 no-scrollbar scroll-smooth mb-2">
-            {['today', 'week', 'month', 'year', 'all'].map((range) => (
-              <Button
-                key={range}
-                variant={filterRange === range ? 'default' : 'outline'}
-                size="sm"
-                className="capitalize"
-                onClick={() => setFilterRange(range as any)}
-              >
-                {range === 'today' ? 'Hari Ini' :
-                  range === 'week' ? 'Minggu' :
-                    range === 'month' ? 'Bulan' :
-                      range === 'year' ? 'Tahun' : 'Semua'}
-              </Button>
-            ))}
-          </div>
-          {/* Bagian Kanan: Filter Toko */}
-          <div className="flex items-center gap-2 min-w-[200px]">
-            <Label className="text-muted-foreground italic">Toko:</Label>
-            <select
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:ring-1 focus:ring-ring"
-              value={filterStore}
-              onChange={(e) => setFilterStore(e.target.value)}
-            >
-              <option value="all">Semua Toko</option>
-              {stores.map((s: any) => (
-                <option key={s.id} value={s.id.toString()}>
-                  {s.name}
-                </option>
+        <div className="sticky top-15 z-30 -mx-4 px-4 py-4 backdrop-blur-md border-b border-transparent transition-all">
+          <div className="flex flex-col md:flex-row justify-between gap-4">
+            {/* Bagian Kiri: Filter Waktu */}
+            <div className="flex gap-2 items-center overflow-x-auto pb-2 no-scrollbar scroll-smooth mb-2">
+              {['today', 'week', 'month', 'year', 'all'].map((range) => (
+                <Button
+                  key={range}
+                  variant={filterRange === range ? 'default' : 'outline'}
+                  size="sm"
+                  className="capitalize"
+                  onClick={() => setFilterRange(range as any)}
+                >
+                  {range === 'today' ? 'Hari Ini' :
+                    range === 'week' ? 'Minggu' :
+                      range === 'month' ? 'Bulan' :
+                        range === 'year' ? 'Tahun' : 'Semua'}
+                </Button>
               ))}
-            </select>
+            </div>
+            {/* Bagian Kanan: Filter Toko */}
+            <div className="flex items-center gap-2 min-w-[200px]">
+              <Label className="text-muted-foreground italic">Toko:</Label>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:ring-1 focus:ring-ring"
+                value={filterStore}
+                onChange={(e) => setFilterStore(e.target.value)}
+              >
+                <option value="all">Semua Toko</option>
+                {stores.map((s: any) => (
+                  <option key={s.id} value={s.id.toString()}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -483,7 +485,7 @@ export default function Index({ products, stores, ...props }: any) {
 
         {/* Tabel Data Penjualan */}
         <Card>
-          <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 space-y-0 pb-6">
+          <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 space-y-0 pb-6 sticky top-30 z-29 py-4 backdrop-blur-md border-b border-transparent transition-all">
             <div>
               <CardTitle className="text-xl font-bold tracking-tight">Detail Margin per Produk</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
