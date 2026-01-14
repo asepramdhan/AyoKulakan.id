@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MarginAnalysisController;
+use App\Http\Controllers\MarketplaceController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SalesRecordController;
 use App\Http\Controllers\ShoppingListController;
@@ -43,6 +44,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('analysis.margin.update-price');
 
     Route::resource('shopping', ShoppingListController::class);
+    Route::resource('marketplace', MarketplaceController::class);
     Route::resource('supplies', SupplyController::class);
     Route::resource('products', ProductController::class);
     Route::resource('stores', StoreController::class);

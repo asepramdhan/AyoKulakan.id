@@ -73,7 +73,6 @@ export default function Index({ stores }: { stores: any[] }) {
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Kelola Seller Online" />
-      {/* Container utama: hilangkan h-full jika ingin scroll natural di HP */}
       <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
 
         {/* Header Section */}

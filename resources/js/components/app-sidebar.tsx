@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
-import { BadgeDollarSign, Box, History, LayoutGrid, Package2Icon, PieChart, ShoppingBag, ShoppingCart, Store } from 'lucide-react';
+import { BadgeDollarSign, Box, ClipboardList, History, LayoutGrid, Package2Icon, PieChart, ShoppingBag, ShoppingCart, Store } from 'lucide-react';
 import shopping from '@/routes/shopping';
 import products from '@/routes/products';
 import stores from '@/routes/stores';
@@ -22,6 +22,7 @@ import analysis from '@/routes/analysis';
 import salesRecord from '@/routes/sales-record';
 import AppLogoIcon from './app-logo-icon';
 import supplies from '@/routes/supplies';
+import marketplace from '@/routes/marketplace';
 
 const mainNavItems: NavItem[] = [
     {
@@ -47,6 +48,12 @@ const mainNavItems: NavItem[] = [
 ];
 
 const managementNavItems: NavItem[] = [
+    {
+        title: 'Marketplace',
+        href: marketplace.index(),
+        icon: ClipboardList,
+        badge: 'Beta',
+    },
     {
         title: 'Operasional',
         href: supplies.index(),
