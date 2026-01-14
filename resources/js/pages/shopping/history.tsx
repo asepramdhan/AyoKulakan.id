@@ -118,7 +118,15 @@ export default function History({ lists }: { lists: any }) {
               }).format(list.total_price || 0);
 
               return (
-                <Link preserveScroll key={list.id} href={shopping.check(list.id)} className="relative block">
+                <Link
+                  key={list.id}
+                  onClick={(e) => (
+                    e.preventDefault(),
+                    window.open(shopping.check(list.id).url, '_blank')
+                  )}
+                  preserveScroll
+                  className="relative block"
+                >
                   <div className="absolute top-3 right-3 z-20">
                     <Link
                       href={shopping.duplicate(list.id)}
