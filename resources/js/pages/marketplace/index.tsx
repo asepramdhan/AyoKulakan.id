@@ -35,7 +35,10 @@ const MOCK_ORDERS = [
     ship_by_date: '2024-01-17 10:30:00', // Contoh tanggal batas kirim
     customer: 'Budi Santoso',
     address: 'Jl. Melati No. 123, Jakarta Selatan, DKI Jakarta',
-    phone: '081234567890'
+    phone: '081234567890',
+    weight: '500 gr', // atau 0.5 kg
+    deadline: '17 Jan 2026',
+    paymentMethod: 'NONTUNAI', // atau 'NONTUNAI' / 'LUNAS'
   },
   {
     id: '240115XYZ456',
@@ -50,7 +53,10 @@ const MOCK_ORDERS = [
     ship_by_date: '2024-01-17 11:45:00',
     customer: 'Siti Aminah',
     address: 'Komp. Permai Blok B5, Bandung, Jawa Barat',
-    phone: '085566778899'
+    phone: '085566778899',
+    weight: '200 gr',
+    deadline: '17 Jan 2026',
+    paymentMethod: 'LUNAS'
   },
   {
     id: '240115DEF789',
@@ -65,7 +71,10 @@ const MOCK_ORDERS = [
     ship_by_date: '2024-01-17 12:15:00',
     customer: 'Budi Santoso',
     address: 'Jl. Melati No. 123, Jakarta Selatan, DKI Jakarta',
-    phone: '081234567890'
+    phone: '081234567890',
+    weight: '500 gr',
+    deadline: '17 Jan 2026',
+    paymentMethod: 'LUNAS'
   },
   {
     id: '240115GHI012',
@@ -73,14 +82,17 @@ const MOCK_ORDERS = [
     product: 'Kaos Polos Cotton Combed',
     variant: 'Biru, M',
     price: 'Rp 100.000',
-    status: 'READY_TO_SHIP',
+    status: 'SHIPPED',
     courier: 'J&T Express',
     resi: 'JP987654321',
     date: '15 Jan, 12:15',
     ship_by_date: '2024-01-17 12:15:00',
     customer: 'Budi Santoso',
     address: 'Jl. Melati No. 123, Jakarta Selatan, DKI Jakarta',
-    phone: '081234567890'
+    phone: '081234567890',
+    weight: '500 gr',
+    deadline: '17 Jan 2026',
+    paymentMethod: 'NONTUNAI'
   }
 ];
 
@@ -91,7 +103,10 @@ export default function Index() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
+  const [isShipModalOpen, setIsShipModalOpen] = useState(false);
+  const [shippingMethod, setShippingMethod] = useState<'dropoff' | 'pickup' | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [paperSize, setPaperSize] = useState<'100x150' | '78x100'>('100x150');
   // Fungsi untuk menghitung sisa waktu (Sederhana)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getDeadlineStatus = (dateString: string) => {
@@ -126,11 +141,44 @@ export default function Index() {
       toast.success('Data berhasil diperbarui!', { id: 'sync' });
     }, 2000);
   };
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const openDetail = (order: any) => {
     setSelectedOrder(order);
     setIsModalOpen(true);
+  };
+
+  const confirmShipment = () => {
+    setIsSyncing(true); // Simulasi proses ke API Shopee
+    toast.loading('Memproses pesanan...', { id: 'sync' });
+    setTimeout(() => {
+      setIsSyncing(false);
+      setIsShipModalOpen(false);
+      setIsModalOpen(false);
+      toast.success(`Berhasil diproses (${shippingMethod})`, { id: 'sync' });
+      // Di sini nantinya kamu akan panggil router.post atau router.put ke Laravel
+    }, 1500);
+  };
+
+  const handlePrint = () => {
+    const printContent = document.getElementById("thermal-label");
+    const windowUrl = window.open('', '', 'left=0,top=0,width=400,height=600,toolbar=0,scrollbars=0,status=0');
+
+    if (windowUrl) {
+      windowUrl.document.write('<html><head><title>Cetak Label</title>');
+      // Import Tailwind ke jendela print agar styling tidak hilang
+      windowUrl.document.write('<script src="https://cdn.tailwindcss.com"></script>');
+      windowUrl.document.write('</head><body >');
+      windowUrl.document.write(printContent?.innerHTML || '');
+      windowUrl.document.write('</body></html>');
+      windowUrl.document.close();
+      windowUrl.focus();
+
+      // Beri jeda sedikit agar Tailwind sempat render sebelum dialog print muncul
+      setTimeout(() => {
+        windowUrl.print();
+        windowUrl.close();
+      }, 500);
+    }
   };
 
   return (
@@ -297,9 +345,31 @@ export default function Index() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right px-6">
-                          <Button size="sm" variant="ghost" className="h-10 w-10 p-0 rounded-xl text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all border border-transparent hover:border-indigo-100 dark:hover:border-indigo-500/20">
-                            <Printer className="h-4 w-4" />
-                          </Button>
+                          {order.status === 'READY_TO_SHIP' ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setSelectedOrder(order); // TAMBAHKAN INI
+                                setIsShipModalOpen(true);
+                              }}
+                              className='h-10 w-10 p-0 rounded-xl text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all border border-transparent hover:border-indigo-100 dark:hover:border-indigo-500/20'
+                            >
+                              <Truck className="w-4 h-4" />
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setSelectedOrder(order); // TAMBAHKAN INI
+                                setIsPreviewOpen(true);
+                              }}
+                              className="h-10 w-10 p-0 rounded-xl text-slate-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-500/10 transition-all border border-transparent hover:border-green-100 dark:hover:border-green-500/20"
+                            >
+                              <Printer className="h-4 w-4" />
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))
@@ -341,7 +411,7 @@ export default function Index() {
                     </div>
                     <div>
                       <p className="text-[10px] font-black uppercase text-rose-500 tracking-widest">Perhatian: Batas Waktu Kirim</p>
-                      <p className="text-sm font-bold text-rose-700 dark:text-rose-400">Pesanan harus dikirim sebelum 17 Januari, 10:30</p>
+                      <p className="text-sm font-bold text-rose-700 dark:text-rose-400">Pesanan harus dikirim sebelum {selectedOrder?.deadline}</p>
                     </div>
                   </div>
                 )}
@@ -357,7 +427,7 @@ export default function Index() {
                       <MapPin className="w-3 h-3 shrink-0 mt-0.5" />
                       {selectedOrder?.address}
                     </div>
-                    <div className="text-xs font-mono text-indigo-600 dark:text-indigo-400 font-bold">{selectedOrder?.phone}</div>
+                    {/* <div className="text-xs font-mono text-indigo-600 dark:text-indigo-400 font-bold">{selectedOrder?.phone}</div> */}
                   </div>
                 </div>
 
@@ -384,23 +454,277 @@ export default function Index() {
                 {/* Ekspedisi */}
                 <div className="grid grid-cols-2 gap-4 pt-2 pb-2">
                   <div className="space-y-1">
+                    <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Berat Paket</div>
+                    <div className="font-bold text-slate-700 dark:text-slate-300">{selectedOrder?.weight || '1.0 kg'}</div>
+                  </div>
+                  <div className="space-y-1 text-right">
+                    <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Batas Kirim</div>
+                    <div className="font-bold text-rose-600 dark:text-rose-400">{selectedOrder?.deadline}</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 pt-2 pb-2">
+                  <div className="space-y-1">
                     <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Kurir</div>
                     <div className="font-bold text-slate-700 dark:text-slate-300">{selectedOrder?.courier}</div>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 text-right">
                     <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">No. Resi</div>
                     <div className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{selectedOrder?.resi}</div>
+                    <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Metode Pembayaran</div>
+                    <div className={`font-bold inline-block px-2 py-0.5 rounded text-xs ${selectedOrder?.paymentMethod === 'NONTUNAI' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                      {selectedOrder?.paymentMethod === 'NONTUNAI' ? 'COD' : 'LUNAS'}
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* FOOTER: Tetap di bawah */}
-              <div className="p-6 pt-4 flex gap-2 bg-white dark:bg-slate-950 border-t dark:border-slate-900 shrink-0">
-                <Button onClick={() => setIsModalOpen(false)} variant="outline" className="flex-1 rounded-xl font-bold border-slate-200 dark:border-slate-800">
+              <div className="p-6 pt-0 flex gap-2">
+                <Button onClick={() => setIsModalOpen(false)} variant="outline" className="flex-1 rounded-xl font-bold">
                   Tutup
                 </Button>
-                <Button className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black shadow-lg shadow-indigo-600/20">
-                  <Printer className="w-4 h-4 mr-2" /> Cetak Resi
+
+                {selectedOrder?.status === 'READY_TO_SHIP' ? (
+                  <Button
+                    onClick={() => setIsShipModalOpen(true)}
+                    className="flex-1 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-black shadow-lg shadow-orange-600/20 animate-bounce-subtle"
+                  >
+                    <Truck className="w-4 h-4 mr-2" /> Atur Pengiriman
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => setIsPreviewOpen(true)}
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black shadow-lg shadow-indigo-600/20"
+                  >
+                    <Printer className="w-4 h-4 mr-2" /> Cetak Label
+                  </Button>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* --- MODAL ATUR PENGIRIMAN --- */}
+          <Dialog open={isShipModalOpen} onOpenChange={setIsShipModalOpen}>
+            <DialogContent className="max-w-md rounded-3xl p-6 border-none bg-white dark:bg-slate-950 shadow-2xl">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2 text-slate-900 dark:text-white">
+                  <Truck className="w-5 h-5 text-indigo-500" /> Atur Pengiriman
+                </DialogTitle>
+                <p className="text-sm text-slate-500">Pilih metode pengiriman untuk pesanan ini.</p>
+              </DialogHeader>
+
+              <div className="grid grid-cols-1 gap-3 py-4">
+                {/* Opsi Drop-off */}
+                <button
+                  onClick={() => setShippingMethod('dropoff')}
+                  className={`p-4 rounded-2xl border-2 transition-all flex items-center gap-4 text-left ${shippingMethod === 'dropoff'
+                    ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-500/10'
+                    : 'border-slate-100 dark:border-slate-800 hover:border-slate-200'
+                    }`}
+                >
+                  <div className={`p-3 rounded-xl ${shippingMethod === 'dropoff' ? 'bg-indigo-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+                    <Store className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-slate-900 dark:text-slate-100">Drop-off</div>
+                    <div className="text-xs text-slate-500">Anda antar paket ke cabang kurir terdekat.</div>
+                  </div>
+                </button>
+
+                {/* Opsi Pickup */}
+                <button
+                  onClick={() => setShippingMethod('pickup')}
+                  className={`p-4 rounded-2xl border-2 transition-all flex items-center gap-4 text-left ${shippingMethod === 'pickup'
+                    ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-500/10'
+                    : 'border-slate-100 dark:border-slate-800 hover:border-slate-200'
+                    }`}
+                >
+                  <div className={`p-3 rounded-xl ${shippingMethod === 'pickup' ? 'bg-indigo-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+                    <Truck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-slate-900 dark:text-slate-100">Pickup</div>
+                    <div className="text-xs text-slate-500">Kurir akan menjemput paket ke lokasi Anda.</div>
+                  </div>
+                </button>
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={() => setIsShipModalOpen(false)} className="flex-1 rounded-xl font-bold">
+                  Batal
+                </Button>
+                <Button
+                  disabled={!shippingMethod || isSyncing}
+                  onClick={confirmShipment}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black shadow-lg shadow-indigo-600/20"
+                >
+                  Konfirmasi
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* --- MODAL PREVIEW LABEL SHOPEE STYLE --- */}
+          <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+            <DialogContent
+              className="max-w-2xl p-0 border-none bg-white dark:bg-slate-950 shadow-2xl overflow-hidden flex flex-col h-[90vh]"
+            >
+              {/* HEADER: Tetap di atas (Sama dengan Detail Modal) */}
+              <DialogHeader className="p-6 bg-slate-900 dark:bg-indigo-950 text-white shrink-0">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-3 mt-2">
+                    <div className="p-2 bg-white/10 rounded-lg">
+                      <Printer className="w-5 h-5 text-indigo-200" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-xl font-black uppercase tracking-tight">Print Label</DialogTitle>
+                      <p className="text-indigo-200 text-[10px] font-bold uppercase tracking-widest">Shopee Official Layout</p>
+                    </div>
+                  </div>
+
+                  {/* Ukuran Kertas */}
+                  <div className="flex bg-white/10 p-1 rounded-xl border border-white/10">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPaperSize('100x150')}
+                      className={`text-[10px] font-bold h-7 rounded-lg ${paperSize === '100x150' ? 'bg-white text-slate-900' : 'text-white'}`}
+                    >
+                      A6 (100x150)
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPaperSize('78x100')}
+                      className={`text-[10px] font-bold h-7 rounded-lg ${paperSize === '78x100' ? 'bg-white text-slate-900' : 'text-white'}`}
+                    >
+                      78x100
+                    </Button>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              {/* CONTENT: Bisa di-scroll (Sama dengan Detail Modal) */}
+              <div className="flex-1 overflow-y-auto p-8 bg-slate-100 dark:bg-slate-900 flex justify-center no-scrollbar">
+                {/* Container Kertas Thermal */}
+                <div
+                  className={`bg-white text-black shadow-xl transition-all duration-300 ease-in-out flex flex-col border border-black/10 shrink-0 ${paperSize === '100x150' ? 'w-[380px] min-h-[570px]' : 'w-[300px] min-h-[385px]'
+                    }`}
+                  id="thermal-label"
+                >
+                  {/* Row 1: Logo & Kurir */}
+                  <div className="flex border-b-4 border-black shrink-0">
+                    <div className="w-1/3 p-3 border-r-4 border-black flex items-center justify-center">
+                      <h1 className="text-lg font-black italic tracking-tighter">Shopee</h1>
+                    </div>
+                    <div className="w-2/3 p-3 flex flex-col justify-center items-center bg-black text-white">
+                      <span className="text-xs font-bold leading-none uppercase">Reguler</span>
+                      <span className="text-lg font-black uppercase">{selectedOrder?.courier}</span>
+                      {/* TAMPILAN BERAT */}
+                      <span className="text-[11px] font-bold mt-1 border-t border-white/30 w-full text-center pt-0.5">
+                        {selectedOrder?.weight || '1.0 kg'}
+                      </span>
+                    </div>
+                    {/* AREA METODE PEMBAYARAN */}
+                    {selectedOrder?.paymentMethod === 'NONTUNAI' ?
+                      <div className='w-1/4 p-3 flex flex-col justify-center items-center border-l-4 border-black bg-white text-black'>
+                        <span className="text-[10px] font-black leading-none uppercase">Bayar</span>
+                        <span className="text-lg font-black uppercase">COD</span>
+                      </div>
+                      :
+                      ''
+                    }
+                  </div>
+
+                  {/* Row 2: Barcode No Pesanan */}
+                  <div className="p-3 border-b-4 border-black flex flex-col items-center shrink-0">
+                    <div className="w-full h-10 bg-slate-100 flex items-center justify-center mb-1">
+                      <div className="flex gap-[1px] h-6 opacity-80">
+                        {[...Array(40)].map((_, i) => <div key={i} className={`h-full ${i % 4 === 0 ? 'w-1' : 'w-[1px]'} bg-black`} />)}
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-bold font-mono tracking-widest text-center">No. Pesanan: {selectedOrder?.id}</span>
+                  </div>
+
+                  {/* Row 3: Barcode Resi */}
+                  <div className="p-4 border-b-4 border-black flex flex-col items-center justify-center bg-slate-50 shrink-0">
+                    <div className="w-full h-16 flex items-center justify-center mb-1">
+                      <div className="flex gap-[2px] h-12">
+                        {[...Array(50)].map((_, i) => <div key={i} className={`h-full ${i % 5 === 0 ? 'w-1.5' : 'w-[1.5px]'} bg-black`} />)}
+                      </div>
+                    </div>
+                    <span className="text-lg font-black font-mono tracking-[0.2em]">{selectedOrder?.resi}</span>
+                  </div>
+
+                  {/* Row 4: Area Alamat (Penerima & Pengirim) - Pakai flex-1 atau min-height agar tidak potong */}
+                  <div className="flex border-b-4 border-black min-h-[160px] text-black">
+                    {/* PENERIMA */}
+                    <div className="w-[65%] p-3 border-r-2 border-black border-dashed flex flex-col bg-white">
+                      {/* Badge COD Melayang jika metodenya COD */}
+                      {selectedOrder?.paymentMethod === 'COD' && (
+                        <div className="absolute top-3 right-3 border-4 border-black px-2 py-1 rotate-12">
+                          <span className="text-2xl font-black">COD</span>
+                        </div>
+                      )}
+                      <div className="bg-black text-white text-[9px] font-black px-1.5 py-0.5 uppercase w-fit mb-1">Penerima:</div>
+                      <div className="font-black text-[14px] leading-tight mb-2 uppercase">{selectedOrder?.customer}</div>
+                      {/* <div className="text-[11px] font-black mb-1.5 underline">{selectedOrder?.phone}</div> */}
+                      <div className="text-[10px] leading-tight font-bold uppercase break-words">
+                        {selectedOrder?.address}
+                      </div>
+                    </div>
+                    {/* PENGIRIM */}
+                    <div className="w-[35%] p-3 flex flex-col bg-slate-50 justify-between">
+                      <div>
+                        <div className="text-[8px] font-black uppercase text-slate-500 italic">Pengirim:</div>
+                        <div className="text-[10px] font-black uppercase leading-tight truncate">{selectedOrder?.store}</div>
+                        <div className="text-[9px] font-bold">0812-XXXX-XXXX</div>
+                      </div>
+                      <div className="pt-2 border-t border-black/20 text-center">
+                        <div className="text-[20px] font-black">JKT</div>
+                        <div className="text-[8px] font-black uppercase">Internal</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Row 5: Produk */}
+                  <div className="p-3 bg-white flex-1">
+                    <div className="flex justify-between items-end mb-1">
+                      <span className="text-[9px] font-black uppercase border-b border-black">Daftar Produk</span>
+                      {/* INFO BATAS KIRIM DI SINI */}
+                      <span className="text-[9px] font-bold text-white bg-black px-1">Kirim Sebelum: {selectedOrder?.deadline}</span>
+                    </div>
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="text-[10px] leading-tight uppercase font-bold flex-1">
+                        {selectedOrder?.product}
+                        <div className="text-[8px] font-normal italic">Variasi: {selectedOrder?.variant}</div>
+                      </div>
+                      <div className="text-[10px] font-black">x1</div>
+                    </div>
+                  </div>
+
+                  {/* Bottom */}
+                  <div className="p-2 border-t-4 border-black flex justify-between items-center bg-black text-white shrink-0">
+                    <span className="text-[9px] font-black italic">S-LOGISTICS</span>
+                    <span className="text-[8px] font-bold">{new Date().toLocaleDateString('id-ID')}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* FOOTER: Tetap di bawah (Sama dengan Detail Modal) */}
+              <div className="p-6 bg-white dark:bg-slate-950 border-t flex gap-3 shrink-0">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsPreviewOpen(false)}
+                  className="flex-1 h-12 rounded-xl font-bold"
+                >
+                  Tutup
+                </Button>
+                <Button
+                  onClick={handlePrint}
+                  className="flex-1 h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
+                >
+                  <Printer className="w-5 h-5 mr-2" /> CETAK SEKARANG
                 </Button>
               </div>
             </DialogContent>
