@@ -52,13 +52,12 @@ const managementNavItems: NavItem[] = [
         title: 'Marketplace',
         href: marketplace.index(),
         icon: ClipboardList,
-        badge: 'Beta',
+        badge: 'development',
     },
     {
         title: 'Operasional',
         href: supplies.index(),
         icon: Box,
-        // badge: 'Beta',
     },
     {
         title: 'Master Produk',
@@ -137,7 +136,7 @@ export function AppSidebar() {
                     </SidebarMenu>
                     <SidebarGroupLabel>Fitur Premium
                         <span className="ml-auto flex h-4 items-center justify-center rounded bg-indigo-100 px-1 text-[9px] font-black uppercase tracking-widest text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30">
-                            Beta
+                            development
                         </span>
                     </SidebarGroupLabel>
                     <SidebarMenu>

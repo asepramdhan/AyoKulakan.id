@@ -1,16 +1,19 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import marketplace from '@/routes/marketplace';
+import shopee from '@/routes/shopee';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
-import { AlertCircle, CalendarClock, CheckCircle2, ClipboardCheck, Clock, ExternalLink, MapPin, Package, Printer, RefreshCw, Search, Store, Truck, User } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Head, router } from '@inertiajs/react';
+import { AlertCircle, CalendarClock, CheckCircle2, ClipboardCheck, Clock, ExternalLink, MapPin, Package, Printer, RefreshCw, Search, Store, StoreIcon, Truck, User } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -21,176 +24,529 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 // --- 1. MOCK DATA (Simulasi Data API Shopee) ---
-const MOCK_ORDERS = [
-  {
-    id: '240115ABC123',
-    store: 'Store A',
-    product: 'Sepatu Sneakers Aero v2',
-    variant: 'Hitam, 42',
-    price: 'Rp 250.000',
-    status: 'READY_TO_SHIP',
-    courier: 'J&T Express',
-    resi: 'JP123456789',
-    date: '15 Jan, 10:30',
-    ship_by_date: '2024-01-17 10:30:00', // Contoh tanggal batas kirim
-    customer: 'Budi Santoso',
-    address: 'Jl. Melati No. 123, Jakarta Selatan, DKI Jakarta',
-    phone: '081234567890',
-    weight: '500 gr', // atau 0.5 kg
-    deadline: '17 Jan 2026',
-    paymentMethod: 'NONTUNAI', // atau 'NONTUNAI' / 'LUNAS'
-  },
-  {
-    id: '240115XYZ456',
-    store: 'Store B',
-    product: 'Kaos Polos Cotton Combed',
-    variant: 'Putih, L',
-    price: 'Rp 75.000',
-    status: 'SHIPPED',
-    courier: 'SiCepat',
-    resi: 'REG99887722',
-    date: '15 Jan, 11:45',
-    ship_by_date: '2024-01-17 11:45:00',
-    customer: 'Siti Aminah',
-    address: 'Komp. Permai Blok B5, Bandung, Jawa Barat',
-    phone: '085566778899',
-    weight: '200 gr',
-    deadline: '17 Jan 2026',
-    paymentMethod: 'LUNAS'
-  },
-  {
-    id: '240115DEF789',
-    store: 'Store C',
-    product: 'Kemeja Polos Cotton Combed',
-    variant: 'Biru, M',
-    price: 'Rp 100.000',
-    status: 'READY_TO_SHIP',
-    courier: 'J&T Express',
-    resi: 'JP987654321',
-    date: '15 Jan, 12:15',
-    ship_by_date: '2024-01-17 12:15:00',
-    customer: 'Budi Santoso',
-    address: 'Jl. Melati No. 123, Jakarta Selatan, DKI Jakarta',
-    phone: '081234567890',
-    weight: '500 gr',
-    deadline: '17 Jan 2026',
-    paymentMethod: 'LUNAS'
-  },
-  {
-    id: '240115GHI012',
-    store: 'Store D',
-    product: 'Kaos Polos Cotton Combed',
-    variant: 'Biru, M',
-    price: 'Rp 100.000',
-    status: 'SHIPPED',
-    courier: 'J&T Express',
-    resi: 'JP987654321',
-    date: '15 Jan, 12:15',
-    ship_by_date: '2024-01-17 12:15:00',
-    customer: 'Budi Santoso',
-    address: 'Jl. Melati No. 123, Jakarta Selatan, DKI Jakarta',
-    phone: '081234567890',
-    weight: '500 gr',
-    deadline: '17 Jan 2026',
-    paymentMethod: 'NONTUNAI'
-  }
-];
+// const MOCK_ORDERS = [
+//   {
+//     id: '240115ABC123',
+//     store: 'Store A',
+//     product: 'Sepatu Sneakers Aero v2',
+//     variant: 'Hitam, 42',
+//     price: 'Rp 250.000',
+//     status: 'READY_TO_SHIP',
+//     courier: 'J&T Express',
+//     resi: 'JP123456789',
+//     date: '15 Jan, 10:30',
+//     ship_by_date: '2024-01-17 10:30:00', // Contoh tanggal batas kirim
+//     customer: 'Budi Santoso',
+//     address: 'Jl. Melati No. 123, Jakarta Selatan, DKI Jakarta',
+//     phone: '081234567890',
+//     weight: '500 gr', // atau 0.5 kg
+//     deadline: '17 Jan 2026',
+//     paymentMethod: 'NONTUNAI', // atau 'NONTUNAI' / 'LUNAS'
+//   },
+//   {
+//     id: '240115XYZ456',
+//     store: 'Store B',
+//     product: 'Kaos Polos Cotton Combed',
+//     variant: 'Putih, L',
+//     price: 'Rp 75.000',
+//     status: 'SHIPPED',
+//     courier: 'SiCepat',
+//     resi: 'REG99887722',
+//     date: '15 Jan, 11:45',
+//     ship_by_date: '2024-01-17 11:45:00',
+//     customer: 'Siti Aminah',
+//     address: 'Komp. Permai Blok B5, Bandung, Jawa Barat',
+//     phone: '085566778899',
+//     weight: '200 gr',
+//     deadline: '17 Jan 2026',
+//     paymentMethod: 'LUNAS'
+//   },
+//   {
+//     id: '240115DEF789',
+//     store: 'Store C',
+//     product: 'Kemeja Polos Cotton Combed',
+//     variant: 'Biru, M',
+//     price: 'Rp 100.000',
+//     status: 'READY_TO_SHIP',
+//     courier: 'J&T Express',
+//     resi: 'JP987654321',
+//     date: '15 Jan, 12:15',
+//     ship_by_date: '2024-01-17 12:15:00',
+//     customer: 'Budi Santoso',
+//     address: 'Jl. Melati No. 123, Jakarta Selatan, DKI Jakarta',
+//     phone: '081234567890',
+//     weight: '500 gr',
+//     deadline: '17 Jan 2026',
+//     paymentMethod: 'LUNAS'
+//   },
+//   {
+//     id: '240115GHI012',
+//     store: 'Store D',
+//     product: 'Kaos Polos Cotton Combed',
+//     variant: 'Biru, M',
+//     price: 'Rp 100.000',
+//     status: 'SHIPPED',
+//     courier: 'J&T Express',
+//     resi: 'JP987654321',
+//     date: '15 Jan, 12:15',
+//     ship_by_date: '2024-01-17 12:15:00',
+//     customer: 'Budi Santoso',
+//     address: 'Jl. Melati No. 123, Jakarta Selatan, DKI Jakarta',
+//     phone: '081234567890',
+//     weight: '500 gr',
+//     deadline: '17 Jan 2026',
+//     paymentMethod: 'NONTUNAI'
+//   },
+//   {
+//     id: '240115JKL345',
+//     store: 'Store E',
+//     product: 'Kaos Polos Cotton Combed',
+//     variant: 'Biru, M',
+//     price: 'Rp 100.000',
+//     status: 'SHIPPED',
+//     courier: 'SPX Express',
+//     resi: 'SPX123456789',
+//     date: '15 Jan, 12:15',
+//     ship_by_date: '2024-01-17 12:15:00',
+//     customer: 'Budi Santoso',
+//     address: 'Jl. Melati No. 123, Jakarta Selatan, DKI Jakarta',
+//     phone: '081234567890',
+//     weight: '500 gr',
+//     deadline: '17 Jan 2026',
+//     paymentMethod: 'NONTUNAI'
+//   }
+// ];
 
-export default function Index() {
+// 1. Tambahkan interface Props di atas
+// interface Props {
+//   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+//   orders: any[]; // Sebaiknya buat interface detail nanti
+//   shopId: number;
+// }
+
+export default function Index({ orders = [], stats, shops = [], currentShopId }: { orders: any[], stats: any, shops: any[], currentShopId: any }) {
+  console.log(shops);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [activeTab, setActiveTab] = useState('ALL'); // State untuk filter tab
+  // Membaca dari localStorage saat pertama kali load, default ke 'ALL' jika kosong
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem('marketplace_active_tab') || 'ALL';
+  });
   const [searchQuery, setSearchQuery] = useState(''); // State untuk pencarian
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isShipModalOpen, setIsShipModalOpen] = useState(false);
   const [shippingMethod, setShippingMethod] = useState<'dropoff' | 'pickup' | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [paperSize, setPaperSize] = useState<'100x150' | '78x100'>('100x150');
-  // Fungsi untuk menghitung sisa waktu (Sederhana)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const getDeadlineStatus = (dateString: string) => {
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const handleShopChange = (value: string) => {
+    // Pindah halaman dengan query string baru
+    // Ini akan memicu fungsi index() di Laravel berjalan lagi dengan shop_id tersebut
+    router.get(marketplace.index().url, { shop_id: value }, {
+      preserveState: true,
+      replace: true
+    });
+  };
+  // Sinkronisasi data
+  const handleSync = () => {
+    setIsSyncing(true);
+
+    // Jika tidak ada toko yang terhubung
+    if (shops.length === 0) {
+      toast.loading('Mengarahkan ke Shopee...', { id: 'auth' });
+
+      // LANGSUNG arahkan ke route Laravel yang menghandle redirect
+      // Jangan pakai router.get karena ini URL eksternal
+      window.location.href = '/shopee/auth';
+      return;
+    }
+
+    toast.loading('Sinkronisasi data...', { id: 'sync' });
+    // Gunakan router.reload untuk menarik data terbaru dari Laravel
+    router.reload({
+      only: ['orders', 'stats'],
+      onSuccess: () => {
+        setIsSyncing(false);
+        toast.success('Data berhasil diperbarui!', { id: 'sync' });
+      },
+      onError: () => {
+        setIsSyncing(false);
+        toast.error('Gagal sinkronisasi data.', { id: 'sync' });
+      },
+      onFinish: () => {
+        setIsSyncing(false);
+      }
+    });
+  };
+  // Summary statistik
+  const statsSummary = [
+    {
+      label: 'Perlu Diproses',
+      count: stats?.perlu_diproses ?? 0,
+      icon: Clock,
+      color: 'text-orange-500',
+      bg: 'bg-orange-50 dark:bg-orange-500/10'
+    },
+    {
+      label: 'Dalam Pengiriman',
+      count: stats?.dalam_pengiriman ?? 0,
+      icon: Truck,
+      color: 'text-blue-500',
+      bg: 'bg-blue-50 dark:bg-blue-500/10'
+    },
+    {
+      label: 'Selesai',
+      count: stats?.selesai ?? 0,
+      icon: CheckCircle2,
+      color: 'text-emerald-500',
+      bg: 'bg-emerald-50 dark:bg-emerald-500/10'
+    },
+    {
+      label: 'Pembatalan',
+      count: stats?.pembatalan ?? 0,
+      icon: AlertCircle,
+      color: 'text-rose-500',
+      bg: 'bg-rose-50 dark:bg-rose-500/10'
+    },
+  ];
+  // Fungsi untuk menghitung sisa waktu
+  const getDeadlineStatus = (timestamp: number | null) => {
+    if (!timestamp) return { label: "N/A", color: "text-slate-400" };
+
+    const deadline = new Date(timestamp * 1000); // Shopee (detik) -> JS (milidetik)
+    const now = new Date();
+
+    // Selisih dalam jam
+    const diffInHours = (deadline.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    // Format jam:menit untuk label
+    const timeStr = deadline.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    const dateStr = deadline.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+
+    // 1. Jika sudah lewat (Expired)
+    if (diffInHours <= 0) {
+      return {
+        label: `Lewat Batas: ${dateStr}, ${timeStr}`,
+        color: "text-red-600 font-black",
+        isUrgent: false
+      };
+    }
+
+    // 2. Jika sisa kurang dari 12 jam (Sangat Mendesak)
+    if (diffInHours <= 12) {
+      return {
+        label: `Segera Kirim: ${timeStr} (Hari Ini)`,
+        color: "text-rose-500 animate-pulse font-black",
+        isUrgent: true
+      };
+    }
+
+    // 3. Jika sisa kurang dari 24 jam (Urgent)
+    if (diffInHours <= 24) {
+      return {
+        label: `Maks: Besok, ${timeStr}`,
+        color: "text-orange-500 font-bold",
+        isUrgent: true
+      };
+    }
+
+    // 4. Masih aman
     return {
-      label: "Maks. Kirim: 17 Jan, 10:30",
-      isUrgent: true
+      label: `Maks: ${dateStr}, ${timeStr}`,
+      color: "text-slate-500",
+      isUrgent: false
     };
   };
-
+  // Membaca dari localStorage saat pertama kali load, default ke 'ALL' jika kosong
+  useEffect(() => {
+    localStorage.setItem('marketplace_active_tab', activeTab);
+  }, [activeTab]);
+  // Filter dan pencarian
   const filteredOrders = useMemo(() => {
-    return MOCK_ORDERS.filter((order) => {
+    return orders.filter((order) => {
       // Filter berdasarkan Tab
       const matchesTab =
         activeTab === 'ALL' ||
-        (activeTab === 'READY' && order.status === 'READY_TO_SHIP') ||
-        (activeTab === 'SHIPPED' && order.status === 'SHIPPED');
+        // Siap Kirim mencakup yang baru masuk dan yang sudah diatur pengirimannya (resi keluar)
+        (activeTab === 'READY' && (order.status === 'READY_TO_SHIP' || order.status === 'PROCESSED')) ||
+        // Dikirim mencakup yang sedang dijalan dan yang sudah sampai tapi belum diklik selesai
+        (activeTab === 'SHIPPED' && (order.status === 'SHIPPED' || order.status === 'TO_CONFIRM_RECEIVE')) ||
+        // Tab tambahan jika ingin memisahkan yang sudah beres
+        (activeTab === 'COMPLETED' && order.status === 'COMPLETED');
 
-      // Filter berdasarkan Search (No. Pesanan atau Nama Produk)
+      // Filter berdasarkan Search
+      const query = searchQuery.toLowerCase();
       const matchesSearch =
-        order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.product.toLowerCase().includes(searchQuery.toLowerCase());
+        order.id.toLowerCase().includes(query) ||
+        order.product.toLowerCase().includes(query) ||
+        order.resi.toLowerCase().includes(query) || // Tambahkan pencarian berdasarkan Resi
+        order.customer.toLowerCase().includes(query); // Tambahkan pencarian berdasarkan Nama Customer
 
       return matchesTab && matchesSearch;
     });
-  }, [activeTab, searchQuery]);
-  const handleSync = () => {
-    setIsSyncing(true);
-    toast.loading('Memperbarui data...', { id: 'sync' });
-    // Simulasi penarikan data API Shopee
-    setTimeout(() => {
-      setIsSyncing(false);
-      toast.success('Data berhasil diperbarui!', { id: 'sync' });
-    }, 2000);
-  };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  }, [activeTab, searchQuery, orders]);
+
   const openDetail = (order: any) => {
     setSelectedOrder(order);
     setIsModalOpen(true);
   };
 
   const confirmShipment = () => {
-    setIsSyncing(true); // Simulasi proses ke API Shopee
-    toast.loading('Memproses pesanan...', { id: 'sync' });
-    setTimeout(() => {
-      setIsSyncing(false);
-      setIsShipModalOpen(false);
-      setIsModalOpen(false);
-      toast.success(`Berhasil diproses (${shippingMethod})`, { id: 'sync' });
-      // Di sini nantinya kamu akan panggil router.post atau router.put ke Laravel
-    }, 1500);
+    if (!selectedOrder) return;
+
+    setIsSyncing(true);
+    toast.loading('Memproses pengiriman...', { id: 'ship-process' });
+
+    // Mengirim data ke Laravel Controller
+    router.post(marketplace.ship().url, {
+      order_sn: selectedOrder.id,
+      method: shippingMethod, // 'pickup' atau 'dropoff' dari radio button kamu
+    }, {
+      onSuccess: () => {
+        setIsSyncing(false);
+        setIsShipModalOpen(false);
+        setIsModalOpen(false);
+        toast.success(`Berhasil diproses (${shippingMethod === 'pickup' ? 'Ambil' : 'Antar'}).`, { id: 'ship-process' });
+
+        // Tunggu 15 detik baru reload agar API Shopee sempat generate Resi
+        setTimeout(() => {
+          router.reload({
+            only: ['orders', 'stats'],
+            onFinish: () => {
+              setIsSyncing(false);
+              toast.success('Data sinkron!', { id: 'ship-process' });
+            }
+          });
+        }, 15000);
+      },
+      onError: (errors) => {
+        setIsSyncing(false);
+        toast.error(errors.message || 'Gagal memproses pengiriman', { id: 'ship-process' });
+      },
+      onFinish: () => {
+        setIsSyncing(false);
+      }
+    });
+  };
+  // Fungsi toggle pilih semua atau satu per satu
+  const toggleSelectOrder = (id: string, checked: boolean) => {
+    setSelectedOrderIds((prev) =>
+      checked ? [...prev, id] : prev.filter((itemId) => itemId !== id)
+    );
+  };
+
+  const toggleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedOrderIds(filteredOrders.map((o) => o.id));
+    } else {
+      setSelectedOrderIds([]);
+    }
   };
 
   const handlePrint = () => {
     const printContent = document.getElementById("thermal-label");
-    const windowUrl = window.open('', '', 'left=0,top=0,width=400,height=600,toolbar=0,scrollbars=0,status=0');
+    if (!printContent) return;
 
-    if (windowUrl) {
-      windowUrl.document.write('<html><head><title>Cetak Label</title>');
-      // Import Tailwind ke jendela print agar styling tidak hilang
-      windowUrl.document.write('<script src="https://cdn.tailwindcss.com"></script>');
-      windowUrl.document.write('</head><body >');
-      windowUrl.document.write(printContent?.innerHTML || '');
-      windowUrl.document.write('</body></html>');
-      windowUrl.document.close();
-      windowUrl.focus();
+    // 1. Buat iframe tersembunyi agar tidak buka window baru
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
 
-      // Beri jeda sedikit agar Tailwind sempat render sebelum dialog print muncul
-      setTimeout(() => {
-        windowUrl.print();
-        windowUrl.close();
-      }, 500);
-    }
+    const doc = iframe.contentWindow?.document;
+    if (!doc) return;
+
+    // 2. Tulis konten ke iframe dengan CSS Khusus Print
+    doc.write(`
+    <html>
+      <head>
+        <title>Cetak Label</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+          /* CSS KRUSIAL: Memaksa warna latar belakang muncul saat di-print */
+          @media print {
+            body { 
+              -webkit-print-color-adjust: exact !important; 
+              print-color-adjust: exact !important; 
+            }
+            @page { 
+              margin: 0; 
+              size: auto;
+            }
+          }
+          /* Memastikan barcode dan background hitam benar-benar hitam */
+          .bg-black { background-color: black !important; color: white !important; }
+          .bg-slate-100 { background-color: #f1f5f9 !important; }
+          .border-black { border-color: black !important; }
+        </style>
+      </head>
+      <body>
+        <div class="p-4">
+          ${printContent.innerHTML}
+        </div>
+        <script>
+          // Tunggu library Tailwind selesai memproses class sebelum print
+          setTimeout(() => {
+            window.print();
+            window.frameElement.remove(); // Hapus iframe setelah print selesai
+          }, 800);
+        </script>
+      </body>
+    </html>
+  `);
+    doc.close();
+  };
+
+  const renderLabelHTML = (order: any) => {
+    // Samakan logika pembayaran dengan kode kamu
+    const isCOD = order.paymentMethod === 'COD' || order.paymentMethod === 'NONTUNAI';
+
+    return `
+    <div class="page-break flex justify-center bg-white p-4">
+      <div class="bg-white text-black flex flex-col border border-black shrink-0 shadow-none" 
+           style="width: ${paperSize === '100x150' ? '380px' : '300px'}; min-height: ${paperSize === '100x150' ? '570px' : '385px'};">
+        
+        <div class="flex border-b border-black shrink-0">
+          <div class="w-1/4 p-3 border-r border-black flex items-center justify-center">
+            <h1 class="text-xl font-black italic tracking-tighter">Shopee</h1>
+          </div>
+          <div class="w-2/4 p-2 flex flex-col justify-center items-center bg-black text-white" style="background-color: black !important; color: white !important;">
+            <span class="text-[10px] font-bold leading-none uppercase opacity-70 italic">Reguler</span>
+            <span class="text-xl font-black uppercase tracking-tight leading-none mb-1">${order.courier}</span>
+            <span class="text-[11px] font-bold border-t border-white/40 w-full text-center pt-0.5">${order.weight || '0.5 kg'}</span>
+          </div>
+          <div class="w-1/4 p-2 flex flex-col justify-center items-center border-l border-black">
+            <span class="text-[9px] font-black uppercase">Bayar</span>
+            <span class="text-lg font-black">${isCOD ? 'COD' : 'CASH'}</span>
+          </div>
+        </div>
+
+        <div class="p-2 border-b border-black flex flex-col items-center">
+          <div class="flex h-8 items-end mb-1">
+            ${Array(40).fill(0).map((_, i) => `<div style="border-left: 1.5px solid black; height: 100%; margin-right: ${i % 5 === 0 ? '4px' : '2px'};"></div>`).join('')}
+          </div>
+          <span class="text-[8px] font-mono font-bold uppercase">No. Pesanan: ${order.id}</span>
+        </div>
+
+        <div class="p-4 border-b border-black flex flex-col items-center justify-center bg-slate-50" style="background-color: #f8fafc !important;">
+          <div class="flex h-14 items-end mb-2">
+            ${Array(65).fill(0).map((_, i) => `<div style="border-left: 2px solid black; height: 100%; margin-right: ${i % 4 === 0 ? '3px' : '1px'};"></div>`).join('')}
+          </div>
+          <span class="text-lg font-black font-mono tracking-[0.2em]">${order.resi}</span>
+        </div>
+
+        <div class="flex border-b border-black min-h-[160px] relative text-black">
+          ${isCOD ? `<div style="position: absolute; top: 12px; right: 12px; border: 2px solid black; padding: 2px 8px; transform: rotate(12deg); z-index: 10; background: white; font-weight: 900; font-size: 20px;">COD</div>` : ''}
+          
+          <div class="w-[65%] p-3 border-r border-black border-dashed flex flex-col">
+            <div style="background-color: black !important; color: white !important;" class="text-[9px] font-black px-1.5 py-0.5 uppercase w-fit mb-1">Penerima:</div>
+            <div class="font-black text-[15px] leading-tight uppercase mb-2">${order.customer}</div>
+            <div class="text-[11px] leading-[1.3] font-bold uppercase">${order.address}</div>
+          </div>
+
+          <div class="w-[35%] p-3 flex flex-col justify-between bg-slate-50" style="background-color: #f8fafc !important;">
+            <div>
+              <div class="text-[8px] font-black uppercase text-slate-500 mb-1 italic">Pengirim:</div>
+              <div class="text-[11px] font-black uppercase leading-tight">${order.store}</div>
+            </div>
+            <div class="pt-2 border-t border-black/20 text-center">
+              <div class="text-[24px] font-black uppercase leading-none">JKT</div>
+              <div class="text-[9px] font-black uppercase leading-none mt-1">INTERNAL</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3 bg-white flex-1">
+          <div class="flex justify-between items-end mb-1 border-b border-black pb-1">
+             <span class="text-[9px] font-black uppercase">Daftar Produk</span>
+             <span style="background-color: black !important; color: white !important;" class="text-[9px] font-bold px-1 uppercase">Kirim Sebelum: ${order.deadline || '17 Jan'}</span>
+          </div>
+          <div class="flex justify-between items-start text-[11px] mt-2">
+            <div class="flex-1 pr-2">
+              <div class="font-bold uppercase">${order.product}</div>
+              <div class="text-[9px] font-normal italic mt-0.5">Variasi: ${order.variant || '-'}</div>
+            </div>
+            <div class="font-black text-sm">(1)</div>
+          </div>
+        </div>
+
+        <div style="background-color: black !important; color: white !important;" class="p-2 border-t border-black flex justify-between items-center shrink-0">
+          <span class="text-[9px] font-black italic">S-LOGISTICS</span>
+          <span class="text-[8px] font-bold">${new Date().toLocaleDateString('id-ID')}</span>
+        </div>
+      </div>
+    </div>
+  `;
+  };
+
+  const handleBulkPrint = () => {
+    const ordersToPrint = filteredOrders.filter(o => selectedOrderIds.includes(o.id));
+    if (ordersToPrint.length === 0) return;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) return;
+
+    doc.write(`
+    <html>
+      <head>
+        <title>Cetak Massal</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+          @media print {
+            body { 
+              margin: 0; 
+              background: white !important;
+              -webkit-print-color-adjust: exact !important; 
+              print-color-adjust: exact !important; 
+            }
+            .page-break { page-break-after: always; }
+            @page { margin: 0; size: auto; }
+          }
+          /* Memastikan semua border tipis sesuai desain kamu */
+          .border { border-width: 1px !important; }
+          .border-b { border-bottom-width: 1px !important; }
+          .border-r { border-right-width: 1px !important; }
+        </style>
+      </head>
+      <body>
+        ${ordersToPrint.map(order => renderLabelHTML(order)).join('')}
+        <script>
+          // Delay sedikit agar Tailwind memproses class sebelum dialog print muncul
+          setTimeout(() => {
+            window.print();
+            window.frameElement.remove();
+          }, 1000);
+        </script>
+      </body>
+    </html>
+  `);
+    doc.close();
+    setSelectedOrderIds([]); // Kosongkan seleksi setelah print
   };
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Marketplace Management" />
 
-      <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+      <div className="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
 
         {/* --- HEADER SECTION (FIXED FOR MOBILE) --- */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between px-1">
           <div className="space-y-1">
-            <h1 className="text-xl md:text-2xl flex items-center gap-2 font-black text-slate-900 dark:text-white uppercase tracking-tight">
+            <h1 className="text-lg md:text-2xl flex items-center gap-2 font-black text-slate-900 dark:text-white uppercase tracking-tight">
               <ClipboardCheck className="text-indigo-500 w-6 h-6 md:w-7 md:h-7" />
               Marketplace <span className="text-indigo-600 dark:text-indigo-400">Management</span>
             </h1>
@@ -202,17 +558,19 @@ export default function Index() {
             {/* Filter Pilih Toko - Lebih fleksibel di HP */}
             <div className="flex flex-col gap-1.5 flex-1 lg:flex-none">
               <span className="text-[10px] font-black uppercase text-slate-400 ml-1">Pilih Toko</span>
-              <Select defaultValue="all">
+              <Select value={currentShopId} onValueChange={handleShopChange}>
                 <SelectTrigger className="w-full lg:w-[200px] h-11 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-bold text-slate-700 dark:text-slate-200 shadow-sm focus:ring-indigo-500/20">
                   <div className="flex items-center gap-2 truncate">
                     <Store className="w-4 h-4 text-indigo-500 shrink-0" />
-                    <SelectValue placeholder="Semua Toko" />
+                    <SelectValue placeholder="Pilih Toko" />
                   </div>
                 </SelectTrigger>
                 <SelectContent className="dark:bg-slate-900 dark:border-slate-800">
-                  <SelectItem value="all">Semua Toko</SelectItem>
-                  <SelectItem value="shopee-1">Shopee Store A</SelectItem>
-                  <SelectItem value="shopee-2">Shopee Store B</SelectItem>
+                  {shops.map((shop: any) => (
+                    <SelectItem key={shop.shop_id} value={shop.shop_id.toString()}>
+                      {shop.shop_name || `Toko ${shop.shop_name}`}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -223,20 +581,21 @@ export default function Index() {
               disabled={isSyncing}
               className="h-11 px-4 lg:px-6 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-xl font-black shadow-lg shadow-indigo-600/20 border-none transition-all active:scale-95 shrink-0"
             >
-              <RefreshCw className="w-5 h-5 lg:w-4 lg:h-4" />
-              <span className="hidden lg:inline ml-2 uppercase tracking-wider text-xs">Sync Data</span>
+              {shops.length === 0 ?
+                <StoreIcon className="w-5 h-5 lg:w-4 lg:h-4" />
+                :
+                <RefreshCw className="w-5 h-5 lg:w-4 lg:h-4" />
+              }
+              <span className="hidden lg:inline uppercase tracking-wider text-xs">
+                {shops.length === 0 ? 'Hubungkan Toko' : 'Sync Data'}
+              </span>
             </Button>
           </div>
         </div>
 
         {/* --- STATS SUMMARY --- */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Perlu Diproses', count: 12, icon: Clock, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-500/10' },
-            { label: 'Dalam Pengiriman', count: 8, icon: Truck, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10' },
-            { label: 'Selesai', count: 145, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
-            { label: 'Pembatalan', count: 2, icon: AlertCircle, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-500/10' },
-          ].map((stat, i) => (
+          {statsSummary.map((stat, i) => (
             <Card key={i} className="border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden bg-white dark:bg-slate-900/50">
               <CardContent className="p-4 flex items-center gap-4">
                 <div className={`p-3 rounded-xl ${stat.bg}`}>
@@ -252,36 +611,46 @@ export default function Index() {
         </div>
 
         {/* --- FILTER & SEARCH --- */}
-        <div className="flex flex-col md:flex-row gap-3 mt-2">
-          <div className="relative flex-1 group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-indigo-500" />
-            <Input
-              placeholder="Cari No. Pesanan atau Produk..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-11 pl-11 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
-            />
-          </div>
+        <div className="sticky top-15 z-30 -mx-4 px-4 pt-4 backdrop-blur-md border-b border-transparent transition-all">
+          <div className="flex flex-col md:flex-row gap-3">
+            <div className="relative flex-1 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-indigo-500" />
+              <Input
+                placeholder="Cari No. Pesanan, Resi atau Produk..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-11 pl-11 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+              />
+            </div>
 
-          {/* TAB FILTER (Dinamis) */}
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-            {[
-              { id: 'ALL', label: 'Semua' },
-              { id: 'READY', label: 'Siap Kirim' },
-              { id: 'SHIPPED', label: 'Dikirim' },
-            ].map((tab) => (
-              <Button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                variant={activeTab === tab.id ? 'default' : 'secondary'}
-                className={`h-11 rounded-xl px-6 font-bold text-xs uppercase shrink-0 transition-all ${activeTab === tab.id
-                  ? 'bg-slate-900 dark:bg-white dark:text-slate-900 shadow-md'
-                  : 'bg-white dark:bg-slate-800 border dark:border-slate-700 text-slate-500'
-                  }`}
-              >
-                {tab.label}
-              </Button>
-            ))}
+            {/* TAB FILTER (Dinamis) */}
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+              {[
+                { id: 'ALL', label: 'Semua', count: orders.length },
+                { id: 'READY', label: 'Siap Kirim', count: orders.filter(o => ['READY_TO_SHIP', 'PROCESSED'].includes(o.status)).length },
+                { id: 'SHIPPED', label: 'Dikirim', count: orders.filter(o => ['SHIPPED', 'TO_CONFIRM_RECEIVE'].includes(o.status)).length },
+                { id: 'COMPLETED', label: 'Selesai', count: orders.filter(o => o.status === 'COMPLETED').length },
+              ].map((tab) => (
+                <Button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  variant={activeTab === tab.id ? 'default' : 'secondary'}
+                  className={`h-11 rounded-xl px-5 font-bold text-xs uppercase shrink-0 transition-all flex items-center gap-2 ${activeTab === tab.id
+                    ? 'bg-slate-900 dark:bg-white dark:text-slate-900 shadow-lg'
+                    : 'bg-white dark:bg-slate-800 border dark:border-slate-700 text-slate-500'
+                    }`}
+                >
+                  <span>{tab.label}</span>
+                  {/* Badge Angka Kecil */}
+                  <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${activeTab === tab.id
+                    ? 'bg-indigo-500 text-white'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
+                    }`}>
+                    {tab.count}
+                  </span>
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -294,7 +663,13 @@ export default function Index() {
               <Table>
                 <TableHeader className="bg-slate-50/50 dark:bg-slate-800/50">
                   <TableRow className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 border-b dark:border-slate-800">
-                    <TableHead className="py-4 px-6">Pesanan</TableHead>
+                    <TableHead className="py-4 px-6">
+                      <Checkbox
+                        checked={selectedOrderIds.length === filteredOrders.length && filteredOrders.length > 0}
+                        onCheckedChange={(checked) => toggleSelectAll(!!checked)}
+                      />
+                    </TableHead>
+                    <TableHead>Pesanan</TableHead>
                     <TableHead>Produk</TableHead>
                     <TableHead>Batas Kirim</TableHead>
                     <TableHead>Pengiriman</TableHead>
@@ -307,6 +682,12 @@ export default function Index() {
                     filteredOrders.map((order) => (
                       <TableRow key={order.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all border-b dark:border-slate-800/50">
                         <TableCell className="py-4 px-6">
+                          <Checkbox
+                            checked={selectedOrderIds.includes(order.id)}
+                            onCheckedChange={(checked) => toggleSelectOrder(order.id, !!checked)}
+                          />
+                        </TableCell>
+                        <TableCell>
                           <div className="flex flex-col gap-1">
                             <div
                               onClick={() => openDetail(order)}
@@ -326,22 +707,41 @@ export default function Index() {
                           <div className="text-[10px] text-slate-500 mt-0.5 tracking-tight">{order.variant}</div>
                         </TableCell>
                         <TableCell>
-                          <div className={`flex items-center gap-1.5 text-[11px] font-bold ${order.status === 'READY_TO_SHIP' ? 'text-rose-500 animate-pulse' : 'text-slate-400'}`}>
-                            <CalendarClock className="w-3.5 h-3.5" />
-                            {getDeadlineStatus(order.ship_by_date).label}
-                          </div>
+                          {(() => {
+                            const status = getDeadlineStatus(order.deadline_raw);
+                            return (
+                              <div className={`flex items-center gap-1.5 text-[11px] font-bold ${status.color}`}>
+                                <CalendarClock className={`w-3.5 h-3.5 ${status.isUrgent ? 'animate-bounce' : ''}`} />
+                                {status.label}
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell>
                           <div className="text-xs font-bold text-slate-600 dark:text-slate-400">{order.courier}</div>
-                          <div className="text-[10px] font-mono text-slate-400 mt-1">{order.resi}</div>
+                          {order.resi !== 'BELUM ADA RESI' ? (
+                            <div className="text-[10px] font-mono text-slate-400 mt-1">{order.resi}</div>
+                          ) : (
+                            <div className="text-[10px] font-mono text-slate-400 mt-1">Menunggu Resi...</div>
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="font-bold text-indigo-600 dark:text-indigo-400 text-sm">{order.price}</div>
                           <Badge className={`mt-1 border-none shadow-none font-black text-[9px] uppercase px-2 py-0.5 ${order.status === 'READY_TO_SHIP' ? 'bg-orange-100 text-orange-600 dark:bg-orange-500/20' :
-                            order.status === 'SHIPPED' ? 'bg-blue-100 text-blue-600 dark:bg-blue-500/20' :
-                              'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20'
+                            order.status === 'PROCESSED' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400' :
+                              order.status === 'SHIPPED' ? 'bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400' :
+                                order.status === 'TO_CONFIRM_RECEIVE' ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' :
+                                  order.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' :
+                                    'bg-gray-100 text-gray-600 dark:bg-gray-500/20 dark:text-gray-400' // Untuk status lain seperti CANCELLED atau UNPAID
                             }`}>
-                            {order.status === 'READY_TO_SHIP' ? 'Perlu Diproses' : order.status === 'SHIPPED' ? 'Dikirim' : 'Selesai'}
+                            {
+                              order.status === 'READY_TO_SHIP' ? 'Perlu Diproses' :
+                                order.status === 'PROCESSED' ? 'Menunggu Pickup/Dropoff' :
+                                  order.status === 'SHIPPED' ? 'Dalam Pengiriman' :
+                                    order.status === 'TO_CONFIRM_RECEIVE' ? 'Sampai Tujuan' :
+                                      order.status === 'COMPLETED' ? 'Selesai' :
+                                        order.status
+                            }
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right px-6">
@@ -375,7 +775,7 @@ export default function Index() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="py-10 text-center text-slate-400 font-medium italic">
+                      <TableCell colSpan={7} className="py-10 text-center text-slate-400 font-medium italic">
                         Pesanan tidak ditemukan...
                       </TableCell>
                     </TableRow>
@@ -564,6 +964,38 @@ export default function Index() {
             </DialogContent>
           </Dialog>
 
+          {/* Floating Bar untuk Cetak Massal */}
+          {selectedOrderIds.length > 0 && (
+            <div className="fixed bottom-6 right-6 z-[60] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl p-4 flex items-center gap-6 animate-in fade-in slide-in-from-right-4">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Terpilih</span>
+                <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">
+                  {selectedOrderIds.length} Pesanan
+                </span>
+              </div>
+
+              <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800" />
+
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedOrderIds([])}
+                  className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                >
+                  Batal
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleBulkPrint}
+                  className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-bold px-6 shadow-lg shadow-indigo-500/20"
+                >
+                  <Printer className="w-4 h-4 mr-2" /> CETAK MASAL
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* --- MODAL PREVIEW LABEL SHOPEE STYLE --- */}
           <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
             <DialogContent
@@ -612,77 +1044,71 @@ export default function Index() {
                     }`}
                   id="thermal-label"
                 >
-                  {/* Row 1: Logo & Kurir */}
-                  <div className="flex border-b-4 border-black shrink-0">
-                    <div className="w-1/3 p-3 border-r-4 border-black flex items-center justify-center">
-                      <h1 className="text-lg font-black italic tracking-tighter">Shopee</h1>
+                  {/* Row 1: Logo & Kurir & Pembayaran */}
+                  <div className="flex border-b-2 border-black shrink-0 h-20">
+                    <div className="w-1/3 p-2 border-r-2 border-black flex items-center justify-center">
+                      <h1 className="text-3xl font-black italic tracking-tighter">Shopee</h1>
                     </div>
-                    <div className="w-2/3 p-3 flex flex-col justify-center items-center bg-black text-white">
-                      <span className="text-xs font-bold leading-none uppercase">Reguler</span>
-                      <span className="text-lg font-black uppercase">{selectedOrder?.courier}</span>
-                      {/* TAMPILAN BERAT */}
-                      <span className="text-[11px] font-bold mt-1 border-t border-white/30 w-full text-center pt-0.5">
-                        {selectedOrder?.weight || '1.0 kg'}
+                    <div className="w-1/3 p-2 flex flex-col justify-center items-center bg-black text-white" style={{ WebkitPrintColorAdjust: 'exact' }}>
+                      <span className="text-[10px] font-bold uppercase opacity-80 italic">Reguler</span>
+                      <span className="text-xl font-black uppercase text-center leading-tight">{selectedOrder?.courier}</span>
+                    </div>
+                    <div className="w-1/3 p-2 flex flex-col justify-center items-center">
+                      <span className="text-[10px] font-black uppercase">Pembayaran:</span>
+                      <span className={`text-xl font-black ${selectedOrder?.paymentMethod === 'NONTUNAI' ? 'text-black' : 'text-slate-400'}`}>
+                        {selectedOrder?.paymentMethod === 'NONTUNAI' ? 'COD' : 'CASH'}
                       </span>
                     </div>
-                    {/* AREA METODE PEMBAYARAN */}
-                    {selectedOrder?.paymentMethod === 'NONTUNAI' ?
-                      <div className='w-1/4 p-3 flex flex-col justify-center items-center border-l-4 border-black bg-white text-black'>
-                        <span className="text-[10px] font-black leading-none uppercase">Bayar</span>
-                        <span className="text-lg font-black uppercase">COD</span>
-                      </div>
-                      :
-                      ''
-                    }
                   </div>
 
-                  {/* Row 2: Barcode No Pesanan */}
-                  <div className="p-3 border-b-4 border-black flex flex-col items-center shrink-0">
-                    <div className="w-full h-10 bg-slate-100 flex items-center justify-center mb-1">
-                      <div className="flex gap-[1px] h-6 opacity-80">
-                        {[...Array(40)].map((_, i) => <div key={i} className={`h-full ${i % 4 === 0 ? 'w-1' : 'w-[1px]'} bg-black`} />)}
-                      </div>
+                  {/* Row 2: Barcode No Pesanan - Dibuat lebih rapat & akurat */}
+                  <div className="p-2 border-b-2 border-black flex flex-col items-center shrink-0">
+                    <div className="flex h-8 items-end mb-1">
+                      {[...Array(50)].map((_, i) => (
+                        <div key={i} className={`h-full border-l-[1.5px] border-black ${i % 6 === 0 ? 'mr-1' : 'mr-[1px]'}`} />
+                      ))}
                     </div>
-                    <span className="text-[9px] font-bold font-mono tracking-widest text-center">No. Pesanan: {selectedOrder?.id}</span>
+                    <span className="text-[11px] font-bold font-mono tracking-widest text-center uppercase">No. Pesanan: {selectedOrder?.id}</span>
                   </div>
 
-                  {/* Row 3: Barcode Resi */}
-                  <div className="p-4 border-b-4 border-black flex flex-col items-center justify-center bg-slate-50 shrink-0">
-                    <div className="w-full h-16 flex items-center justify-center mb-1">
-                      <div className="flex gap-[2px] h-12">
-                        {[...Array(50)].map((_, i) => <div key={i} className={`h-full ${i % 5 === 0 ? 'w-1.5' : 'w-[1.5px]'} bg-black`} />)}
-                      </div>
+                  {/* Row 3: Barcode Resi - Jauh lebih besar untuk memudahkan Kurir Scan */}
+                  <div className="py-6 border-b-2 border-black flex flex-col items-center justify-center bg-white shrink-0">
+                    <div className="flex h-16 items-end mb-3">
+                      {[...Array(65)].map((_, i) => (
+                        <div key={i} className={`h-full border-l-2 border-black ${i % 4 === 0 ? 'mr-[3px]' : 'mr-[1px]'}`} />
+                      ))}
                     </div>
-                    <span className="text-lg font-black font-mono tracking-[0.2em]">{selectedOrder?.resi}</span>
+                    <span className="text-3xl font-black font-mono tracking-[0.2em]">{selectedOrder?.resi}</span>
                   </div>
 
                   {/* Row 4: Area Alamat (Penerima & Pengirim) - Pakai flex-1 atau min-height agar tidak potong */}
-                  <div className="flex border-b-4 border-black min-h-[160px] text-black">
+                  <div className="flex border-b-2 border-black min-h-[160px] text-black">
                     {/* PENERIMA */}
                     <div className="w-[65%] p-3 border-r-2 border-black border-dashed flex flex-col bg-white">
                       {/* Badge COD Melayang jika metodenya COD */}
-                      {selectedOrder?.paymentMethod === 'COD' && (
-                        <div className="absolute top-3 right-3 border-4 border-black px-2 py-1 rotate-12">
-                          <span className="text-2xl font-black">COD</span>
+                      {selectedOrder?.paymentMethod === 'NONTUNAI' && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+                          <span className="text-[100px] font-black border-4 border-black/10 text-slate-100/50 rotate-12 uppercase">
+                            COD
+                          </span>
                         </div>
                       )}
-                      <div className="bg-black text-white text-[9px] font-black px-1.5 py-0.5 uppercase w-fit mb-1">Penerima:</div>
+                      <div className="bg-black text-white text-[14px] font-black px-1.5 py-0.5 uppercase w-fit mb-1">Penerima:</div>
                       <div className="font-black text-[14px] leading-tight mb-2 uppercase">{selectedOrder?.customer}</div>
-                      {/* <div className="text-[11px] font-black mb-1.5 underline">{selectedOrder?.phone}</div> */}
-                      <div className="text-[10px] leading-tight font-bold uppercase break-words">
+                      <div className="text-[13px] leading-tight font-bold uppercase break-words">
                         {selectedOrder?.address}
                       </div>
                     </div>
                     {/* PENGIRIM */}
                     <div className="w-[35%] p-3 flex flex-col bg-slate-50 justify-between">
                       <div>
-                        <div className="text-[8px] font-black uppercase text-slate-500 italic">Pengirim:</div>
-                        <div className="text-[10px] font-black uppercase leading-tight truncate">{selectedOrder?.store}</div>
-                        <div className="text-[9px] font-bold">0812-XXXX-XXXX</div>
+                        <div className="text-[14px] font-black uppercase text-slate-500 italic">Pengirim:</div>
+                        <div className="text-[14px] font-black uppercase leading-tight truncate">{selectedOrder?.store}</div>
+                        <div className="text-[13px] font-bold">0812-XXXX-XXXX</div>
                       </div>
                       <div className="pt-2 border-t border-black/20 text-center">
-                        <div className="text-[20px] font-black">JKT</div>
-                        <div className="text-[8px] font-black uppercase">Internal</div>
+                        <div className="text-[30px] font-black">JKT</div>
+                        <div className="text-[14px] font-black uppercase">Internal</div>
                       </div>
                     </div>
                   </div>
@@ -690,24 +1116,30 @@ export default function Index() {
                   {/* Row 5: Produk */}
                   <div className="p-3 bg-white flex-1">
                     <div className="flex justify-between items-end mb-1">
-                      <span className="text-[9px] font-black uppercase border-b border-black">Daftar Produk</span>
+                      {/* TAMPILAN BERAT */}
+                      <span className="text-end text-[14px] font-bold border-t border-white/30 w-full">
+                        Berat: {selectedOrder?.weight || '1.0 kg'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-end mb-1">
+                      <span className="text-[14px] font-black uppercase border-b border-black">Daftar Produk</span>
                       {/* INFO BATAS KIRIM DI SINI */}
-                      <span className="text-[9px] font-bold text-white bg-black px-1">Kirim Sebelum: {selectedOrder?.deadline}</span>
+                      <span className="text-[14px] font-bold text-white bg-black px-1">Batas Kirim: {selectedOrder?.deadline}</span>
                     </div>
                     <div className="flex justify-between items-start gap-2">
-                      <div className="text-[10px] leading-tight uppercase font-bold flex-1">
+                      <div className="text-[14px] leading-tight uppercase font-bold flex-1">
                         {selectedOrder?.product}
-                        <div className="text-[8px] font-normal italic">Variasi: {selectedOrder?.variant}</div>
+                        <div className="text-[10] font-normal italic">Variasi: {selectedOrder?.variant}</div>
                       </div>
-                      <div className="text-[10px] font-black">x1</div>
+                      <div className="text-[14px] me-2">(<span className="font-bold">1</span>)</div>
                     </div>
                   </div>
 
                   {/* Bottom */}
-                  <div className="p-2 border-t-4 border-black flex justify-between items-center bg-black text-white shrink-0">
+                  {/* <div className="p-2 border-t-4 flex justify-between items-center shrink-0">
                     <span className="text-[9px] font-black italic">S-LOGISTICS</span>
                     <span className="text-[8px] font-bold">{new Date().toLocaleDateString('id-ID')}</span>
-                  </div>
+                  </div> */}
                 </div>
               </div>
 

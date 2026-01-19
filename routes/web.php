@@ -5,6 +5,7 @@ use App\Http\Controllers\MarginAnalysisController;
 use App\Http\Controllers\MarketplaceController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SalesRecordController;
+use App\Http\Controllers\ShopeeController;
 use App\Http\Controllers\ShoppingListController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\SupplyController;
@@ -30,6 +31,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/shopping/{shoppingList}/duplicate', [ShoppingListController::class, 'duplicate'])
         ->name('shopping.duplicate');
+
+    Route::get('/shopee/auth', [ShopeeController::class, 'redirect'])->name('shopee.auth');
+    Route::get('/shopee/callback', [ShopeeController::class, 'getAccessToken']);
+    Route::post('/marketplace/ship', [MarketplaceController::class, 'shipOrder'])->name('marketplace.ship');
 
     Route::get('/supplies/{id}/history', [SupplyController::class, 'getHistory']);
     Route::post('/supplies/{supply}/restock', [SupplyController::class, 'restock'])->name('supplies.restock');
