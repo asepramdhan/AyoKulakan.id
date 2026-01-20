@@ -8,9 +8,12 @@ use App\Models\SalesRecord;
 use App\Models\Store;
 use App\Models\Supply;
 use App\Models\SupplyHistory;
+use App\Services\ShopeeService;
+use App\Services\TransactionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
 
 class SalesRecordController extends Controller
@@ -21,18 +24,128 @@ class SalesRecordController extends Controller
     public function index()
     {
         $today = now()->toDateString();
+        $userId = Auth::id();
+        // Cek apakah user sudah punya token Shopee
+        $shopeeConnected = DB::table('shopee_tokens')->where('user_id', $userId)->exists();
 
         return Inertia::render('sales/index', [
             'products' => Auth::user()->products,
-            'stores' => Store::where('user_id', Auth::id())->get(),
-            'salesRecords' => SalesRecord::where('user_id', Auth::id())
+            'stores' => Store::where('user_id', $userId)->get(),
+            'salesRecords' => SalesRecord::where('user_id', $userId)
                 ->with('store')
                 ->latest()
                 ->get(),
-            'todayAdCost' => DailyCost::where('user_id', Auth::id())->where('date', $today)->first(),
+            'todayAdCost' => DailyCost::where('user_id', $userId)->where('date', $today)->first(),
+            // Kirim status koneksi ke frontend
+            'shopeeConnected' => $shopeeConnected
         ]);
     }
 
+    /**
+     * FUNGSI BARU: SINKRONISASI SHOPEE LANGSUNG DI HALAMAN SALES
+     */
+    public function syncShopee()
+    {
+        $userId = Auth::id();
+        $tokenData = DB::table('shopee_tokens')->where('user_id', $userId)->first();
+        // 1. Jika belum connect, minta user connect dulu
+        if (!$tokenData) {
+            return back()->with('error', 'Akun Shopee belum terhubung.');
+        }
+        // 2. Refresh Token Logic (Sama seperti MarketplaceController)
+        $shopeeService = new ShopeeService();
+        $token = $shopeeService->refreshShopToken($tokenData->shop_id);
+        if (!$token) {
+            return back()->with('error', 'Gagal refresh token Shopee. Coba hubungkan ulang.');
+        }
+        // 3. Tarik Data Order (30 Hari Terakhir)
+        $host = config('services.shopee.host');
+        $partnerId = config('services.shopee.partner_id');
+        $partnerKey = config('services.shopee.partner_key');
+        $shopId = $token->shop_id;
+        $accessToken = $token->access_token;
+        $timestamp = time();
+        $pathList = "/api/v2/order/get_order_list";
+        $signList = hash_hmac('sha256', $partnerId . $pathList . $timestamp . $accessToken . $shopId, $partnerKey);
+        $resList = Http::withoutVerifying()->get($host . $pathList, [
+            'partner_id' => (int)$partnerId,
+            'timestamp' => $timestamp,
+            'access_token' => $accessToken,
+            'shop_id' => (int)$shopId,
+            'sign' => $signList,
+            'time_range_field' => 'create_time',
+            'time_from' => $timestamp - (15 * 24 * 60 * 60),
+            'time_to' => $timestamp,
+            'page_size' => 20
+        ])->json();
+        $orderIds = collect($resList['response']['order_list'] ?? [])->pluck('order_sn')->toArray();
+        // 4. Proses Detail & Simpan
+        if (!empty($orderIds)) {
+            $pathDetail = "/api/v2/order/get_order_detail";
+            $signDetail = hash_hmac('sha256', $partnerId . $pathDetail . $timestamp . $accessToken . $shopId, $partnerKey);
+            // Chunking jika order lebih dari 50 (Shopee limit 50 per request)
+            $chunks = array_chunk($orderIds, 50);
+            foreach ($chunks as $chunkIds) {
+                $resDetail = Http::withoutVerifying()->get($host . $pathDetail, [
+                    'partner_id' => (int)$partnerId,
+                    'timestamp' => $timestamp,
+                    'access_token' => $accessToken,
+                    'shop_id' => (int)$shopId,
+                    'sign' => $signDetail,
+                    'order_sn_list' => implode(',', $chunkIds),
+                    'response_optional_fields' => 'item_list,order_status,total_amount'
+                ])->json();
+                if (isset($resDetail['response']['order_list'])) {
+                    foreach ($resDetail['response']['order_list'] as $order) {
+                        // Hanya ambil status yang valid (Selesai/Kirim/Proses)
+                        if (in_array($order['order_status'], ['READY_TO_SHIP', 'SHIPPED', 'COMPLETED', 'PROCESSED'])) {
+                            $this->autoImportToSalesRecord($userId, $order, $token->shop_name ?? 'Shopee Store');
+                        }
+                    }
+                }
+            }
+        }
+        return back()->with('success', 'Sinkronisasi Shopee Berhasil!');
+    }
+    // LOGIKA PENYIMPANAN (DENGAN FIX DUPLIKAT ID)
+    private function autoImportToSalesRecord($userId, $orderDetail, $shopName)
+    {
+        $items = $orderDetail['item_list'] ?? [];
+        $transactionService = new TransactionService();
+        foreach ($items as $index => $item) {
+            // FIX ID UNIK: Tambahkan index array agar item ke-2 dst tidak error
+            $uniqueExternalId = $orderDetail['order_sn'] . '-' . ($index + 1);
+            // Cek apakah item spesifik ini sudah ada
+            if (SalesRecord::where('external_order_id', $uniqueExternalId)->exists()) {
+                continue;
+            }
+            $productName = $item['item_name'];
+            $qty = $item['model_quantity_purchased'] ?? $item['model_quantity'] ?? 1;
+            $sellPrice = $item['model_discounted_price'] ?? $item['model_original_price'];
+            // Cari Master Produk (Fuzzy Search)
+            $masterProduct = Product::where('user_id', $userId)
+                ->where('name', 'LIKE', '%' . substr($productName, 0, 15) . '%')
+                ->first();
+            $buyPrice = $masterProduct ? $masterProduct->last_price : 0;
+            $localStore = Store::where('user_id', $userId)->where('name', $shopName)->first();
+            $transactionService->recordTransaction($userId, [
+                'store_id' => $localStore ? $localStore->id : $shopName,
+                'store_name' => $shopName,
+                'created_at' => date('Y-m-d H:i:s', $orderDetail['create_time']),
+                'product_name' => $productName,
+                'qty' => $qty,
+                'buy_price' => $buyPrice,
+                'sell_price' => $sellPrice,
+                'marketplace_fee_percent' => $localStore->default_admin_fee ?? 6.0,
+                'promo_extra_percent' => $localStore->default_promo_fee ?? 0,
+                'marketplace_name' => 'Shopee',
+                'shipping_cost' => 0,
+                'flat_fees' => $localStore->default_process_fee ?? 0,
+                'extra_costs' => 0,
+                'external_order_id' => $uniqueExternalId, // GUNAKAN ID UNIK
+            ]);
+        }
+    }
     /**
      * Show the form for creating a new resource.
      */
@@ -44,7 +157,7 @@ class SalesRecordController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request, TransactionService $transactionService) // Inject Service
     {
         // 1. Bersihkan format harga
         $request->merge([
@@ -70,125 +183,24 @@ class SalesRecordController extends Controller
             'flat_fees'               => 'nullable|numeric',
             'extra_costs'             => 'nullable|numeric',
         ]);
+        // Panggil Service untuk simpan
+        $transactionService->recordTransaction(Auth::id(), [
+            'store_id' => $validated['store_id'], // ID Toko Manual
+            'created_at' => $validated['created_at'],
+            'product_name' => $validated['product_name'],
+            'qty' => $validated['qty'],
+            'buy_price' => $validated['buy_price'],
+            'sell_price' => $validated['sell_price'],
+            'marketplace_fee_percent' => $validated['marketplace_fee_percent'],
+            'promo_extra_percent' => $validated['promo_extra_percent'],
+            'marketplace_name' => $validated['marketplace_name'],
+            'shipping_cost' => $validated['shipping_cost'] ?? 0,
+            'flat_fees' => $validated['flat_fees'] ?? 0,
+            'extra_costs' => $validated['extra_costs'] ?? 0,
+            'external_order_id' => null // Manual input tidak punya ID eksternal
+        ]);
 
-        // 3. Kalkulasi Profit yang Akurat dengan Qty
-        $quantity = $validated['qty'];
-        $totalSellPrice = $validated['sell_price'] * $quantity;
-        $totalBuyPrice = $validated['buy_price'] * $quantity;
-
-        // Admin Fee dihitung dari Total Harga Jual
-        $adminFee = ($totalSellPrice * $validated['marketplace_fee_percent']) / 100;
-
-        // Total potongan (Biaya tetap biasanya per resi/transaksi)
-        $totalPotongan = $adminFee + ($validated['flat_fees'] ?? 0) + ($validated['extra_costs'] ?? 0);
-
-        // Profit = (Total Jual - Total Modal) - Potongan - Ongkir (jika ditanggung seller)
-        $profit = $totalSellPrice - $totalBuyPrice - $totalPotongan - ($validated['shipping_cost'] ?? 0);
-
-        $totalPercent = (float)$validated['marketplace_fee_percent'] + (float)$validated['promo_extra_percent'];
-        $totalSellPrice = $validated['sell_price'] * $quantity;
-
-        // Hitung potongan persen (Admin + Promo Extra)
-        $percentageFee = ($totalSellPrice * $totalPercent) / 100;
-
-        // Total potongan = Biaya Persen + Biaya Flat + Biaya Lainnya
-        $totalPotongan = $percentageFee + ($validated['flat_fees'] ?? 0) + ($validated['extra_costs'] ?? 0);
-
-        // Profit
-        $profit = $totalSellPrice - ($validated['buy_price'] * $quantity) - $totalPotongan - ($validated['shipping_cost'] ?? 0);
-
-        try {
-            // SEMUA PROSES PERUBAHAN DATA HARUS DI DALAM TRANSACTION
-            DB::transaction(function () use ($validated, $profit, $quantity) {
-                // A. Update/Create Produk Master & Potong Stok Produk
-                $product = Product::where('user_id', Auth::id())
-                    ->where('name', $validated['product_name'])
-                    ->first();
-
-                if ($product) {
-                    $product->update([
-                        'last_price'      => $validated['buy_price'],
-                        'last_sell_price' => $validated['sell_price'],
-                        'stock'           => $product->stock - $quantity // Potong stok di sini
-                    ]);
-                } else {
-                    // Jika produk belum ada di master, buat baru dengan stok minus (atau 0)
-                    Product::create([
-                        'user_id'         => Auth::id(),
-                        'store_id'        => $validated['store_id'],
-                        'name'            => $validated['product_name'],
-                        'last_price'      => $validated['buy_price'],
-                        'last_sell_price' => $validated['sell_price'],
-                        'stock'           => -$quantity // Karena terjual tapi master belum ada stoknya
-                    ]);
-                }
-
-                // B. Simpan data transaksi
-                SalesRecord::create([
-                    'user_id'                 => Auth::id(),
-                    'created_at'              => $validated['created_at'] ?? now(),
-                    'product_name'            => $validated['product_name'],
-                    'qty'                     => $quantity, // Pastikan kolom qty ada di table sales_records
-                    'buy_price'               => $validated['buy_price'],
-                    'sell_price'              => $validated['sell_price'],
-                    'marketplace_fee_percent' => $validated['marketplace_fee_percent'],
-                    'promo_extra_percent'     => $validated['promo_extra_percent'],
-                    'store_id'                => $validated['store_id'],
-                    'marketplace_name'        => $validated['marketplace_name'],
-                    'shipping_cost'           => $validated['shipping_cost'] ?? 0,
-                    'flat_fees'               => $validated['flat_fees'] ?? 0,
-                    'extra_costs'             => $validated['extra_costs'] ?? 0,
-                    'profit'                  => $profit,
-                ]);
-
-                // C. LOGIKA OTOMATIS POTONG STOK BAHAN PACKING & CATAT RIWAYAT
-                // 1. Potong bahan 'per_transaction' (Kertas Thermal/Resi)
-                $transactionSupplies = Supply::where('user_id', Auth::id())
-                    ->where('reduction_type', 'per_transaction')
-                    ->get();
-
-                foreach ($transactionSupplies as $s) {
-                    $newStock = $s->current_stock - 1;
-                    $s->update(['current_stock' => $newStock]);
-
-                    // Catat ke history
-                    SupplyHistory::create([
-                        'supply_id' => $s->id,
-                        'amount' => -1,
-                        'stock_after' => $newStock,
-                        'note' => 'Penjualan: ' . $validated['product_name'],
-                    ]);
-                }
-
-                // 2. POTONG PLASTIK (DENGAN LOGIKA SKALA BESAR)
-                if ($product) {
-                    $supplyId = $this->getAppropriateSupplyId($product->id, $quantity);
-
-                    if ($supplyId) {
-                        $pSupply = Supply::where('id', $supplyId)
-                            ->where('user_id', Auth::id())
-                            ->first();
-
-                        if ($pSupply) {
-                            $newStockP = $pSupply->current_stock - 1;
-                            $pSupply->update(['current_stock' => $newStockP]);
-
-                            // Catat ke history
-                            SupplyHistory::create([
-                                'supply_id' => $pSupply->id,
-                                'amount' => -1,
-                                'stock_after' => $newStockP,
-                                'note' => 'Packing: ' . $validated['product_name'] . ' (Qty: ' . $quantity . ')',
-                            ]);
-                        }
-                    }
-                }
-            });
-
-            return back();
-        } catch (\Exception $e) {
-            return back();
-        }
+        return back();
     }
 
     /**

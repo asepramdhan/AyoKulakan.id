@@ -316,8 +316,8 @@ export default function MarginAnalysis({ analysisData }: { analysisData: any[] }
                 {filteredData.length > 0 ? (
                   filteredData.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="text-xs text-slate-500 capitalize">{item.store_name || '-'}</TableCell>
-                      <TableCell className="font-medium capitalize">{item.name}</TableCell>
+                      <TableCell className="text-xs text-slate-500 capitalize truncate max-w-[100px]">{item.store_name || '-'}</TableCell>
+                      <TableCell className="font-medium capitalize truncate max-w-[150px]">{item.name}</TableCell>
                       <TableCell>Rp {item.buy_price.toLocaleString('id-ID')}</TableCell>
                       <TableCell>Rp {item.sell_price.toLocaleString('id-ID')}</TableCell>
                       <TableCell className="text-red-500 text-xs italic">

@@ -15,7 +15,7 @@ import AppLayout from '@/layouts/app-layout';
 import salesRecord from '@/routes/sales-record';
 import { type BreadcrumbItem } from '@/types';
 import { Form, Head, Link, router, usePage } from '@inertiajs/react';
-import { AlertTriangle, DollarSign, Package2, Pencil, Percent, Plus, Save, Search, Store, TrendingDown, TrendingUp, X } from 'lucide-react';
+import { AlertTriangle, DollarSign, Package2, Pencil, Percent, Plus, RefreshCw, Save, Search, ShoppingBag, Store, TrendingDown, TrendingUp, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -25,9 +25,8 @@ const breadcrumbs: BreadcrumbItem[] = [
     href: salesRecord.index().url,
   },
 ];
-
+// Helper Format Rupiah
 const formatRupiah = (value: any) => {
-  // Paksa ke float dan berikan default 0 jika gagal parse
   const num = parseFloat(value) || 0;
 
   return new Intl.NumberFormat('id-ID', {
@@ -52,13 +51,12 @@ const formatDate = (dateString: string) => {
   }).format(new Date(dateString));
 };
 
-export default function Index({ products, stores, ...props }: any) {
-
+export default function Index({ products, stores, shopeeConnected, ...props }: any) {
+  // --- STATE TRANSAKSI MANUAL ---
   const { todayAdCost } = usePage().props as any;
-
   const [dailyAdCost, setDailyAdCost] = useState(todayAdCost?.amount || 0);
   const [isSavingAd, setIsSavingAd] = useState(false);
-
+  const [isSyncing, setIsSyncing] = useState(false); // State Loading Sync
   useEffect(() => {
     // Jika database punya data iklan hari ini, update state lokalnya
     if (todayAdCost) {
@@ -96,61 +94,48 @@ export default function Index({ products, stores, ...props }: any) {
   };
 
   const [searchQuery, setSearchQuery] = useState('');
-
   // State untuk filter toko (default 'all')
   const [filterStore, setFilterStore] = useState<string>('all');
-
   const [filterRange, setFilterRange] = useState<'today' | 'week' | 'month' | 'year' | 'all'>(() => {
     return (localStorage.getItem('preferred_sales_filter') as any) || 'all';
   });
-
   const { salesRecords } = props; // Ambil data dari props Laravel
-
   // Contoh data (Nanti data ini datang dari props Laravel)
   const filteredSales = useMemo(() => {
-
     // Pastikan data ada dan berbentuk array, jika tidak kembalikan array kosong
     if (!salesRecords || !Array.isArray(salesRecords)) return [];
-
     const now = new Date();
     const startOfDay = new Date(now);
     startOfDay.setHours(0, 0, 0, 0);
-
     const startOfWeek = new Date(now);
     const day = now.getDay();
     const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Penyesuaian ke hari Senin
     startOfWeek.setDate(diff);
     startOfWeek.setHours(0, 0, 0, 0);
-
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfYear = new Date(now.getFullYear(), 0, 1);
-
     return salesRecords
       .filter((item: any) => {
         if (!item.created_at) return false; // Hindari error jika tanggal kosong
         const itemDate = new Date(item.created_at);
-
         // 1. Logika Filter Waktu
         let matchTime = true;
         if (filterRange === 'today') matchTime = itemDate >= startOfDay;
         else if (filterRange === 'week') matchTime = itemDate >= startOfWeek;
         else if (filterRange === 'month') matchTime = itemDate >= startOfMonth;
         else if (filterRange === 'year') matchTime = itemDate >= startOfYear;
-
         // 2. Logika Filter Toko
         let matchStore = true;
         if (filterStore !== 'all') {
           // Pastikan perbandingan menggunakan string agar aman
           matchStore = item.store_id?.toString() === filterStore;
         }
-
         // 3. LOGIKA PENCARIAN (Baru)
         const searchLower = searchQuery.toLowerCase();
         const matchSearch =
           item.product_name?.toLowerCase().includes(searchLower) ||
           item.store?.name?.toLowerCase().includes(searchLower) ||
           item.marketplace_name?.toLowerCase().includes(searchLower);
-
         return matchTime && matchStore && matchSearch; // Tambahkan matchSearch
       })
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -184,25 +169,18 @@ export default function Index({ products, stores, ...props }: any) {
       const qty = parseFloat(curr.qty) || 1;
       const sellPrice = parseFloat(curr.sell_price) || 0;
       const sellTotal = sellPrice * qty;
-
       const mktPercent = parseFloat(curr.marketplace_fee_percent) || 0;
       const promoPercent = parseFloat(curr.promo_extra_percent) || 0;
       const totalPercent = mktPercent + promoPercent;
-
       const feeAmount = (sellTotal * totalPercent) / 100;
-
       const flatFees = parseFloat(curr.flat_fees) || 0;
       const extra = parseFloat(curr.extra_costs) || 0;
       const shipping = parseFloat(curr.shipping_cost) || 0;
-
       return acc + feeAmount + flatFees + extra + shipping;
     }, 0);
-
     const grossProfit = totalJual - totalModal - totalAllFees;
-
     const netProfit = grossProfit - (Number(dailyAdCost) || 0);
     const margin = totalJual > 0 ? (netProfit / totalJual) * 100 : 0;
-
     return { totalModal, totalJual, totalFee: totalAllFees, netProfit, margin, grossProfit };
   }, [filteredSales, dailyAdCost]);
 
@@ -308,28 +286,45 @@ export default function Index({ products, stores, ...props }: any) {
 
   // Efek kalkulasi otomatis (Reaktif)
   useEffect(() => {
-
     localStorage.setItem('preferred_sales_filter', filterRange);
-
     const quantity = Number(data.qty || 1);
     const totalSell = data.sell_price * quantity;
-
     // 1. Hitung total biaya berbasis persentase (Admin + Promo Extra)
     const totalPercent = Number(data.marketplace_fee_percent) + Number(data.promo_extra_percent);
     const percentageFeeAmount = (totalSell * totalPercent) / 100;
-
     // 2. Total Potongan = Biaya Persen + Biaya Proses Flat + Biaya Lainnya
     const totalPotongan = percentageFeeAmount + data.order_process_fee + data.extra_costs;
-
     // 3. Profit Bersih
     const totalProfit = (totalSell - (data.buy_price * quantity)) - totalPotongan;
-
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCalc({
       feeAmount: totalPotongan,
       netProfit: totalProfit
     });
   }, [data, filterRange]);
+
+  // --- HANDLER SYNC SHOPEE ---
+  const handleSyncShopee = () => {
+    if (!shopeeConnected) {
+      // Jika belum connect, arahkan ke Auth
+      window.location.href = '/shopee/auth';
+      return;
+    }
+
+    setIsSyncing(true);
+    toast.loading('Sinkronisasi Shopee...', { id: 'sync' });
+
+    router.post('/sales-record/sync-shopee', {}, {
+      onSuccess: () => {
+        toast.success('Data Shopee Berhasil Ditarik!', { id: 'sync' });
+        setIsSyncing(false);
+      },
+      onError: () => {
+        toast.error('Gagal Sinkronisasi.', { id: 'sync' });
+        setIsSyncing(false);
+      }
+    });
+  };
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
@@ -406,9 +401,24 @@ export default function Index({ products, stores, ...props }: any) {
         </div>
 
         <div className="sticky top-15 z-30 -mx-4 px-4 py-4 backdrop-blur-md border-b border-transparent transition-all">
+          <div className="flex flex-col md:flex-row justify-end gap-4 mb-4">
+            {/* --- TOMBOL INTEGRASI / SYNC SHOPEE (NEW) --- */}
+            <Button
+              onClick={handleSyncShopee}
+              disabled={isSyncing}
+              className={`flex items-center gap-2 text-sm font-black shadow-lg transition-all
+                  ${shopeeConnected
+                  ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/20'
+                  : 'bg-slate-800 hover:bg-slate-700 text-white'
+                }`}
+            >
+              {isSyncing ? <RefreshCw className="w-5 h-5 animate-spin" /> : <ShoppingBag className="w-5 h-5" />}
+              {isSyncing ? 'SEDANG SYNC...' : shopeeConnected ? 'SYNC SHOPEE SEKARANG' : 'HUBUNGKAN SHOPEE'}
+            </Button>
+          </div>
           <div className="flex flex-col md:flex-row justify-between gap-4">
             {/* Bagian Kiri: Filter Waktu */}
-            <div className="flex gap-2 items-center overflow-x-auto pb-2 no-scrollbar scroll-smooth mb-2">
+            <div className="flex gap-2 items-center overflow-x-auto pb-3 no-scrollbar scroll-smooth">
               {['today', 'week', 'month', 'year', 'all'].map((range) => (
                 <Button
                   key={range}
@@ -899,7 +909,7 @@ export default function Index({ products, stores, ...props }: any) {
                           <div className="flex flex-col gap-1">
                             {/* Nama Produk dengan line-clamp agar tidak merusak layout jika teks terlalu panjang */}
                             <div className="font-semibold text-sm capitalize text-slate-900 dark:text-slate-100 line-clamp-1">
-                              {item.product_name || 'Tanpa Nama'}
+                              <div className='truncate max-w-[200px]'>{item.product_name || 'Tanpa Nama'}</div>
                               {/* Info Qty dengan pemisah dot */}
                               <span className="text-slate-300 dark:text-slate-700 ms-1">•</span>
                               <span className="ms-1 text-[10px] font-medium text-slate-500 uppercase tracking-tight">
@@ -917,7 +927,7 @@ export default function Index({ products, stores, ...props }: any) {
                                   <Store className="w-2.5 h-2.5 mr-1" />
                                   {item.marketplace_name || 'Umum'}
                                 </div>
-                                <span className="font-bold text-xs capitalize text-slate-900 dark:text-slate-300">{item.store.name || 'No Store'}</span>
+                                <span className="font-bold text-xs capitalize text-slate-900 dark:text-slate-300 truncate max-w-[100px]">{item.store.name || 'No Store'}</span>
                               </div>
                             </div>
                           </div>

@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MarginAnalysisController;
-use App\Http\Controllers\MarketplaceController;
+// use App\Http\Controllers\MarketplaceController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SalesRecordController;
 use App\Http\Controllers\ShopeeController;
@@ -34,7 +34,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/shopee/auth', [ShopeeController::class, 'redirect'])->name('shopee.auth');
     Route::get('/shopee/callback', [ShopeeController::class, 'getAccessToken']);
-    Route::post('/marketplace/ship', [MarketplaceController::class, 'shipOrder'])->name('marketplace.ship');
+    // Route::post('/marketplace/ship', [MarketplaceController::class, 'shipOrder'])->name('marketplace.ship');
 
     Route::get('/supplies/{id}/history', [SupplyController::class, 'getHistory']);
     Route::post('/supplies/{supply}/restock', [SupplyController::class, 'restock'])->name('supplies.restock');
@@ -43,13 +43,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('products.adjust-stock');
 
     Route::post('/sales-record/update-ad-cost', [SalesRecordController::class, 'updateAdCost'])->name('sales-record.update-ad-cost');
+    Route::post('/sales-record/sync-shopee', [SalesRecordController::class, 'syncShopee'])->name('sales-record.sync-shopee');
 
     route::get('/analysis/margin', [MarginAnalysisController::class, 'index'])->name('analysis.margin.index');
     route::patch('/analysis/margin/{id}/update-price', [MarginAnalysisController::class, 'updatePrice'])
         ->name('analysis.margin.update-price');
 
     Route::resource('shopping', ShoppingListController::class);
-    Route::resource('marketplace', MarketplaceController::class);
+    // Route::resource('marketplace', MarketplaceController::class);
     Route::resource('supplies', SupplyController::class);
     Route::resource('products', ProductController::class);
     Route::resource('stores', StoreController::class);

@@ -110,7 +110,7 @@ class ShopeeController extends Controller
             //     'shop_info_raw' => $resShop // Untuk memastikan kamu lihat hasil dari Shopee
             // ]);
 
-            return to_route('marketplace.index', ['shop_id' => $actualShopId]);
+            return to_route('sales-record.index', ['shop_id' => $actualShopId]);
         }
 
         return $response->json();

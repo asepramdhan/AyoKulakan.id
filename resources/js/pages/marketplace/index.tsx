@@ -23,109 +23,7 @@ const breadcrumbs: BreadcrumbItem[] = [
   },
 ];
 
-// --- 1. MOCK DATA (Simulasi Data API Shopee) ---
-// const MOCK_ORDERS = [
-//   {
-//     id: '240115ABC123',
-//     store: 'Store A',
-//     product: 'Sepatu Sneakers Aero v2',
-//     variant: 'Hitam, 42',
-//     price: 'Rp 250.000',
-//     status: 'READY_TO_SHIP',
-//     courier: 'J&T Express',
-//     resi: 'JP123456789',
-//     date: '15 Jan, 10:30',
-//     ship_by_date: '2024-01-17 10:30:00', // Contoh tanggal batas kirim
-//     customer: 'Budi Santoso',
-//     address: 'Jl. Melati No. 123, Jakarta Selatan, DKI Jakarta',
-//     phone: '081234567890',
-//     weight: '500 gr', // atau 0.5 kg
-//     deadline: '17 Jan 2026',
-//     paymentMethod: 'NONTUNAI', // atau 'NONTUNAI' / 'LUNAS'
-//   },
-//   {
-//     id: '240115XYZ456',
-//     store: 'Store B',
-//     product: 'Kaos Polos Cotton Combed',
-//     variant: 'Putih, L',
-//     price: 'Rp 75.000',
-//     status: 'SHIPPED',
-//     courier: 'SiCepat',
-//     resi: 'REG99887722',
-//     date: '15 Jan, 11:45',
-//     ship_by_date: '2024-01-17 11:45:00',
-//     customer: 'Siti Aminah',
-//     address: 'Komp. Permai Blok B5, Bandung, Jawa Barat',
-//     phone: '085566778899',
-//     weight: '200 gr',
-//     deadline: '17 Jan 2026',
-//     paymentMethod: 'LUNAS'
-//   },
-//   {
-//     id: '240115DEF789',
-//     store: 'Store C',
-//     product: 'Kemeja Polos Cotton Combed',
-//     variant: 'Biru, M',
-//     price: 'Rp 100.000',
-//     status: 'READY_TO_SHIP',
-//     courier: 'J&T Express',
-//     resi: 'JP987654321',
-//     date: '15 Jan, 12:15',
-//     ship_by_date: '2024-01-17 12:15:00',
-//     customer: 'Budi Santoso',
-//     address: 'Jl. Melati No. 123, Jakarta Selatan, DKI Jakarta',
-//     phone: '081234567890',
-//     weight: '500 gr',
-//     deadline: '17 Jan 2026',
-//     paymentMethod: 'LUNAS'
-//   },
-//   {
-//     id: '240115GHI012',
-//     store: 'Store D',
-//     product: 'Kaos Polos Cotton Combed',
-//     variant: 'Biru, M',
-//     price: 'Rp 100.000',
-//     status: 'SHIPPED',
-//     courier: 'J&T Express',
-//     resi: 'JP987654321',
-//     date: '15 Jan, 12:15',
-//     ship_by_date: '2024-01-17 12:15:00',
-//     customer: 'Budi Santoso',
-//     address: 'Jl. Melati No. 123, Jakarta Selatan, DKI Jakarta',
-//     phone: '081234567890',
-//     weight: '500 gr',
-//     deadline: '17 Jan 2026',
-//     paymentMethod: 'NONTUNAI'
-//   },
-//   {
-//     id: '240115JKL345',
-//     store: 'Store E',
-//     product: 'Kaos Polos Cotton Combed',
-//     variant: 'Biru, M',
-//     price: 'Rp 100.000',
-//     status: 'SHIPPED',
-//     courier: 'SPX Express',
-//     resi: 'SPX123456789',
-//     date: '15 Jan, 12:15',
-//     ship_by_date: '2024-01-17 12:15:00',
-//     customer: 'Budi Santoso',
-//     address: 'Jl. Melati No. 123, Jakarta Selatan, DKI Jakarta',
-//     phone: '081234567890',
-//     weight: '500 gr',
-//     deadline: '17 Jan 2026',
-//     paymentMethod: 'NONTUNAI'
-//   }
-// ];
-
-// 1. Tambahkan interface Props di atas
-// interface Props {
-//   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-//   orders: any[]; // Sebaiknya buat interface detail nanti
-//   shopId: number;
-// }
-
 export default function Index({ orders = [], stats, shops = [], currentShopId }: { orders: any[], stats: any, shops: any[], currentShopId: any }) {
-  console.log(shops);
   const [isSyncing, setIsSyncing] = useState(false);
   // Membaca dari localStorage saat pertama kali load, default ke 'ALL' jika kosong
   const [activeTab, setActiveTab] = useState(() => {
@@ -139,6 +37,13 @@ export default function Index({ orders = [], stats, shops = [], currentShopId }:
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [paperSize, setPaperSize] = useState<'100x150' | '78x100'>('100x150');
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const getCityCode = (address: string) => {
+    if (!address) return 'JKT';
+    // Mencoba mengambil kata yang terlihat seperti Kota (Sederhana)
+    const parts = address.split(',');
+    const city = parts[parts.length - 2]?.trim() || 'JKT';
+    return city.substring(0, 3).toUpperCase();
+  };
   const handleShopChange = (value: string) => {
     // Pindah halaman dengan query string baru
     // Ini akan memicu fungsi index() di Laravel berjalan lagi dengan shop_id tersebut
@@ -209,6 +114,24 @@ export default function Index({ orders = [], stats, shops = [], currentShopId }:
       bg: 'bg-rose-50 dark:bg-rose-500/10'
     },
   ];
+  //  Fungsi pembayaran
+  const getPaymentBadge = (method: string) => {
+    const normalizedMethod = method?.toUpperCase() || '';
+
+    // Jika mengandung kata COD
+    if (normalizedMethod.includes('COD')) {
+      return {
+        label: 'COD (BAYAR DI TEMPAT)',
+        classes: 'bg-amber-100 text-amber-700 border border-amber-200',
+      };
+    }
+
+    // Jika pembayaran online (ShopeePay, Transfer, CC)
+    return {
+      label: method || 'SUDAH DIBAYAR',
+      classes: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+    };
+  };
   // Fungsi untuk menghitung sisa waktu
   const getDeadlineStatus = (timestamp: number | null) => {
     if (!timestamp) return { label: "N/A", color: "text-slate-400" };
@@ -291,40 +214,33 @@ export default function Index({ orders = [], stats, shops = [], currentShopId }:
     setIsModalOpen(true);
   };
 
+  // --- PERBAIKAN LOGIKA CONFIRM SHIPMENT ---
   const confirmShipment = () => {
     if (!selectedOrder) return;
+    setIsSyncing(true); // Mulai loading
+    toast.loading('Memproses ke Shopee...', { id: 'ship-process' });
 
-    setIsSyncing(true);
-    toast.loading('Memproses pengiriman...', { id: 'ship-process' });
-
-    // Mengirim data ke Laravel Controller
     router.post(marketplace.ship().url, {
       order_sn: selectedOrder.id,
-      method: shippingMethod, // 'pickup' atau 'dropoff' dari radio button kamu
+      method: shippingMethod,
     }, {
       onSuccess: () => {
-        setIsSyncing(false);
         setIsShipModalOpen(false);
         setIsModalOpen(false);
-        toast.success(`Berhasil diproses (${shippingMethod === 'pickup' ? 'Ambil' : 'Antar'}).`, { id: 'ship-process' });
+        toast.loading('Menunggu Resi Shopee (10 detik)...', { id: 'ship-process' });
 
-        // Tunggu 15 detik baru reload agar API Shopee sempat generate Resi
+        // TUNGGU 10 DETIK, BARU RELOAD DATA
         setTimeout(() => {
           router.reload({
             only: ['orders', 'stats'],
-            onFinish: () => {
-              setIsSyncing(false);
-              toast.success('Data sinkron!', { id: 'ship-process' });
-            }
+            onSuccess: () => toast.success('Berhasil! Resi muncul.', { id: 'ship-process' }),
+            onFinish: () => setIsSyncing(false) // Baru matikan loading di sini
           });
-        }, 15000);
+        }, 10000);
       },
-      onError: (errors) => {
-        setIsSyncing(false);
-        toast.error(errors.message || 'Gagal memproses pengiriman', { id: 'ship-process' });
-      },
-      onFinish: () => {
-        setIsSyncing(false);
+      onError: (errors: any) => {
+        setIsSyncing(false); // Matikan loading jika error
+        toast.error(errors.message || 'Gagal memproses.', { id: 'ship-process' });
       }
     });
   };
@@ -342,7 +258,14 @@ export default function Index({ orders = [], stats, shops = [], currentShopId }:
       setSelectedOrderIds([]);
     }
   };
-
+  const getShippingType = (courierName: string) => {
+    const name = courierName?.toLowerCase() || '';
+    if (name.includes('hemat')) return 'ECO'; // Economy
+    if (name.includes('reguler')) return 'STD'; // Standard
+    if (name.includes('kargo') || name.includes('cargo')) return 'KRG'; // Kargo
+    if (name.includes('instant')) return 'INS'; // Instant
+    return 'STD'; // Default ke Standard
+  };
   const handlePrint = () => {
     const printContent = document.getElementById("thermal-label");
     if (!printContent) return;
@@ -673,6 +596,7 @@ export default function Index({ orders = [], stats, shops = [], currentShopId }:
                     <TableHead>Produk</TableHead>
                     <TableHead>Batas Kirim</TableHead>
                     <TableHead>Pengiriman</TableHead>
+                    <TableHead className="text-center">QTY</TableHead>
                     <TableHead>Total & Status</TableHead>
                     <TableHead className="text-right px-6">Aksi</TableHead>
                   </TableRow>
@@ -725,6 +649,12 @@ export default function Index({ orders = [], stats, shops = [], currentShopId }:
                             <div className="text-[10px] font-mono text-slate-400 mt-1">Menunggu Resi...</div>
                           )}
                         </TableCell>
+                        <TableCell className="text-center">
+                          <div className="inline-flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-black rounded-lg px-3 py-1 min-w-[32px]">
+                            {/* Gunakan data quantity yang sudah kita hitung di controller */}
+                            {order.quantity}
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <div className="font-bold text-indigo-600 dark:text-indigo-400 text-sm">{order.price}</div>
                           <Badge className={`mt-1 border-none shadow-none font-black text-[9px] uppercase px-2 py-0.5 ${order.status === 'READY_TO_SHIP' ? 'bg-orange-100 text-orange-600 dark:bg-orange-500/20' :
@@ -775,7 +705,7 @@ export default function Index({ orders = [], stats, shops = [], currentShopId }:
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={7} className="py-10 text-center text-slate-400 font-medium italic">
+                      <TableCell colSpan={8} className="py-10 text-center text-slate-400 font-medium italic">
                         Pesanan tidak ditemukan...
                       </TableCell>
                     </TableRow>
@@ -870,9 +800,21 @@ export default function Index({ orders = [], stats, shops = [], currentShopId }:
                   <div className="space-y-1 text-right">
                     <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">No. Resi</div>
                     <div className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{selectedOrder?.resi}</div>
-                    <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Metode Pembayaran</div>
-                    <div className={`font-bold inline-block px-2 py-0.5 rounded text-xs ${selectedOrder?.paymentMethod === 'NONTUNAI' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                      {selectedOrder?.paymentMethod === 'NONTUNAI' ? 'COD' : 'LUNAS'}
+                    <div className="space-y-1">
+                      <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                        Metode Pembayaran
+                      </div>
+
+                      {(() => {
+                        const badge = getPaymentBadge(selectedOrder?.paymentMethod);
+                        return (
+                          <div className={`font-black inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] shadow-sm ${badge.classes}`}>
+                            {/* Tambahkan dot indicator agar lebih modern */}
+                            <span className="w-1.5 h-1.5 rounded-full bg-current mr-2 animate-pulse" />
+                            {badge.label}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -1050,14 +992,23 @@ export default function Index({ orders = [], stats, shops = [], currentShopId }:
                       <h1 className="text-3xl font-black italic tracking-tighter">Shopee</h1>
                     </div>
                     <div className="w-1/3 p-2 flex flex-col justify-center items-center bg-black text-white" style={{ WebkitPrintColorAdjust: 'exact' }}>
-                      <span className="text-[10px] font-bold uppercase opacity-80 italic">Reguler</span>
-                      <span className="text-xl font-black uppercase text-center leading-tight">{selectedOrder?.courier}</span>
-                    </div>
-                    <div className="w-1/3 p-2 flex flex-col justify-center items-center">
-                      <span className="text-[10px] font-black uppercase">Pembayaran:</span>
-                      <span className={`text-xl font-black ${selectedOrder?.paymentMethod === 'NONTUNAI' ? 'text-black' : 'text-slate-400'}`}>
-                        {selectedOrder?.paymentMethod === 'NONTUNAI' ? 'COD' : 'CASH'}
+                      <span className="text-3xl font-bold uppercase opacity-80 italic">
+                        {getShippingType(selectedOrder?.courier)}
                       </span>
+                      <span className="text-sm font-black uppercase text-center leading-tight">
+                        {selectedOrder?.courier}
+                      </span>
+                    </div>
+                    <div className="w-1/3 p-2 flex flex-col justify-center items-center border-l-2 border-black">
+                      <span className="text-[10px] font-black uppercase tracking-tighter">Metode:</span>
+                      {/* Gunakan text-black pekat karena thermal tidak kenal abu-abu */}
+                      <span className="text-xl font-black uppercase">
+                        {selectedOrder?.paymentMethod?.toUpperCase().includes('COD') ? 'COD' : 'NON-COD'}
+                      </span>
+                      {/* Tambahkan info tambahan jika COD agar kurir lebih waspada */}
+                      {selectedOrder?.paymentMethod?.toUpperCase().includes('COD') && (
+                        <span className="text-[9px] font-black bg-black text-white px-1 leading-none">Tagih Tunai</span>
+                      )}
                     </div>
                   </div>
 
@@ -1085,10 +1036,10 @@ export default function Index({ orders = [], stats, shops = [], currentShopId }:
                   <div className="flex border-b-2 border-black min-h-[160px] text-black">
                     {/* PENERIMA */}
                     <div className="w-[65%] p-3 border-r-2 border-black border-dashed flex flex-col bg-white">
-                      {/* Badge COD Melayang jika metodenya COD */}
-                      {selectedOrder?.paymentMethod === 'NONTUNAI' && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
-                          <span className="text-[100px] font-black border-4 border-black/10 text-slate-100/50 rotate-12 uppercase">
+                      {/* Watermark COD Melayang */}
+                      {selectedOrder?.paymentMethod?.toUpperCase().includes('COD') && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.08]">
+                          <span className="text-[120px] font-black border-[12px] border-black p-4 rotate-12 uppercase">
                             COD
                           </span>
                         </div>
@@ -1100,15 +1051,22 @@ export default function Index({ orders = [], stats, shops = [], currentShopId }:
                       </div>
                     </div>
                     {/* PENGIRIM */}
-                    <div className="w-[35%] p-3 flex flex-col bg-slate-50 justify-between">
-                      <div>
-                        <div className="text-[14px] font-black uppercase text-slate-500 italic">Pengirim:</div>
-                        <div className="text-[14px] font-black uppercase leading-tight truncate">{selectedOrder?.store}</div>
-                        <div className="text-[13px] font-bold">0812-XXXX-XXXX</div>
+                    <div className="w-[35%] p-3 flex flex-col bg-slate-50 justify-between items-center text-center">
+                      <div className="w-full">
+                        <div className="text-[12px] font-black uppercase text-slate-500 italic">Pengirim:</div>
+                        <div className="text-[13px] font-black uppercase leading-tight truncate w-full">
+                          {selectedOrder?.store}
+                        </div>
                       </div>
-                      <div className="pt-2 border-t border-black/20 text-center">
-                        <div className="text-[30px] font-black">JKT</div>
-                        <div className="text-[14px] font-black uppercase">Internal</div>
+
+                      <div className="pt-2 border-t border-black/20 w-full">
+                        <div className="text-[34px] font-black leading-none py-1 uppercase">
+                          {getCityCode(selectedOrder?.address)}
+                        </div>
+                        <div className="text-[11px] font-black uppercase border-t-2 border-black mt-1">
+                          {/* Dinamis berdasarkan apakah alamat di luar provinsi atau dalam kota */}
+                          {selectedOrder?.address?.toLowerCase().includes('jakarta') ? 'DOMESTIK' : 'INTERCITY'}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1131,15 +1089,10 @@ export default function Index({ orders = [], stats, shops = [], currentShopId }:
                         {selectedOrder?.product}
                         <div className="text-[10] font-normal italic">Variasi: {selectedOrder?.variant}</div>
                       </div>
-                      <div className="text-[14px] me-2">(<span className="font-bold">1</span>)</div>
+                      <div className="text-[14px] me-2">(<span className="font-bold">{selectedOrder?.quantity}</span>)</div>
                     </div>
                   </div>
 
-                  {/* Bottom */}
-                  {/* <div className="p-2 border-t-4 flex justify-between items-center shrink-0">
-                    <span className="text-[9px] font-black italic">S-LOGISTICS</span>
-                    <span className="text-[8px] font-bold">{new Date().toLocaleDateString('id-ID')}</span>
-                  </div> */}
                 </div>
               </div>
 
