@@ -81,7 +81,7 @@ class ProductController extends Controller
             'product' => $product->load('packagings'),
             // Filter di sini: Hanya ambil yang BUKAN per_transaction
             'supplies' => Supply::where('user_id', Auth::id())
-                ->where('reduction_type', 'per_item') // Hanya tampilkan plastik
+                // ->where('reduction_type', 'per_item') // Hanya tampilkan plastik
                 ->get(),
         ]);
     }

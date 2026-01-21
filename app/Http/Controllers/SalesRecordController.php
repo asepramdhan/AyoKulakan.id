@@ -232,20 +232,21 @@ class SalesRecordController extends Controller
             'flat_fees' => (float) str_replace(['.', ','], '', (string)$request->flat_fees),
             'extra_costs' => (float) str_replace(['.', ','], '', (string)$request->extra_costs),
         ]);
+
         // 2. Validasi Lengkap
         $validated = $request->validate([
-            'created_at'              => 'nullable|date',
-            'product_name'            => 'required|string',
-            'qty'                     => 'required|integer|min:1', // Pastikan Qty ada
-            'buy_price'               => 'required|numeric|min:0',
-            'sell_price'              => 'required|numeric|min:0',
+            'created_at'            => 'nullable|date',
+            'product_name'          => 'required|string',
+            'qty'                   => 'required|integer|min:1',
+            'buy_price'             => 'required|numeric|min:0',
+            'sell_price'            => 'required|numeric|min:0',
             'marketplace_fee_percent' => 'required|numeric|min:0',
-            'promo_extra_percent'     => 'required|numeric',
-            'store_id'                => 'required|exists:stores,id',
-            'marketplace_name'        => 'required|string',
-            'shipping_cost'           => 'nullable|numeric',
-            'flat_fees'               => 'nullable|numeric',
-            'extra_costs'             => 'nullable|numeric',
+            'promo_extra_percent'   => 'required|numeric',
+            'store_id'              => 'required',
+            'marketplace_name'      => 'required|string',
+            'shipping_cost'         => 'nullable|numeric',
+            'flat_fees'             => 'nullable|numeric',
+            'extra_costs'           => 'nullable|numeric',
         ]);
 
         try {
@@ -255,88 +256,95 @@ class SalesRecordController extends Controller
 
             DB::transaction(function () use ($validated, $record, $oldQty, $newQty) {
 
-                // 2. Kalkulasi ulang profit
+                // A. Kalkulasi ulang profit
                 $totalPercent = $validated['marketplace_fee_percent'] + $validated['promo_extra_percent'];
-                $totalSell = $validated['sell_price'] * $validated['qty'];
-                $totalPotongan = ($totalSell * $totalPercent / 100) + $validated['flat_fees'] + $validated['extra_costs'];
-                $profit = $totalSell - ($validated['buy_price'] * $validated['qty']) - $totalPotongan - ($validated['shipping_cost'] ?? 0);
+                $totalSell = $validated['sell_price'] * $newQty;
+                $totalPotongan = ($totalSell * $totalPercent / 100) + ($validated['flat_fees'] ?? 0) + ($validated['extra_costs'] ?? 0);
+                $profit = $totalSell - ($validated['buy_price'] * $newQty) - $totalPotongan - ($validated['shipping_cost'] ?? 0);
 
+                // B. Update Master Produk
                 $product = Product::where('user_id', Auth::id())
                     ->where('name', $validated['product_name'])
                     ->first();
 
                 if ($product) {
-                    $product->user_id = Auth::id();
-                    $product->name = $validated['product_name'];
-                    // Balikkan stok lama, lalu kurangi dengan stok baru
-                    // Rumus: Stok Sekarang + Qty Lama - Qty Baru
-                    $product->stock = ($product->stock + $oldQty) - $newQty;
-                    $product->last_price = $validated['buy_price'];
-                    $product->last_sell_price = $validated['sell_price'];
-                    $product->save();
+                    $product->update([
+                        'name' => $validated['product_name'],
+                        'last_price' => $validated['buy_price'],
+                        'last_sell_price' => $validated['sell_price'],
+                        // Rumus: Stok Sekarang + Qty Lama - Qty Baru
+                        'stock' => ($product->stock + $oldQty) - $newQty
+                    ]);
                 }
 
-                // --- START: TAMBAHAN LOGIKA UPDATE STOK SUPPLY (Bahan Packing) ---
+                // --- C. LOGIKA UPDATE STOK SUPPLY (FULL UPGRADE) ---
                 if ($product) {
-                    // 1. Rollback Plastik Lama
-                    $oldSupplyId = $this->getAppropriateSupplyId($product->id, $oldQty);
-                    if ($oldSupplyId) {
-                        $oldS = Supply::find($oldSupplyId);
-                        if ($oldS) {
-                            $newStockOld = $oldS->current_stock + 1;
-                            $oldS->update(['current_stock' => $newStockOld]);
+
+                    // 1. ROLLBACK Stok Lama (Kembalikan Supply berdasarkan Qty LAMA)
+                    // Pakai Helper Baru: getMatchingSupplyRules
+                    $oldRules = $this->getMatchingSupplyRules($product->id, $oldQty);
+
+                    foreach ($oldRules as $rule) {
+                        $pSupply = Supply::find($rule->supply_id);
+                        if ($pSupply) {
+                            $restoreAmount = 1; // Default
+                            if ($pSupply->reduction_type === 'per_item') {
+                                $restoreAmount = $oldQty; // Kembalikan sebanyak qty lama
+                            }
+
+                            $pSupply->increment('current_stock', $restoreAmount);
 
                             SupplyHistory::create([
-                                'supply_id' => $oldS->id,
-                                'amount' => 1,
-                                'stock_after' => $newStockOld,
-                                'note' => 'Update Transaksi (Rollback): ' . $validated['product_name'],
+                                'supply_id' => $pSupply->id,
+                                'amount' => $restoreAmount,
+                                'stock_after' => $pSupply->current_stock,
+                                'note' => 'Edit Trx (Rollback): ' . $pSupply->name,
                             ]);
                         }
                     }
 
-                    // 2. Potong Plastik Baru
-                    $newSupplyId = $this->getAppropriateSupplyId($product->id, $newQty);
-                    if ($newSupplyId) {
-                        $newS = Supply::find($newSupplyId);
-                        if ($newS) {
-                            $newStockNew = $newS->current_stock - 1;
-                            $newS->update(['current_stock' => $newStockNew]);
+                    // 2. APPLY Stok Baru (Potong Supply berdasarkan Qty BARU)
+                    $newRules = $this->getMatchingSupplyRules($product->id, $newQty);
+
+                    foreach ($newRules as $rule) {
+                        $pSupply = Supply::find($rule->supply_id);
+                        if ($pSupply) {
+                            $deductAmount = 1; // Default
+                            if ($pSupply->reduction_type === 'per_item') {
+                                $deductAmount = $newQty; // Potong sebanyak qty baru
+                            }
+
+                            $pSupply->decrement('current_stock', $deductAmount);
 
                             SupplyHistory::create([
-                                'supply_id' => $newS->id,
-                                'amount' => -1,
-                                'stock_after' => $newStockNew,
-                                'note' => 'Update Transaksi (Re-apply): ' . $validated['product_name'],
+                                'supply_id' => $pSupply->id,
+                                'amount' => -1 * $deductAmount,
+                                'stock_after' => $pSupply->current_stock,
+                                'note' => 'Edit Trx (Apply): ' . $pSupply->name,
                             ]);
                         }
                     }
                 }
-                // --- END: TAMBAHAN LOGIKA UPDATE STOK SUPPLY ---
+                // --- END LOGIKA SUPPLY ---
 
-                // 3. Update data
+                // D. Update Data Penjualan
+                $storeName = $validated['store_id'];
+                if (is_numeric($validated['store_id'])) {
+                    $s = Store::find($validated['store_id']);
+                    if ($s) $storeName = $s->name;
+                }
+
                 $record->update(array_merge($validated, [
                     'created_at' => $validated['created_at'] ?? $record->created_at,
-                    'store_id' => $validated['store_id'],
+                    'store_name' => $storeName, // Update nama toko juga
                     'profit' => $profit
                 ]));
             });
 
-            return back();
+            return back()->with('success', 'Transaksi berhasil diupdate!');
         } catch (\Exception $e) {
-            return back();
+            return back()->with('error', 'Gagal update: ' . $e->getMessage());
         }
-    }
-    private function getAppropriateSupplyId($productId, $qty)
-    {
-        return DB::table('product_packagings')
-            ->where('product_id', $productId)
-            ->where('min_qty', '<=', $qty)
-            ->where(function ($query) use ($qty) {
-                $query->where('max_qty', '>=', $qty)
-                    ->orWhereNull('max_qty');
-            })
-            ->value('supply_id');
     }
     // Tambahkan fungsi untuk simpan/update biaya iklan
     public function updateAdCost(Request $request)
@@ -368,52 +376,89 @@ class SalesRecordController extends Controller
         $sales = SalesRecord::findOrFail($id);
 
         DB::transaction(function () use ($sales) {
+            // 1. Cari Produk Terkait
             $product = Product::where('user_id', Auth::id())
                 ->where('name', $sales->product_name)
                 ->first();
 
+            // 2. IDENTIFIKASI SUPPLY KHUSUS (Agar tidak double dengan Global)
+            $productSpecificSupplyIds = [];
             if ($product) {
-                // A. Kembalikan Stok Produk
+                // A. Kembalikan Stok Produk Utama
                 $product->increment('stock', $sales->qty);
 
-                // B. Kembalikan Stok Plastik & Catat Riwayat
-                $supplyId = $this->getAppropriateSupplyId($product->id, $sales->qty);
-                if ($supplyId) {
-                    $pSupply = Supply::where('id', $supplyId)->first();
+                // Ambil ID supply yang terikat produk ini
+                $productSpecificSupplyIds = DB::table('product_packagings')
+                    ->where('product_id', $product->id)
+                    ->pluck('supply_id')
+                    ->toArray();
+            }
+
+            // 3. KEMBALIKAN GLOBAL SUPPLY (Lakban, Resi)
+            // Logic: Ambil yang per_transaction TAPI KECUALIKAN yang ada di aturan produk
+            $globalSupplies = Supply::where('user_id', Auth::id())
+                ->where('reduction_type', 'per_transaction')
+                ->whereNotIn('id', $productSpecificSupplyIds) // PENTING: Filter Exclude
+                ->get();
+
+            foreach ($globalSupplies as $s) {
+                $s->increment('current_stock'); // Selalu +1
+
+                SupplyHistory::create([
+                    'supply_id'   => $s->id,
+                    'amount'      => 1, // Positif karena dikembalikan
+                    'stock_after' => $s->current_stock,
+                    'note'        => 'Hapus Trx (Global): ' . $sales->product_name,
+                ]);
+            }
+
+            // 4. KEMBALIKAN SPECIFIC SUPPLY (Plastik PP, Packing Luar)
+            if ($product) {
+                // Gunakan Helper yang sama logic-nya dengan Service
+                $matchingRules = $this->getMatchingSupplyRules($product->id, $sales->qty);
+
+                foreach ($matchingRules as $rule) {
+                    $pSupply = Supply::where('id', $rule->supply_id)->first();
+
                     if ($pSupply) {
-                        $newStockP = $pSupply->current_stock + 1;
-                        $pSupply->update(['current_stock' => $newStockP]);
+                        // LOGIKA PINTAR: Cek tipe pengembalian
+                        $restoreAmount = 1; // Default +1
+
+                        // Jika tipe supply adalah PER ITEM (Plastik PP), kembalikan sejumlah Qty
+                        if ($pSupply->reduction_type === 'per_item') {
+                            $restoreAmount = $sales->qty;
+                        }
+
+                        $pSupply->increment('current_stock', $restoreAmount);
 
                         SupplyHistory::create([
-                            'supply_id' => $pSupply->id,
-                            'amount' => 1,
-                            'stock_after' => $newStockP,
-                            'note' => 'Transaksi Dihapus: ' . $sales->product_name,
+                            'supply_id'   => $pSupply->id,
+                            'amount'      => $restoreAmount,
+                            'stock_after' => $pSupply->current_stock,
+                            'note'        => 'Hapus Trx (Rule): ' . $pSupply->name,
                         ]);
                     }
                 }
             }
 
-            // C. Kembalikan Kertas Resi & Catat Riwayat
-            $resis = Supply::where('user_id', Auth::id())
-                ->where('reduction_type', 'per_transaction')
-                ->get();
-
-            foreach ($resis as $resi) {
-                $newStockR = $resi->current_stock + 1;
-                $resi->update(['current_stock' => $newStockR]);
-
-                SupplyHistory::create([
-                    'supply_id' => $resi->id,
-                    'amount' => 1,
-                    'stock_after' => $newStockR,
-                    'note' => 'Transaksi Dihapus: ' . $sales->product_name,
-                ]);
-            }
-
+            // 5. Hapus Data Penjualan
             $sales->delete();
         });
 
-        return back();
+        return back()->with('success', 'Transaksi dihapus & Stok dikembalikan.');
+    }
+
+    // --- HELPER WAJIB (Copy ke dalam Controller) ---
+    // Pastikan fungsi ini ada di dalam class SalesRecordController (paling bawah)
+    private function getMatchingSupplyRules($productId, $qty)
+    {
+        return DB::table('product_packagings')
+            ->where('product_id', $productId)
+            ->where('min_qty', '<=', $qty)
+            ->where(function ($query) use ($qty) {
+                $query->where('max_qty', '>=', $qty)
+                    ->orWhereNull('max_qty');
+            })
+            ->get();
     }
 }

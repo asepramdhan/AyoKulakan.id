@@ -8,28 +8,22 @@ use App\Models\Store;
 use App\Models\Supply;
 use App\Models\SupplyHistory;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class TransactionService
 {
   /**
    * Mencatat transaksi baru (Sales Record) dan mengupdate stok terkait.
-   * * @param int $userId ID User pemilik data
-   * @param array $data Data transaksi yang sudah divalidasi/dibersihkan
-   * @return SalesRecord
    */
   public function recordTransaction($userId, array $data)
   {
     return DB::transaction(function () use ($userId, $data) {
-      // 1. Pastikan Toko Ada (Jika dari Shopee, nama tokonya mungkin string)
-      // Jika input manual, store_id sudah integer ID.
+      // 1. Pastikan Toko Ada
       $storeId = $data['store_id'];
       if (!is_numeric($storeId)) {
-        // Cari atau buat toko jika nama toko dikirim (kasus Shopee)
         $store = Store::firstOrCreate(
           ['user_id' => $userId, 'name' => $data['store_name']],
           [
-            'default_admin_fee' => 0, // Default nilai jika baru dibuat
+            'default_admin_fee' => 0,
             'default_promo_fee' => 0,
             'default_process_fee' => 0
           ]
@@ -42,46 +36,38 @@ class TransactionService
       $buyPrice = $data['buy_price'];
       $sellPrice = $data['sell_price'];
 
-      // Perhitungan biaya
       $totalSellPrice = $sellPrice * $quantity;
       $totalBuyPrice = $buyPrice * $quantity;
 
-      // Fee Persentase (Admin + Promo)
       $totalPercent = ($data['marketplace_fee_percent'] ?? 0) + ($data['promo_extra_percent'] ?? 0);
       $percentageFee = ($totalSellPrice * $totalPercent) / 100;
 
-      // Total Potongan
       $flatFees = $data['flat_fees'] ?? 0;
       $extraCosts = $data['extra_costs'] ?? 0;
       $shippingCost = $data['shipping_cost'] ?? 0;
 
       $totalPotongan = $percentageFee + $flatFees + $extraCosts;
-
-      // Profit Bersih
       $profit = $totalSellPrice - $totalBuyPrice - $totalPotongan - $shippingCost;
 
-      // 3. Update/Create Master Produk & Potong Stok Produk
-      // Cari produk berdasarkan nama dan user_id
+      // 3. Update Master Produk
       $product = Product::where('user_id', $userId)
         ->where('name', $data['product_name'])
         ->first();
 
       if ($product) {
-        // Update harga terakhir & potong stok
         $product->update([
           'last_price'      => $buyPrice,
           'last_sell_price' => $sellPrice,
           'stock'           => $product->stock - $quantity
         ]);
       } else {
-        // Buat produk baru jika belum ada (Stok jadi minus)
         $product = Product::create([
           'user_id'         => $userId,
           'store_id'        => $storeId,
           'name'            => $data['product_name'],
           'last_price'      => $buyPrice,
           'last_sell_price' => $sellPrice,
-          'stock'           => -$quantity, // Minus karena belum ada stok awal
+          'stock'           => -$quantity,
           'stock_warning'   => 5
         ]);
       }
@@ -102,11 +88,10 @@ class TransactionService
         'flat_fees'               => $flatFees,
         'extra_costs'             => $extraCosts,
         'profit'                  => $profit,
-        // Simpan ID pesanan asli dari marketplace agar tidak duplikat
         'external_order_id'       => $data['external_order_id'] ?? null,
       ]);
 
-      // 5. Potong Bahan Operasional (Supply)
+      // 5. Potong Bahan Operasional (Multiple Supply Support)
       $this->deductSupplies($userId, $product, $quantity, $data['product_name']);
 
       return $salesRecord;
@@ -114,69 +99,84 @@ class TransactionService
   }
 
   /**
-   * Logika pemotongan stok bahan operasional (Kertas Resi & Plastik)
+   * Logika pemotongan stok bahan operasional
    */
   private function deductSupplies($userId, $product, $qty, $productName)
   {
-    // A. Potong bahan 'per_transaction' (Kertas Thermal/Resi)
-    // Logika: 1 Transaksi = 1 Resi.
-    // TODO: Jika 1 pesanan terdiri dari banyak produk, harusnya resi cuma 1. 
-    // Ini perlu penanganan khusus (misal cek apakah external_order_id sudah pernah diproses supplies-nya).
-    // Untuk simplifikasi saat ini, kita anggap setiap record mengurangi 1 resi (bisa disesuaikan nanti).
+    // 1. Cek Supply apa saja yang DIATUR KHUSUS di produk ini (Packing Rules)
+    $productSpecificSupplyIds = [];
+    if ($product) {
+      $productSpecificSupplyIds = DB::table('product_packagings')
+        ->where('product_id', $product->id)
+        ->pluck('supply_id')
+        ->toArray();
+    }
 
+    // 2. A. Potong bahan 'per_transaction' GLOBAL (Seperti Resi/Thermal/Lakban)
+    // FIX: Kecualikan (Exclude) supply yang sudah terdaftar di aturan produk
+    // Supaya Plastik Packing (yang statusnya per_transaction) tidak ikut terpotong di sini.
     $transactionSupplies = Supply::where('user_id', $userId)
       ->where('reduction_type', 'per_transaction')
+      ->whereNotIn('id', $productSpecificSupplyIds) // <--- INI KUNCI PERBAIKANNYA
       ->get();
 
     foreach ($transactionSupplies as $s) {
-      $newStock = $s->current_stock - 1;
-      $s->update(['current_stock' => $newStock]);
-
+      $s->decrement('current_stock');
       SupplyHistory::create([
         'supply_id'   => $s->id,
         'amount'      => -1,
-        'stock_after' => $newStock,
-        'note'        => 'Auto Penjualan: ' . $productName,
+        'stock_after' => $s->current_stock,
+        'note'        => 'Auto Global: ' . $productName,
       ]);
     }
 
-    // B. Potong Plastik Packing (Berdasarkan Qty Produk)
+    // 3. B. Potong Supply Terikat Produk (Sesuai Aturan Min/Max)
     if ($product) {
-      $supplyId = $this->getAppropriateSupplyId($product->id, $qty);
+      // Ambil supply yang COCOK dengan Qty
+      $matchingSupplies = $this->getMatchingSupplyRules($product->id, $qty);
 
-      if ($supplyId) {
-        $pSupply = Supply::where('id', $supplyId)
+      foreach ($matchingSupplies as $rule) {
+        $pSupply = Supply::where('id', $rule->supply_id)
           ->where('user_id', $userId)
+          ->lockForUpdate()
           ->first();
 
         if ($pSupply) {
-          $newStockP = $pSupply->current_stock - 1; // Asumsi 1 jenis produk dalam qty berapapun pakai 1 plastik, ATAU sesuaikan logikanya
-          // Jika 10 pcs pakai 1 plastik besar, logic ini benar.
-          // Jika 10 pcs pakai 10 plastik kecil, ubah -1 jadi -$qty.
-          // Berdasarkan kode awalmu: $newStockP = $pSupply->current_stock - 1; (berarti logicnya per batch produk)
+          $deductionAmount = 1;
 
-          $pSupply->update(['current_stock' => $newStockP]);
+          // Jika supply 'per_item' (Plastik PP), kurangi sejumlah Qty
+          if ($pSupply->reduction_type === 'per_item') {
+            $deductionAmount = $qty;
+          }
+
+          $pSupply->decrement('current_stock', $deductionAmount);
 
           SupplyHistory::create([
             'supply_id'   => $pSupply->id,
-            'amount'      => -1,
-            'stock_after' => $newStockP,
-            'note'        => 'Auto Packing: ' . $productName . ' (Qty: ' . $qty . ')',
+            'amount'      => -1 * $deductionAmount,
+            'stock_after' => $pSupply->current_stock,
+            'note'        => 'Auto Rule: ' . $pSupply->name . ' (Order: ' . $qty . ')',
           ]);
         }
       }
     }
   }
 
-  private function getAppropriateSupplyId($productId, $qty)
+  /**
+   * Helper: Mencari SEMUA aturan packing yang cocok dengan Qty
+   * Mengembalikan Collection (Daftar), bukan single value.
+   */
+  private function getMatchingSupplyRules($productId, $qty)
   {
     return DB::table('product_packagings')
       ->where('product_id', $productId)
+      // Cek Batas Bawah
       ->where('min_qty', '<=', $qty)
+      // Cek Batas Atas (Harus >= Qty ATAU Null/Tak Terbatas)
       ->where(function ($query) use ($qty) {
         $query->where('max_qty', '>=', $qty)
           ->orWhereNull('max_qty');
       })
-      ->value('supply_id');
+      ->get(); // PENTING: Pakai get() untuk ambil semua, bukan value/first
   }
 }

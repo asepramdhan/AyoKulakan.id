@@ -297,7 +297,7 @@ export default function Index({ supplyData }: { supplyData: any[] }) {
                 </DialogTitle>
               </DialogHeader>
 
-              <div className="py-4 max-h-[400px] overflow-y-auto">
+              <div className="py-4 px-2 max-h-[400px] overflow-y-auto">
                 {loadingHistory ? (
                   <p className="text-center text-sm text-slate-500">Memuat riwayat...</p>
                 ) : histories.length === 0 ? (
@@ -404,7 +404,7 @@ export default function Index({ supplyData }: { supplyData: any[] }) {
                       <div className="flex items-center gap-2">
                         <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase">
                           {item.reduction_type === 'per_transaction' ? <Zap className="w-3 h-3" /> : <Layers className="w-3 h-3" />}
-                          {item.reduction_type === 'per_transaction' ? 'Per Resi' : 'Per Item'}
+                          {item.reduction_type === 'per_transaction' ? 'Per Resi / Transaksi' : 'Per Item / Quantity'}
                         </span>
                       </div>
                     </div>
