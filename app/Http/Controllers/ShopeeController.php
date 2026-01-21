@@ -26,7 +26,7 @@ class ShopeeController extends Controller
     public function redirect()
     {
         $partnerId = $this->partnerId; // ID terbaru kamu
-        $baseUrl = "https://open.sandbox.test-stable.shopee.com/auth";
+        $baseUrl = $this->host;
 
         // Gunakan root domain sesuai yang kamu whitelist di Console Shopee
         $redirectUri = $this->callbackUrl;
