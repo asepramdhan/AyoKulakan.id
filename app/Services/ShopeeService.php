@@ -12,17 +12,22 @@ class ShopeeService
     $tokenData = DB::table('shopee_tokens')->where('shop_id', $shopId)->first();
     if (!$tokenData) return null;
 
-    $partnerId = config('services.shopee.partner_id');
+    $partnerId = (int) config('services.shopee.partner_id'); // Int
     $partnerKey = config('services.shopee.partner_key');
-    $host = config('services.shopee.host');
+    $host = rtrim(config('services.shopee.host'), '/'); // Hapus slash
 
     $path = "/api/v2/auth/access_token/get";
     $timestamp = time();
-    $sign = hash_hmac('sha256', $partnerId . $path . $timestamp, $partnerKey);
 
-    $response = Http::withoutVerifying()->post($host . $path . "?partner_id={$partnerId}&timestamp=$timestamp&sign=$sign", [
+    // Sign: partner_id + path + timestamp
+    $baseString = sprintf("%s%s%s", $partnerId, $path, $timestamp);
+    $sign = hash_hmac('sha256', $baseString, $partnerKey);
+
+    $url = sprintf("%s%s?partner_id=%s&timestamp=%s&sign=%s", $host, $path, $partnerId, $timestamp, $sign);
+
+    $response = Http::withoutVerifying()->post($url, [
       'refresh_token' => $tokenData->refresh_token,
-      'partner_id' => (int)$partnerId,
+      'partner_id' => $partnerId,
       'shop_id' => (int)$shopId
     ])->json();
 
