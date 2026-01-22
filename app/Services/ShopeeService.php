@@ -12,9 +12,9 @@ class ShopeeService
     $tokenData = DB::table('shopee_tokens')->where('shop_id', $shopId)->first();
     if (!$tokenData) return null;
 
-    $partnerId = (int) config('services.shopee.partner_id'); // Int
+    $partnerId = config('services.shopee.partner_id');
     $partnerKey = config('services.shopee.partner_key');
-    $host = rtrim(config('services.shopee.host'), '/'); // Hapus slash
+    $host = config('services.shopee.host');
 
     $path = "/api/v2/auth/access_token/get";
     $timestamp = time();
