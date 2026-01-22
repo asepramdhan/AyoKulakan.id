@@ -7,39 +7,54 @@ use Illuminate\Support\Facades\Http;
 
 class ShopeeService
 {
+  private $partnerId;
+  private $partnerKey;
+  private $shopId;
+  private $host;
+
+  public function __construct()
+  {
+    $this->partnerId = config('services.shopee.partner_id');
+    $this->partnerKey = config('services.shopee.partner_key');
+    $this->shopId = config('services.shopee.shop_id');
+    $this->host = config('services.shopee.host');
+  }
   public function refreshShopToken($shopId)
   {
+    // Ambil data token terbaru dari database
     $tokenData = DB::table('shopee_tokens')->where('shop_id', $shopId)->first();
+
     if (!$tokenData) return null;
 
-    $partnerId = config('services.shopee.partner_id');
-    $partnerKey = config('services.shopee.partner_key');
-    $host = config('services.shopee.host');
+    // Cek apakah token sudah berumur lebih dari 3 jam (10800 detik)
+    // Kita kasih toleransi 5 menit (berarti cek jika sudah lewat 10500 detik)
+    $isExpired = time() > (strtotime($tokenData->updated_at) + 10500);
 
-    $path = "/api/v2/auth/access_token/get";
-    $timestamp = time();
+    if ($isExpired) {
+      $path = "/api/v2/auth/access_token/get";
+      $timestamp = time();
+      $sign = hash_hmac('sha256', $this->partnerId . $path . $timestamp, $this->partnerKey);
 
-    // Sign: partner_id + path + timestamp
-    $baseString = sprintf("%s%s%s", $partnerId, $path, $timestamp);
-    $sign = hash_hmac('sha256', $baseString, $partnerKey);
+      $response = Http::withoutVerifying()->post($this->host . $path . "?partner_id={$this->partnerId}&timestamp=$timestamp&sign=$sign", [
+        'refresh_token' => $tokenData->refresh_token,
+        'partner_id' => (int)$this->partnerId,
+        'shop_id' => (int)$shopId
+      ])->json();
 
-    $url = sprintf("%s%s?partner_id=%s&timestamp=%s&sign=%s", $host, $path, $partnerId, $timestamp, $sign);
+      if (isset($response['access_token'])) {
+        // Simpan token baru ke database
+        DB::table('shopee_tokens')->where('shop_id', $shopId)->update([
+          'access_token' => $response['access_token'],
+          'refresh_token' => $response['refresh_token'],
+          'updated_at' => now()
+        ]);
 
-    $response = Http::withoutVerifying()->post($url, [
-      'refresh_token' => $tokenData->refresh_token,
-      'partner_id' => $partnerId,
-      'shop_id' => (int)$shopId
-    ])->json();
-
-    if (isset($response['access_token'])) {
-      DB::table('shopee_tokens')->where('shop_id', $shopId)->update([
-        'access_token' => $response['access_token'],
-        'refresh_token' => $response['refresh_token'],
-        'updated_at' => now()
-      ]);
-      return DB::table('shopee_tokens')->where('shop_id', $shopId)->first();
+        // Ambil ulang data yang sudah di-update agar tetap berupa Object
+        return DB::table('shopee_tokens')->where('shop_id', $shopId)->first();
+      }
     }
 
-    return null;
+    // Jika belum expired, kembalikan object yang lama
+    return $tokenData;
   }
 }

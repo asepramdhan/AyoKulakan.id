@@ -48,88 +48,140 @@ class SalesRecordController extends Controller
     {
         $userId = Auth::id();
         $tokenData = DB::table('shopee_tokens')->where('user_id', $userId)->first();
-        // 1. Jika belum connect, minta user connect dulu
+
         if (!$tokenData) {
             return back()->with('error', 'Akun Shopee belum terhubung.');
         }
-        // 2. Refresh Token Logic (Sama seperti MarketplaceController)
+
         $shopeeService = new ShopeeService();
         $token = $shopeeService->refreshShopToken($tokenData->shop_id);
+
         if (!$token) {
-            return back()->with('error', 'Gagal refresh token Shopee. Coba hubungkan ulang.');
+            return back()->with('error', 'Gagal refresh token Shopee.');
         }
-        // 3. Tarik Data Order (30 Hari Terakhir)
+
         $host = config('services.shopee.host');
-        $partnerId = config('services.shopee.partner_id');
+        $partnerId = (int)config('services.shopee.partner_id');
         $partnerKey = config('services.shopee.partner_key');
-        $shopId = $token->shop_id;
+        $shopId = (int)$token->shop_id;
         $accessToken = $token->access_token;
         $timestamp = time();
+
+        // 1. Ambil Order List (Looping Pagination jika perlu)
         $pathList = "/api/v2/order/get_order_list";
-        $signList = hash_hmac('sha256', $partnerId . $pathList . $timestamp . $accessToken . $shopId, $partnerKey);
-        $resList = Http::withoutVerifying()->get($host . $pathList, [
-            'partner_id' => (int)$partnerId,
-            'timestamp' => $timestamp,
-            'access_token' => $accessToken,
-            'shop_id' => (int)$shopId,
-            'sign' => $signList,
-            'time_range_field' => 'create_time',
-            'time_from' => $timestamp - (15 * 24 * 60 * 60),
-            'time_to' => $timestamp,
-            'page_size' => 20
-        ])->json();
-        $orderIds = collect($resList['response']['order_list'] ?? [])->pluck('order_sn')->toArray();
-        // 4. Proses Detail & Simpan
-        if (!empty($orderIds)) {
+        $timeFrom = $timestamp - (15 * 24 * 60 * 60); // 15 hari ke belakang
+        $timeTo = $timestamp;
+        $cursor = ""; // Gunakan cursor untuk pagination Shopee V2
+        $allOrderIds = [];
+
+        do {
+            $signList = hash_hmac('sha256', $partnerId . $pathList . $timestamp . $accessToken . $shopId, $partnerKey);
+
+            $resList = Http::withoutVerifying()->get($host . $pathList, [
+                'partner_id' => $partnerId,
+                'timestamp' => $timestamp,
+                'access_token' => $accessToken,
+                'shop_id' => $shopId,
+                'sign' => $signList,
+                'time_range_field' => 'create_time',
+                'time_from' => $timeFrom,
+                'time_to' => $timeTo,
+                'page_size' => 50, // Maksimal 50 atau 100
+                'cursor' => $cursor
+            ])->json();
+
+            if (isset($resList['response']['order_list'])) {
+                $currentBatch = collect($resList['response']['order_list'])->pluck('order_sn')->toArray();
+                $allOrderIds = array_merge($allOrderIds, $currentBatch);
+            }
+
+            // Cek jika ada halaman berikutnya
+            $cursor = $resList['response']['next_cursor'] ?? "";
+        } while ($cursor !== "");
+
+        // 2. Ambil Detail Order
+        if (!empty($allOrderIds)) {
             $pathDetail = "/api/v2/order/get_order_detail";
+            // Sign untuk detail (karena path berbeda, sign harus dihitung ulang)
             $signDetail = hash_hmac('sha256', $partnerId . $pathDetail . $timestamp . $accessToken . $shopId, $partnerKey);
-            // Chunking jika order lebih dari 50 (Shopee limit 50 per request)
-            $chunks = array_chunk($orderIds, 50);
+
+            $chunks = array_chunk($allOrderIds, 50);
             foreach ($chunks as $chunkIds) {
                 $resDetail = Http::withoutVerifying()->get($host . $pathDetail, [
-                    'partner_id' => (int)$partnerId,
+                    'partner_id' => $partnerId,
                     'timestamp' => $timestamp,
                     'access_token' => $accessToken,
-                    'shop_id' => (int)$shopId,
+                    'shop_id' => $shopId,
                     'sign' => $signDetail,
+                    // Shopee minta order_sn_list dipisah koma
                     'order_sn_list' => implode(',', $chunkIds),
-                    'response_optional_fields' => 'item_list,order_status,total_amount'
+                    'response_optional_fields' => 'item_list,order_status,total_amount,buyer_username'
                 ])->json();
+
                 if (isset($resDetail['response']['order_list'])) {
                     foreach ($resDetail['response']['order_list'] as $order) {
-                        // Hanya ambil status yang valid (Selesai/Kirim/Proses)
-                        if (in_array($order['order_status'], ['READY_TO_SHIP', 'SHIPPED', 'COMPLETED', 'PROCESSED'])) {
+                        // Filter status sesuai kebutuhan bisnis Anda
+                        $statusValid = ['READY_TO_SHIP', 'SHIPPED', 'COMPLETED', 'PROCESSED'];
+                        if (in_array($order['order_status'], $statusValid)) {
                             $this->autoImportToSalesRecord($userId, $order, $token->shop_name ?? 'Shopee Store');
                         }
                     }
                 }
             }
         }
-        return back()->with('success', 'Sinkronisasi Shopee Berhasil!');
+
+        return back()->with('success', 'Berhasil menarik ' . count($allOrderIds) . ' data order.');
     }
+
     // LOGIKA PENYIMPANAN (DENGAN FIX DUPLIKAT ID)
     private function autoImportToSalesRecord($userId, $orderDetail, $shopName)
     {
         $items = $orderDetail['item_list'] ?? [];
         $transactionService = new TransactionService();
+
+        // 1. Pastikan Store Ada (Cegah Error Foreign Key)
+        $localStore = Store::firstOrCreate(
+            ['user_id' => $userId, 'name' => $shopName],
+            [
+                'default_admin_fee' => 6.0,
+                'default_process_fee' => 0,
+                'default_promo_fee' => 0
+            ]
+        );
+
         foreach ($items as $index => $item) {
-            // FIX ID UNIK: Tambahkan index array agar item ke-2 dst tidak error
-            $uniqueExternalId = $orderDetail['order_sn'] . '-' . ($index + 1);
+            // ID UNIK: order_sn + item_id + model_id (paling aman)
+            $uniqueExternalId = $orderDetail['order_sn'] . '-' . ($item['item_id']) . '-' . ($item['model_id'] ?? '0');
+
             // Cek apakah item spesifik ini sudah ada
             if (SalesRecord::where('external_order_id', $uniqueExternalId)->exists()) {
                 continue;
             }
+
             $productName = $item['item_name'];
-            $qty = $item['model_quantity_purchased'] ?? $item['model_quantity'] ?? 1;
-            $sellPrice = $item['model_discounted_price'] ?? $item['model_original_price'];
-            // Cari Master Produk (Fuzzy Search)
+            // Shopee V2 menggunakan 'model_quantity_purchased'
+            $qty = $item['model_quantity_purchased'] ?? 1;
+
+            // Harga jual: Gunakan harga diskon jika ada, jika tidak gunakan harga original
+            $sellPrice = $item['model_discounted_price'] > 0 ? $item['model_discounted_price'] : $item['model_original_price'];
+
+            // 2. Cari Master Produk (Gunakan Nama Lengkap agar lebih akurat)
             $masterProduct = Product::where('user_id', $userId)
-                ->where('name', 'LIKE', '%' . substr($productName, 0, 15) . '%')
+                ->where('name', $productName) // Coba cari yang persis dulu
                 ->first();
+
+            if (!$masterProduct) {
+                // Jika tidak ada yang persis, baru gunakan LIKE
+                $masterProduct = Product::where('user_id', $userId)
+                    ->where('name', 'LIKE', '%' . substr($productName, 0, 20) . '%')
+                    ->first();
+            }
+
             $buyPrice = $masterProduct ? $masterProduct->last_price : 0;
-            $localStore = Store::where('user_id', $userId)->where('name', $shopName)->first();
+
+            // 3. Eksekusi Simpan
             $transactionService->recordTransaction($userId, [
-                'store_id' => $localStore ? $localStore->id : $shopName,
+                'store_id' => $localStore->id, // Pastikan ID Integer
                 'store_name' => $shopName,
                 'created_at' => date('Y-m-d H:i:s', $orderDetail['create_time']),
                 'product_name' => $productName,
@@ -142,10 +194,11 @@ class SalesRecordController extends Controller
                 'shipping_cost' => 0,
                 'flat_fees' => $localStore->default_process_fee ?? 0,
                 'extra_costs' => 0,
-                'external_order_id' => $uniqueExternalId, // GUNAKAN ID UNIK
+                'external_order_id' => $uniqueExternalId,
             ]);
         }
     }
+
     /**
      * Show the form for creating a new resource.
      */
