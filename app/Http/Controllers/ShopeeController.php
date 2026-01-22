@@ -31,7 +31,7 @@ class ShopeeController extends Controller
         // testing
         // $baseUrl = "https://open.sandbox.test-stable.shopee.com/auth";
         // production
-        $baseUrl = "https://shopee.com/auth";
+        $baseUrl = "https://partner.shopeemobile.com/api/v2/shop/auth_partner";
 
         // Gunakan root domain sesuai yang kamu whitelist di Console Shopee
         $redirectUri = $this->callbackUrl;
