@@ -40,7 +40,8 @@ return [
         'partner_key' => env('SHOPEE_PARTNER_KEY'),
         'shop_id' => env('SHOPEE_SHOP_ID'),
         'host' => env('SHOPEE_HOST'),
-        'callback_url' => env('SHOPEE_API_BASE_URL'),
+        'callback_url' => env('SHOPEE_CALLBACK_URL'),
+        'shopee.base_url' => env('SHOPEE_API_BASE_URL'),
     ],
 
 ];

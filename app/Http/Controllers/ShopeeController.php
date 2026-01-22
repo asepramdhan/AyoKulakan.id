@@ -14,6 +14,7 @@ class ShopeeController extends Controller
     private $partnerKey;
     private $host;
     private $callbackUrl;
+    private $baseUrl;
 
     public function __construct()
     {
@@ -21,12 +22,16 @@ class ShopeeController extends Controller
         $this->partnerKey = config('services.shopee.partner_key');
         $this->host = config('services.shopee.host');
         $this->callbackUrl = config('services.shopee.callback_url');
+        $this->baseUrl = config('services.shopee.base_url');
     }
     // Kredensial (Sebaiknya simpan di .env, tapi saya taruh sini biar kamu gampang tes)
     public function redirect()
     {
         $partnerId = $this->partnerId; // ID terbaru kamu
-        $baseUrl = $this->host;
+        // testing
+        // $baseUrl = "https://open.sandbox.test-stable.shopee.com/auth";
+        // production
+        $baseUrl = "https://open.shopee.com/auth";
 
         // Gunakan root domain sesuai yang kamu whitelist di Console Shopee
         $redirectUri = $this->callbackUrl;
