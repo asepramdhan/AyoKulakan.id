@@ -153,7 +153,9 @@ export default function Index({ products, stores, filters }: any) {
                 >
                   <Link href={ProductController.index().url + `?store_id=${s.id}`}>
                     <Store className="w-3 h-3 opacity-70" />
-                    {s.name}
+                    <div className='truncate max-w-[120px]'>
+                      {s.name}
+                    </div>
                   </Link>
                 </Button>
               ))}
@@ -186,9 +188,9 @@ export default function Index({ products, stores, filters }: any) {
                         <TableCell className="py-5 px-6">
                           <div className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-2">
-                              <span className="font-bold text-slate-800 dark:text-slate-100 text-[15px] capitalize tracking-tight group-hover:text-orange-600 transition-colors">
+                              <div className="font-bold text-slate-800 dark:text-slate-100 text-[15px] capitalize tracking-tight group-hover:text-orange-600 transition-colors truncate max-w-[180px]">
                                 {product.name}
-                              </span>
+                              </div>
                             </div>
                             {/* --- INFO PACKING (DINAMIS) --- */}
                             <div className="flex flex-wrap gap-x-3 gap-y-1 my-1">
@@ -229,7 +231,9 @@ export default function Index({ products, stores, filters }: any) {
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="font-bold text-[10px] bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-lg px-2 py-0.5 capitalize">
-                            {product.store?.name}
+                            <div className='truncate max-w-[100px]'>
+                              {product.store?.name}
+                            </div>
                           </Badge>
                         </TableCell>
                         <TableCell className="font-mono font-bold text-slate-700 dark:text-slate-300">

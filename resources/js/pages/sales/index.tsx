@@ -57,6 +57,7 @@ export default function Index({ products, stores, shopeeConnected, ...props }: a
   const [dailyAdCost, setDailyAdCost] = useState(todayAdCost?.amount || 0);
   const [isSavingAd, setIsSavingAd] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false); // State Loading Sync
+  const [isUnlinking, setIsUnlinking] = useState(false); // State Unlink Shopee
   useEffect(() => {
     // Jika database punya data iklan hari ini, update state lokalnya
     if (todayAdCost) {
@@ -325,6 +326,22 @@ export default function Index({ products, stores, shopeeConnected, ...props }: a
       }
     });
   };
+  // --- HANDLER UNLINK SHOPEE ---
+  const handleUnlinkShopee = () => {
+    setIsUnlinking(true);
+    toast.loading('Menghapus akun Shopee...', { id: 'unlink' });
+
+    router.post('/sales-record/unlink-shopee', {}, {
+      onSuccess: () => {
+        toast.success('Akun Shopee berhasil dihapus.', { id: 'unlink' });
+        setIsUnlinking(false);
+      },
+      onError: () => {
+        toast.error('Gagal menghapus akun Shopee.', { id: 'unlink' });
+        setIsUnlinking(false);
+      }
+    });
+  }
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
@@ -401,12 +418,12 @@ export default function Index({ products, stores, shopeeConnected, ...props }: a
         </div>
 
         <div className="sticky top-15 z-30 -mx-4 px-4 py-4 backdrop-blur-md border-b border-transparent transition-all">
-          <div className="flex flex-col md:flex-row justify-end gap-4 mb-4">
+          <div className="flex flex-col md:flex-row justify-end gap-2 mb-4">
             {/* --- TOMBOL INTEGRASI / SYNC SHOPEE (NEW) --- */}
             <Button
               onClick={handleSyncShopee}
               disabled={isSyncing}
-              className={`flex items-center gap-2 text-sm font-black shadow-lg transition-all
+              className={`flex items-center gap-2 text-sm font-black shadow-lg transition-all mb-2
                   ${shopeeConnected
                   ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/20'
                   : 'bg-slate-800 hover:bg-slate-700 text-white'
@@ -415,6 +432,21 @@ export default function Index({ products, stores, shopeeConnected, ...props }: a
               {isSyncing ? <RefreshCw className="w-5 h-5 animate-spin" /> : <ShoppingBag className="w-5 h-5" />}
               {isSyncing ? 'SEDANG SYNC...' : shopeeConnected ? 'SYNC SHOPEE SEKARANG' : 'HUBUNGKAN SHOPEE'}
             </Button>
+            {/* --- TOMBOL unlink SHOPEE (NEW) --- */}
+            {shopeeConnected &&
+              <Button
+                onClick={handleUnlinkShopee}
+                disabled={isUnlinking}
+                className={`flex items-center gap-2 text-sm font-black shadow-lg transition-all
+                  ${shopeeConnected
+                    ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20'
+                    : 'bg-slate-800 hover:bg-slate-700 text-white'
+                  }`}
+              >
+                {isUnlinking ? <RefreshCw className="w-5 h-5 animate-spin" /> : <ShoppingBag className="w-5 h-5" />}
+                UNLINK SHOPEE
+              </Button>
+            }
           </div>
           <div className="flex flex-col md:flex-row justify-between gap-4">
             {/* Bagian Kiri: Filter Waktu */}

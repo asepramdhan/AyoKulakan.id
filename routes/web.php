@@ -44,6 +44,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/sales-record/update-ad-cost', [SalesRecordController::class, 'updateAdCost'])->name('sales-record.update-ad-cost');
     Route::post('/sales-record/sync-shopee', [SalesRecordController::class, 'syncShopee'])->name('sales-record.sync-shopee');
+    Route::post('/sales-record/unlink-shopee', [SalesRecordController::class, 'deleteShopeeToken'])->name('sales-record.unlink-shopee');
 
     route::get('/analysis/margin', [MarginAnalysisController::class, 'index'])->name('analysis.margin.index');
     route::patch('/analysis/margin/{id}/update-price', [MarginAnalysisController::class, 'updatePrice'])

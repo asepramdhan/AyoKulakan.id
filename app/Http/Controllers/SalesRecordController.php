@@ -120,8 +120,8 @@ class SalesRecordController extends Controller
 
                 if (isset($resDetail['response']['order_list'])) {
                     foreach ($resDetail['response']['order_list'] as $order) {
-                        // Filter status sesuai kebutuhan bisnis Anda
-                        $statusValid = ['READY_TO_SHIP', 'SHIPPED', 'COMPLETED', 'PROCESSED'];
+                        // Filter status sesuai kebutuhan bisnis Anda 'READY_TO_SHIP', 'SHIPPED', 'COMPLETED', 
+                        $statusValid = ['PROCESSED'];
                         if (in_array($order['order_status'], $statusValid)) {
                             $this->autoImportToSalesRecord($userId, $order, $token->shop_name ?? 'Shopee Store');
                         }
@@ -131,6 +131,17 @@ class SalesRecordController extends Controller
         }
 
         return back()->with('success', 'Berhasil menarik ' . count($allOrderIds) . ' data order.');
+    }
+    // fungsi hapus token shopee
+    public function deleteShopeeToken(Request $request)
+    {
+        $tokenData = DB::table('shopee_tokens')->where('user_id', Auth::id())->first();
+
+        if (!$tokenData) {
+            return back()->with('error', 'Akun Shopee belum terhubung.');
+        }
+        DB::table('shopee_tokens')->where('user_id', Auth::id())->delete();
+        return back()->with('success', 'Token Shopee berhasil dihapus.');
     }
 
     // LOGIKA PENYIMPANAN (DENGAN FIX DUPLIKAT ID)

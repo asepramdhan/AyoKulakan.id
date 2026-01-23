@@ -217,7 +217,7 @@ export default function Index({ stores }: { stores: any[] }) {
                           <ShoppingBag className="w-4 h-4 text-slate-400" />
                         </TableCell>
                         <TableCell>
-                          <div className="font-bold capitalize">{store.name}</div>
+                          <div className="font-bold capitalize truncate max-w-[150px]">{store.name}</div>
                         </TableCell>
                         <TableCell>
                           <div className="text-xs">
