@@ -203,12 +203,12 @@ export default function Index({ products, stores, shopeeConnected, ...props }: a
       qty: Number(item.qty) || 1,
       buy_price: Number(item.master_buy_price) || 0,
       sell_price: Number(item.sell_price) || 0,
-      marketplace_fee_percent: Number(item.default_admin_fee) || 0,
-      promo_extra_percent: Number(item.default_promo_fee) || 0,
+      marketplace_fee_percent: Number(item.marketplace_fee_percent) || 0,
+      promo_extra_percent: Number(item.promo_extra_percent) || 0,
       marketplace_name: item.marketplace_name || 'Shopee',
       shipping_cost: Number(item.shipping_cost) || 0,
       // Perhatikan: pastikan mapping field dari DB (biasanya flat_fees) benar
-      order_process_fee: Number(item.default_process_fee) || 0,
+      order_process_fee: Number(item.flat_fees) || 0,
       extra_costs: Number(item.extra_costs) || 0,
     });
     setOpen(true);
