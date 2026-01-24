@@ -413,7 +413,7 @@ export default function Index({ products, stores, filters }: any) {
           <div className="p-8 space-y-6">
             <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800">
               <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Produk Terpilih</Label>
-              <p className="text-lg font-bold text-slate-900 dark:text-white capitalize truncate">{selectedProduct?.name}</p>
+              <p className="text-lg font-bold text-slate-900 dark:text-white capitalize truncate max-w-[250px] lg:max-w-[300px]">{selectedProduct?.name}</p>
             </div>
 
             <div className="space-y-3">

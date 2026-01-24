@@ -28,13 +28,21 @@ class SalesRecordController extends Controller
         // Cek apakah user sudah punya token Shopee
         $shopeeConnected = DB::table('shopee_tokens')->where('user_id', $userId)->exists();
 
+        // Kita gunakan join agar bisa mengambil harga beli terbaru dari master produk secara realtime di table
+        $salesRecords = SalesRecord::where('sales_records.user_id', $userId)
+            ->leftJoin('products', function ($join) use ($userId) {
+                $join->on('sales_records.product_name', '=', 'products.name')
+                    ->where('products.user_id', '=', $userId);
+            })
+            ->select('sales_records.*', 'products.last_price as master_buy_price')
+            ->with('store')
+            ->latest('sales_records.created_at')
+            ->get();
+
         return Inertia::render('sales/index', [
             'products' => Auth::user()->products,
             'stores' => Store::where('user_id', $userId)->get(),
-            'salesRecords' => SalesRecord::where('user_id', $userId)
-                ->with('store')
-                ->latest()
-                ->get(),
+            'salesRecords' => $salesRecords,
             'todayAdCost' => DailyCost::where('user_id', $userId)->where('date', $today)->first(),
             // Kirim status koneksi ke frontend
             'shopeeConnected' => $shopeeConnected
@@ -150,52 +158,49 @@ class SalesRecordController extends Controller
         $items = $orderDetail['item_list'] ?? [];
         $transactionService = new TransactionService();
 
-        // 1. Pastikan Store Ada (Cegah Error Foreign Key)
-        $localStore = Store::firstOrCreate(
-            ['user_id' => $userId, 'name' => $shopName],
-            [
-                'default_admin_fee' => 6.0,
-                'default_process_fee' => 0,
-                'default_promo_fee' => 0
-            ]
-        );
-
         foreach ($items as $index => $item) {
-            // ID UNIK: order_sn + item_id + model_id (paling aman)
-            $uniqueExternalId = $orderDetail['order_sn'] . '-' . ($item['item_id']) . '-' . ($item['model_id'] ?? '0');
+            $uniqueExternalId = $orderDetail['order_sn'] . '-' . ($index + 1);
 
-            // Cek apakah item spesifik ini sudah ada
             if (SalesRecord::where('external_order_id', $uniqueExternalId)->exists()) {
                 continue;
             }
 
-            $productName = $item['item_name'];
-            // Shopee V2 menggunakan 'model_quantity_purchased'
-            $qty = $item['model_quantity_purchased'] ?? 1;
+            $shopeeProductName = $item['item_name'];
 
-            // Harga jual: Gunakan harga diskon jika ada, jika tidak gunakan harga original
-            $sellPrice = $item['model_discounted_price'] > 0 ? $item['model_discounted_price'] : $item['model_original_price'];
-
-            // 2. Cari Master Produk (Gunakan Nama Lengkap agar lebih akurat)
+            // --- PERBAIKAN PENCARIAN PRODUK ---
+            // Jangan potong 15 karakter, cari nama yang paling mendekati atau persis
             $masterProduct = Product::where('user_id', $userId)
-                ->where('name', $productName) // Coba cari yang persis dulu
-                ->first();
+                ->where(function ($q) use ($shopeeProductName) {
+                    $q->where('name', $shopeeProductName)
+                        ->orWhere('name', 'LIKE', '%' . $shopeeProductName . '%');
+                })->first();
 
+            // Jika masih tidak ketemu, coba cari apakah nama produk kita ada di dalam nama panjang Shopee
             if (!$masterProduct) {
-                // Jika tidak ada yang persis, baru gunakan LIKE
-                $masterProduct = Product::where('user_id', $userId)
-                    ->where('name', 'LIKE', '%' . substr($productName, 0, 20) . '%')
-                    ->first();
+                $allProducts = Product::where('user_id', $userId)->get();
+                foreach ($allProducts as $p) {
+                    if (stripos($shopeeProductName, $p->name) !== false) {
+                        $masterProduct = $p;
+                        break;
+                    }
+                }
             }
 
+            // Gunakan harga dari master produk, jika tidak ada baru 0
             $buyPrice = $masterProduct ? $masterProduct->last_price : 0;
+            // Jika ketemu, pastikan nama produk yang dikirim ke TransactionService adalah nama di Database kita
+            $finalProductName = $masterProduct ? $masterProduct->name : $shopeeProductName;
 
-            // 3. Eksekusi Simpan
+            $qty = $item['model_quantity_purchased'] ?? $item['model_quantity'] ?? 1;
+            $sellPrice = $item['model_discounted_price'] ?? $item['model_original_price'];
+
+            $localStore = Store::where('user_id', $userId)->where('name', $shopName)->first();
+
             $transactionService->recordTransaction($userId, [
-                'store_id' => $localStore->id, // Pastikan ID Integer
+                'store_id' => $localStore ? $localStore->id : $shopName,
                 'store_name' => $shopName,
                 'created_at' => date('Y-m-d H:i:s', $orderDetail['create_time']),
-                'product_name' => $productName,
+                'product_name' => $finalProductName, // Pakai nama master produk
                 'qty' => $qty,
                 'buy_price' => $buyPrice,
                 'sell_price' => $sellPrice,

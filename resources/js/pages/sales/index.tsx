@@ -52,6 +52,7 @@ const formatDate = (dateString: string) => {
 };
 
 export default function Index({ products, stores, shopeeConnected, ...props }: any) {
+
   // --- STATE TRANSAKSI MANUAL ---
   const { todayAdCost } = usePage().props as any;
   const [dailyAdCost, setDailyAdCost] = useState(todayAdCost?.amount || 0);
@@ -200,7 +201,7 @@ export default function Index({ products, stores, shopeeConnected, ...props }: a
       store_id: item.store_id ? item.store_id.toString() : '',
       product_name: item.product_name || '',
       qty: Number(item.qty) || 1,
-      buy_price: Number(item.buy_price) || 0,
+      buy_price: Number(item.master_buy_price) || 0,
       sell_price: Number(item.sell_price) || 0,
       marketplace_fee_percent: Number(item.marketplace_fee_percent) || 0,
       promo_extra_percent: Number(item.promo_extra_percent) || 0,
@@ -964,7 +965,7 @@ export default function Index({ products, stores, shopeeConnected, ...props }: a
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="py-4 text-right">Rp {formatRupiah(item.buy_price)}</TableCell>
+                        <TableCell className="py-4 text-right">Rp {formatRupiah(item.master_buy_price ?? item.buy_price)}</TableCell>
                         <TableCell className="py-4 text-right font-medium">Rp {formatRupiah(item.sell_price)}</TableCell>
                         <TableCell className="py-4 text-right text-red-500">
                           - Rp {formatRupiah(totalFees)}
