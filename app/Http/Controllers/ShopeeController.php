@@ -54,73 +54,50 @@ class ShopeeController extends Controller
     public function getAccessToken(Request $request)
     {
         $code = $request->query('code');
-        $shopId = (int) $request->query('shop_id');
-        if (!$code) return "Menunggu callback...";
+        $shopId = $request->query('shop_id');
+        $mainAccountId = $request->query('main_account_id'); // Ambil ini juga
 
+        if (!$code) return "Menunggu callback...";
         // 1. Ambil Access Token
         $path = "/api/v2/auth/token/get";
         $timestamp = time();
         $sign = hash_hmac('sha256', $this->partnerId . $path . $timestamp, $this->partnerKey);
-
         $url = "{$this->host}{$path}?partner_id={$this->partnerId}&timestamp={$timestamp}&sign={$sign}";
-
-        $response = Http::withoutVerifying()->post($url, [
+        // Susun Body secara dinamis
+        $body = [
             "code" => $code,
-            "shop_id" => $shopId,
-            "partner_id" => $this->partnerId
-        ]);
+            "partner_id" => (int)$this->partnerId
+        ];
 
+        if ($mainAccountId) {
+            $body["main_account_id"] = (int)$mainAccountId;
+        } else {
+            $body["shop_id"] = (int)$shopId;
+        }
+
+        $response = Http::withoutVerifying()->post($url, $body);
         $res = $response->json();
 
         if (isset($res['access_token'])) {
-            $accessToken = $res['access_token'];
-            $actualShopId = (int)$res['shop_id_list'][0];
-            $shopName = "Toko " . $actualShopId; // Fallback
+            // Jika main_account_id digunakan, shop_id_list akan berisi banyak ID (ID dan MY)
+            $shopIds = $res['shop_id_list'] ?? [$shopId];
 
-            // 2. AMBIL INFO TOKO (Signature harus pakai Access Token & Shop ID)
-            $pathShop = "/api/v2/shop/get_shop_info";
-
-            // PENTING: Perhatikan urutan baseString untuk API Shop level:
-            // partner_id + path + timestamp + access_token + shop_id
-            $baseStringShop = $this->partnerId . $pathShop . $timestamp . $accessToken . $actualShopId;
-            $signShop = hash_hmac('sha256', $baseStringShop, $this->partnerKey);
-
-            $resShop = Http::withoutVerifying()->get("{$this->host}{$pathShop}", [
-                'partner_id'   => (int)$this->partnerId,
-                'timestamp'    => $timestamp,
-                'access_token' => $accessToken,
-                'shop_id'      => $actualShopId,
-                'sign'         => $signShop,
-            ])->json();
-
-            // Debugging: Jika masih gagal, aktifkan dd di bawah ini untuk melihat error dari Shopee
-            // dd($resShop); 
-
-            if (isset($resShop['shop_name'])) {
-                $shopName = $resShop['shop_name'];
+            foreach ($shopIds as $idToko) {
+                // Simpan atau update token untuk setiap toko yang ditemukan
+                DB::table('shopee_tokens')->updateOrInsert(
+                    ['shop_id' => $idToko],
+                    [
+                        'user_id'       => Auth::id(),
+                        'partner_id'    => $this->partnerId,
+                        'access_token'  => $res['access_token'],
+                        'refresh_token' => $res['refresh_token'],
+                        'expire_in'     => $res['expire_in'],
+                        'updated_at'    => now()
+                    ]
+                );
             }
 
-            // 3. SIMPAN KE DATABASE
-            DB::table('shopee_tokens')->updateOrInsert(
-                ['shop_id' => $actualShopId],
-                [
-                    'shop_name'     => $shopName,
-                    'user_id'       => Auth::id(),
-                    'partner_id'    => $this->partnerId,
-                    'access_token'  => $accessToken,
-                    'refresh_token' => $res['refresh_token'],
-                    'expire_in'     => $res['expire_in'],
-                    'updated_at'    => now()
-                ]
-            );
-
-            // return response()->json([
-            //     'status'  => 'success',
-            //     'message' => "Toko $shopName berhasil terhubung!",
-            //     'shop_info_raw' => $resShop // Untuk memastikan kamu lihat hasil dari Shopee
-            // ]);
-
-            return to_route('sales-record.index', ['shop_id' => $actualShopId]);
+            return to_route('sales-record.index');
         }
 
         return $response->json();
