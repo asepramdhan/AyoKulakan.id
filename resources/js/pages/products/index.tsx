@@ -16,6 +16,7 @@ import { Info, Package2, PackageSearch, Pencil, PlusCircle, Search, Store, Trash
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Master Produk', href: products.index().url }];
 
@@ -188,9 +189,18 @@ export default function Index({ products, stores, filters }: any) {
                         <TableCell className="py-5 px-6">
                           <div className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-2">
-                              <div className="font-bold text-slate-800 dark:text-slate-100 text-[15px] capitalize tracking-tight group-hover:text-orange-600 transition-colors truncate max-w-[180px]">
-                                {product.name}
-                              </div>
+                              <Tooltip key='bottom'>
+                                <TooltipTrigger>
+                                  <div className="font-bold text-slate-800 dark:text-slate-100 text-[15px] capitalize tracking-tight group-hover:text-orange-600 transition-colors truncate max-w-[180px]">
+                                    {product.name}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side='bottom'>
+                                  <div className="font-bold text-[13px] capitalize tracking-tight">
+                                    {product.name}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
                             {/* --- INFO PACKING (DINAMIS) --- */}
                             <div className="flex flex-wrap gap-x-3 gap-y-1 my-1">

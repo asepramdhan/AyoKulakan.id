@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import AppLayout from '@/layouts/app-layout';
 import salesRecord from '@/routes/sales-record';
 import { type BreadcrumbItem } from '@/types';
@@ -942,7 +943,18 @@ export default function Index({ products, stores, shopeeConnected, ...props }: a
                           <div className="flex flex-col gap-1">
                             {/* Nama Produk dengan line-clamp agar tidak merusak layout jika teks terlalu panjang */}
                             <div className="font-semibold text-sm capitalize text-slate-900 dark:text-slate-100 line-clamp-1">
-                              <div className='truncate max-w-[200px]'>{item.product_name || 'Tanpa Nama'}</div>
+                              <Tooltip key='bottom'>
+                                <TooltipTrigger>
+                                  <div className='font-semibold text-sm capitalize text-slate-900 dark:text-slate-100 line-clamp-1 truncate max-w-[200px]'>
+                                    {item.product_name || 'Tanpa Nama'}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side='bottom'>
+                                  <div className='font-semibold text-xs capitalize line-clamp-1'>
+                                    {item.product_name || 'Tanpa Nama'}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
                               {/* Info Qty dengan pemisah dot */}
                               <span className="text-slate-300 dark:text-slate-700 ms-1">•</span>
                               <span className="ms-1 text-[10px] font-medium text-slate-500 uppercase tracking-tight">
